@@ -186,7 +186,7 @@ export function AddLinkForm({ onLinkAdded, existingTags, collections }: Props) {
             onChange={(e) => setNote(e.target.value)}
             placeholder="Why is this useful? (helps you remember later)"
             rows={2}
-            className="w-full px-4 py-3 rounded-xl text-base transition-all resize-none"
+            className="w-full px-4 py-3 rounded-xl text-base transition-all resize-none placeholder:text-gray-400"
             style={{
               background: 'var(--color-bg-tertiary)',
               border: '1px solid var(--color-border)',

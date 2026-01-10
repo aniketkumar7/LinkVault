@@ -1,9 +1,9 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
+import { jsPDF } from 'jspdf'
 import { useAuth } from '@/hooks/useAuth'
 import { useLinks, useCollections, useStats, useDeleteWithUndo, useBatchActions, useToggleFavorite } from '@/hooks/useLinks'
-import type { Link, LinkFilters } from '@/lib/api'
-import { api } from '@/lib/api'
+import type { LinkFilters } from '@/lib/api'
 import { toast } from '@/lib/toast'
 import { SkeletonGrid } from '@/components/ui/Skeleton'
 import { NoLinksEmpty, NoResultsEmpty } from '@/components/ui/EmptyState'
@@ -107,30 +107,75 @@ export function Dashboard() {
     setCollectionFilter('')
   }
 
-  const handleExport = async (format: 'json' | 'csv') => {
+  const handleExportPDF = async () => {
     setExporting(true)
     try {
-      const result = await api.exportLinks(format)
-      if (format === 'csv') {
-        const blob = result as Blob
-        const url = URL.createObjectURL(blob)
-        const a = document.createElement('a')
-        a.href = url
-        a.download = `links-export-${new Date().toISOString().split('T')[0]}.csv`
-        a.click()
-        URL.revokeObjectURL(url)
-      } else {
-        const data = result as { links: Link[] }
-        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
-        const url = URL.createObjectURL(blob)
-        const a = document.createElement('a')
-        a.href = url
-        a.download = `links-export-${new Date().toISOString().split('T')[0]}.json`
-        a.click()
-        URL.revokeObjectURL(url)
-      }
-      toast.success(`Exported as ${format.toUpperCase()}`)
-    } catch {
+      const doc = new jsPDF()
+      const pageWidth = doc.internal.pageSize.getWidth()
+      
+      // Header
+      doc.setFontSize(20)
+      doc.setTextColor(42, 187, 247) // accent color
+      doc.text('LinkVault Export', 14, 20)
+      
+      doc.setFontSize(10)
+      doc.setTextColor(128, 128, 128)
+      doc.text(`Exported on ${new Date().toLocaleDateString()}`, 14, 28)
+      doc.text(`Total: ${links.length} links`, 14, 34)
+      
+      let y = 45
+      const lineHeight = 7
+      const maxWidth = pageWidth - 28
+      
+      links.forEach((link, index) => {
+        // Check if we need a new page
+        if (y > 270) {
+          doc.addPage()
+          y = 20
+        }
+        
+        // Link number and title
+        doc.setFontSize(11)
+        doc.setTextColor(0, 0, 0)
+        const title = `${index + 1}. ${link.title || 'Untitled'}`
+        const titleLines = doc.splitTextToSize(title, maxWidth)
+        doc.text(titleLines, 14, y)
+        y += titleLines.length * lineHeight
+        
+        // URL
+        doc.setFontSize(9)
+        doc.setTextColor(42, 187, 247)
+        const urlLines = doc.splitTextToSize(link.url, maxWidth)
+        doc.text(urlLines, 14, y)
+        y += urlLines.length * lineHeight
+        
+        // Note (if exists)
+        if (link.note) {
+          doc.setTextColor(100, 100, 100)
+          const noteLines = doc.splitTextToSize(`Note: ${link.note}`, maxWidth)
+          doc.text(noteLines, 14, y)
+          y += noteLines.length * lineHeight
+        }
+        
+        // Tags
+        if (link.tags.length > 0) {
+          doc.setTextColor(150, 150, 150)
+          doc.text(`Tags: ${link.tags.join(', ')}`, 14, y)
+          y += lineHeight
+        }
+        
+        // Separator
+        y += 4
+        doc.setDrawColor(230, 230, 230)
+        doc.line(14, y, pageWidth - 14, y)
+        y += 8
+      })
+      
+      // Save
+      doc.save(`linkvault-export-${new Date().toISOString().split('T')[0]}.pdf`)
+      toast.success('Exported as PDF')
+    } catch (err) {
+      console.error('PDF export failed:', err)
       toast.error('Export failed')
     } finally {
       setExporting(false)
@@ -262,19 +307,14 @@ export function Dashboard() {
               >
                 Collections
               </button>
-              <div className="relative group">
-                <button
-                  disabled={exporting}
-                  className="px-4 py-2.5 rounded-xl text-sm font-medium transition-colors disabled:opacity-50"
-                  style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)', color: 'var(--color-text-secondary)' }}
-                >
-                  {exporting ? 'Exporting...' : 'Export'}
-                </button>
-                <div className="absolute right-0 top-full mt-1 py-1 rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10" style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)', minWidth: '100px' }}>
-                  <button onClick={() => handleExport('json')} className="w-full px-4 py-2 text-sm text-left hover:bg-bg-tertiary" style={{ color: 'var(--color-text-secondary)' }}>JSON</button>
-                  <button onClick={() => handleExport('csv')} className="w-full px-4 py-2 text-sm text-left hover:bg-bg-tertiary" style={{ color: 'var(--color-text-secondary)' }}>CSV</button>
-                </div>
-              </div>
+              <button
+                onClick={handleExportPDF}
+                disabled={exporting || links.length === 0}
+                className="px-4 py-2.5 rounded-xl text-sm font-medium transition-colors disabled:opacity-50"
+                style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)', color: 'var(--color-text-secondary)' }}
+              >
+                {exporting ? 'Exporting...' : 'Export PDF'}
+              </button>
             </div>
           </div>
 
