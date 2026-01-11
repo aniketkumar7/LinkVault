@@ -4,7 +4,9 @@ import { jsPDF } from 'jspdf'
 import { useAuth } from '@/hooks/useAuth'
 import { useLinks, useCollections, useStats, useDeleteWithUndo, useBatchActions, useToggleFavorite, useInvalidateCollections } from '@/hooks/useLinks'
 import type { LinkFilters } from '@/lib/api'
+import { api } from '@/lib/api'
 import { toast } from '@/lib/toast'
+import { Dialog } from '@/components/ui/Dialog'
 import { SkeletonGrid } from '@/components/ui/Skeleton'
 import { NoLinksEmpty, NoResultsEmpty } from '@/components/ui/EmptyState'
 import { AddLinkForm } from './AddLinkForm'
@@ -32,8 +34,14 @@ export function Dashboard() {
   // UI state
   const [theme, setTheme] = useState<Theme>(() => (localStorage.getItem('theme') as Theme) || 'dark')
   const [showBulkImport, setShowBulkImport] = useState(false)
+  const [showExportModal, setShowExportModal] = useState(false)
+  const [exportCollectionId, setExportCollectionId] = useState<string>('')
   const [exporting, setExporting] = useState(false)
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false)
+  
+  // Collection management
+  const [editingCollection, setEditingCollection] = useState<{ id: string; name: string } | null>(null)
+  const [deletingCollectionId, setDeletingCollectionId] = useState<string | null>(null)
   
   // Selection for batch actions
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
@@ -133,163 +141,186 @@ export function Dashboard() {
 
   const handleExportPDF = async () => {
     setExporting(true)
+    setShowExportModal(false)
+    
     try {
+      // Filter links by selected collection
+      const exportLinks = exportCollectionId 
+        ? links.filter(l => l.collection_id === exportCollectionId)
+        : links
+      
+      const exportCollectionName = exportCollectionId 
+        ? collections.find(c => c.id === exportCollectionId)?.name || 'Collection'
+        : 'All Links'
+      
+      if (exportLinks.length === 0) {
+        toast.error('No links to export')
+        setExporting(false)
+        return
+      }
+      
       const doc = new jsPDF()
       const pageWidth = doc.internal.pageSize.getWidth()
       const pageHeight = doc.internal.pageSize.getHeight()
-      const margin = 20
+      const margin = 15
       const contentWidth = pageWidth - margin * 2
       
       // Colors
-      const accentColor: [number, number, number] = [42, 187, 247]
-      const darkText: [number, number, number] = [30, 30, 30]
-      const mutedText: [number, number, number] = [120, 120, 120]
-      const lightBg: [number, number, number] = [248, 250, 252]
+      const accent: [number, number, number] = [42, 187, 247]
+      const dark: [number, number, number] = [15, 23, 42]
+      const muted: [number, number, number] = [100, 116, 139]
+      const light: [number, number, number] = [241, 245, 249]
       
-      // Helper to add header/footer to each page
-      const addPageFrame = (pageNum: number, totalPages: number) => {
-        // Footer
-        doc.setFontSize(8)
-        doc.setTextColor(...mutedText)
-        doc.text(`Page ${pageNum} of ${totalPages}`, pageWidth / 2, pageHeight - 10, { align: 'center' })
-        doc.text('LinkVault', margin, pageHeight - 10)
-        doc.text(new Date().toLocaleDateString(), pageWidth - margin, pageHeight - 10, { align: 'right' })
-      }
+      // === COVER PAGE ===
+      // Gradient header simulation
+      doc.setFillColor(15, 23, 42)
+      doc.rect(0, 0, pageWidth, pageHeight, 'F')
       
-      // Cover page
-      doc.setFillColor(...accentColor)
-      doc.rect(0, 0, pageWidth, 60, 'F')
+      // Accent circle decoration
+      doc.setFillColor(...accent)
+      doc.circle(pageWidth - 30, 40, 60, 'F')
+      doc.setFillColor(6, 182, 212)
+      doc.circle(30, pageHeight - 50, 40, 'F')
       
-      doc.setFontSize(32)
+      // Title
+      doc.setFontSize(42)
       doc.setTextColor(255, 255, 255)
-      doc.text('LinkVault', margin, 38)
+      doc.text('LinkVault', margin + 5, 60)
       
-      doc.setFontSize(12)
-      doc.text('Your Saved Links Collection', margin, 50)
+      doc.setFontSize(16)
+      doc.setTextColor(...accent)
+      doc.text(exportCollectionName, margin + 5, 75)
       
-      // Stats section
-      let y = 80
-      doc.setFillColor(...lightBg)
-      doc.roundedRect(margin, y - 5, contentWidth, 35, 3, 3, 'F')
+      // Stats box
+      const boxY = 100
+      doc.setFillColor(30, 41, 59)
+      doc.roundedRect(margin, boxY, contentWidth, 50, 5, 5, 'F')
       
-      doc.setFontSize(24)
-      doc.setTextColor(...accentColor)
-      doc.text(String(links.length), margin + 15, y + 15)
-      
-      doc.setFontSize(10)
-      doc.setTextColor(...mutedText)
-      doc.text('Total Links', margin + 15, y + 23)
-      
-      const favoriteCount = links.filter(l => l.is_favorite).length
-      doc.setFontSize(24)
-      doc.setTextColor(...accentColor)
-      doc.text(String(favoriteCount), margin + 70, y + 15)
+      // Stats
+      const statWidth = contentWidth / 3
+      doc.setFontSize(32)
+      doc.setTextColor(...accent)
+      doc.text(String(exportLinks.length), margin + statWidth * 0.5, boxY + 28, { align: 'center' })
+      doc.text(String(exportLinks.filter(l => l.is_favorite).length), margin + statWidth * 1.5, boxY + 28, { align: 'center' })
+      doc.text(String(new Set(exportLinks.flatMap(l => l.tags)).size), margin + statWidth * 2.5, boxY + 28, { align: 'center' })
       
       doc.setFontSize(10)
-      doc.setTextColor(...mutedText)
-      doc.text('Favorites', margin + 70, y + 23)
+      doc.setTextColor(148, 163, 184)
+      doc.text('Links', margin + statWidth * 0.5, boxY + 42, { align: 'center' })
+      doc.text('Favorites', margin + statWidth * 1.5, boxY + 42, { align: 'center' })
+      doc.text('Tags', margin + statWidth * 2.5, boxY + 42, { align: 'center' })
       
-      const tagCount = new Set(links.flatMap(l => l.tags)).size
-      doc.setFontSize(24)
-      doc.setTextColor(...accentColor)
-      doc.text(String(tagCount), margin + 120, y + 15)
+      // Date
+      doc.setFontSize(11)
+      doc.setTextColor(148, 163, 184)
+      doc.text(`Exported ${new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}`, margin + 5, boxY + 70)
       
-      doc.setFontSize(10)
-      doc.setTextColor(...mutedText)
-      doc.text('Tags', margin + 120, y + 23)
+      // Decorative line
+      doc.setDrawColor(...accent)
+      doc.setLineWidth(2)
+      doc.line(margin, boxY + 80, margin + 60, boxY + 80)
       
-      doc.setFontSize(10)
-      doc.setTextColor(...mutedText)
-      doc.text(`Exported: ${new Date().toLocaleString()}`, pageWidth - margin, y + 15, { align: 'right' })
-      
-      // Links start on page 2
+      // === LINK PAGES ===
       doc.addPage()
-      y = 25
+      doc.setFillColor(255, 255, 255)
+      doc.rect(0, 0, pageWidth, pageHeight, 'F')
       
-      links.forEach((link, index) => {
-        const cardHeight = 45 + (link.note ? 12 : 0) + (link.tags.length > 0 ? 10 : 0)
-        
-        // Check if we need a new page
-        if (y + cardHeight > pageHeight - 25) {
+      let y = 20
+      const rowHeight = 28
+      
+      exportLinks.forEach((link, index) => {
+        if (y + rowHeight > pageHeight - 20) {
           doc.addPage()
-          y = 25
+          y = 20
         }
         
-        // Card background
-        doc.setFillColor(...lightBg)
-        doc.roundedRect(margin, y, contentWidth, cardHeight - 5, 3, 3, 'F')
+        // Alternating row bg
+        if (index % 2 === 0) {
+          doc.setFillColor(...light)
+          doc.rect(margin, y - 5, contentWidth, rowHeight - 2, 'F')
+        }
         
-        // Index number circle
-        doc.setFillColor(...accentColor)
-        doc.circle(margin + 10, y + 12, 8, 'F')
-        doc.setFontSize(10)
-        doc.setTextColor(255, 255, 255)
-        doc.text(String(index + 1), margin + 10, y + 15, { align: 'center' })
+        // Number
+        doc.setFontSize(9)
+        doc.setTextColor(...muted)
+        doc.text(String(index + 1).padStart(2, '0'), margin + 5, y + 8)
         
-        // Favorite star
+        // Favorite
         if (link.is_favorite) {
-          doc.setFontSize(12)
           doc.setTextColor(251, 191, 36)
-          doc.text('★', pageWidth - margin - 10, y + 12)
+          doc.text('★', margin + 18, y + 8)
         }
         
         // Title
-        doc.setFontSize(11)
-        doc.setTextColor(...darkText)
-        const title = link.title || 'Untitled'
-        const titleTruncated = title.length > 60 ? title.substring(0, 60) + '...' : title
-        doc.text(titleTruncated, margin + 25, y + 14)
+        doc.setFontSize(10)
+        doc.setTextColor(...dark)
+        const title = (link.title || 'Untitled').substring(0, 50) + (link.title && link.title.length > 50 ? '...' : '')
+        doc.text(title, margin + 28, y + 8)
         
-        // URL
-        doc.setFontSize(8)
-        doc.setTextColor(...accentColor)
-        const urlTruncated = link.url.length > 80 ? link.url.substring(0, 80) + '...' : link.url
-        doc.text(urlTruncated, margin + 25, y + 22)
+        // URL below title
+        doc.setFontSize(7)
+        doc.setTextColor(...accent)
+        const url = link.url.substring(0, 70) + (link.url.length > 70 ? '...' : '')
+        doc.text(url, margin + 28, y + 16)
         
-        // Collection badge (if any)
-        const collection = collections.find(c => c.id === link.collection_id)
-        if (collection) {
-          doc.setFontSize(7)
-          doc.setTextColor(...mutedText)
-          doc.text(`📁 ${collection.name}`, margin + 25, y + 30)
-        }
-        
-        let contentY = y + (collection ? 36 : 30)
-        
-        // Note
-        if (link.note) {
-          doc.setFontSize(8)
-          doc.setTextColor(...mutedText)
-          const noteTruncated = link.note.length > 100 ? link.note.substring(0, 100) + '...' : link.note
-          doc.text(`💬 ${noteTruncated}`, margin + 25, contentY)
-          contentY += 10
-        }
-        
-        // Tags
+        // Tags on right
         if (link.tags.length > 0) {
           doc.setFontSize(7)
-          doc.setTextColor(...accentColor)
-          doc.text(link.tags.map(t => `#${t}`).join('  '), margin + 25, contentY)
+          doc.setTextColor(...muted)
+          const tagText = link.tags.slice(0, 3).map(t => `#${t}`).join(' ')
+          doc.text(tagText, pageWidth - margin - 5, y + 8, { align: 'right' })
         }
         
-        y += cardHeight
+        y += rowHeight
       })
       
-      // Add page numbers to all pages
+      // Footer on all pages
       const totalPages = doc.getNumberOfPages()
       for (let i = 1; i <= totalPages; i++) {
         doc.setPage(i)
-        addPageFrame(i, totalPages)
+        doc.setFontSize(8)
+        doc.setTextColor(...muted)
+        doc.text('LinkVault', margin, pageHeight - 8)
+        doc.text(`${i}/${totalPages}`, pageWidth - margin, pageHeight - 8, { align: 'right' })
       }
       
       // Save
-      doc.save(`linkvault-export-${new Date().toISOString().split('T')[0]}.pdf`)
-      toast.success('Exported as PDF')
+      const filename = exportCollectionId 
+        ? `linkvault-${exportCollectionName.toLowerCase().replace(/\s+/g, '-')}-${new Date().toISOString().split('T')[0]}.pdf`
+        : `linkvault-all-${new Date().toISOString().split('T')[0]}.pdf`
+      doc.save(filename)
+      toast.success(`Exported ${exportLinks.length} links`)
     } catch (err) {
       console.error('PDF export failed:', err)
       toast.error('Export failed')
     } finally {
       setExporting(false)
+      setExportCollectionId('')
+    }
+  }
+  
+  const handleEditCollection = async () => {
+    if (!editingCollection) return
+    try {
+      await api.updateCollection(editingCollection.id, { name: editingCollection.name })
+      invalidateCollections()
+      setEditingCollection(null)
+      toast.success('Collection updated')
+    } catch {
+      toast.error('Failed to update collection')
+    }
+  }
+  
+  const handleDeleteCollection = async () => {
+    if (!deletingCollectionId) return
+    try {
+      await api.deleteCollection(deletingCollectionId)
+      invalidateCollections()
+      setDeletingCollectionId(null)
+      if (collectionFilter === deletingCollectionId) setCollectionFilter('')
+      toast.success('Collection deleted')
+    } catch {
+      toast.error('Failed to delete collection')
     }
   }
 
@@ -438,12 +469,12 @@ export function Dashboard() {
                 <span className="sm:hidden">Import</span>
               </button>
               <button
-                onClick={handleExportPDF}
+                onClick={() => setShowExportModal(true)}
                 disabled={exporting || links.length === 0}
                 className="px-4 py-2.5 rounded-xl text-sm font-medium transition-colors disabled:opacity-50 btn-press"
                 style={{ background: 'var(--color-bg-tertiary)', border: '1px solid var(--color-border)', color: 'var(--color-text-secondary)' }}
               >
-                {exporting ? 'Exporting...' : 'Export PDF'}
+                {exporting ? 'Exporting...' : 'Export'}
               </button>
             </div>
           </div>
@@ -462,17 +493,46 @@ export function Dashboard() {
             {/* Filter chips - hidden on mobile unless open */}
             <div className={`${mobileFiltersOpen ? 'flex' : 'hidden'} sm:flex flex-wrap gap-2 w-full sm:w-auto items-center`}>
               {collections.length > 0 && (
-                <Select
-                  value={collectionFilter}
-                  onChange={setCollectionFilter}
-                  options={[
-                    { value: '', label: 'All Collections', icon: <span className="text-sm">📁</span> },
-                    ...collections.map(col => ({ value: col.id, label: col.name, color: col.color }))
-                  ]}
-                  placeholder="Collection"
-                  size="sm"
-                  className="min-w-36"
-                />
+                <div className="flex items-center gap-1">
+                  <Select
+                    value={collectionFilter}
+                    onChange={setCollectionFilter}
+                    options={[
+                      { value: '', label: 'All Collections', icon: <span className="text-sm">📁</span> },
+                      ...collections.map(col => ({ value: col.id, label: col.name, color: col.color }))
+                    ]}
+                    placeholder="Collection"
+                    size="sm"
+                    className="min-w-32"
+                  />
+                  {collectionFilter && (
+                    <>
+                      <button
+                        onClick={() => {
+                          const col = collections.find(c => c.id === collectionFilter)
+                          if (col) setEditingCollection({ id: col.id, name: col.name })
+                        }}
+                        className="p-1.5 rounded btn-press"
+                        style={{ color: 'var(--color-text-muted)' }}
+                        title="Edit collection"
+                      >
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                      </button>
+                      <button
+                        onClick={() => setDeletingCollectionId(collectionFilter)}
+                        className="p-1.5 rounded btn-press"
+                        style={{ color: 'var(--color-error)' }}
+                        title="Delete collection"
+                      >
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
+                    </>
+                  )}
+                </div>
               )}
 
               {allTags.length > 0 && (
@@ -639,6 +699,110 @@ export function Dashboard() {
           collections={collections}
         />
       )}
+
+      {/* Export Modal */}
+      {showExportModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.7)' }}>
+          <div 
+            className="w-full max-w-sm rounded-2xl p-5 animate-scale-in"
+            style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)' }}
+          >
+            <h3 className="text-lg font-semibold mb-4" style={{ color: 'var(--color-text-primary)' }}>
+              Export to PDF
+            </h3>
+            
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs mb-1 block" style={{ color: 'var(--color-text-muted)' }}>
+                  What to export?
+                </label>
+                <Select
+                  value={exportCollectionId}
+                  onChange={setExportCollectionId}
+                  options={[
+                    { value: '', label: `All Links (${links.length})` },
+                    ...collections.map(col => ({ 
+                      value: col.id, 
+                      label: `${col.name} (${links.filter(l => l.collection_id === col.id).length})`,
+                      color: col.color 
+                    }))
+                  ]}
+                  placeholder="Select collection"
+                  size="sm"
+                />
+              </div>
+              
+              <div className="flex gap-2 pt-2">
+                <button
+                  onClick={() => { setShowExportModal(false); setExportCollectionId('') }}
+                  className="flex-1 px-4 py-2 rounded-xl text-sm font-medium"
+                  style={{ background: 'var(--color-bg-tertiary)', color: 'var(--color-text-secondary)' }}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleExportPDF}
+                  disabled={exporting}
+                  className="flex-1 px-4 py-2 rounded-xl text-sm font-medium text-white disabled:opacity-50"
+                  style={{ background: 'var(--color-accent)' }}
+                >
+                  {exporting ? 'Exporting...' : 'Export PDF'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Collection Dialog */}
+      {editingCollection && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.7)' }}>
+          <div 
+            className="w-full max-w-sm rounded-2xl p-5 animate-scale-in"
+            style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)' }}
+          >
+            <h3 className="text-lg font-semibold mb-4" style={{ color: 'var(--color-text-primary)' }}>
+              Edit Collection
+            </h3>
+            <input
+              type="text"
+              value={editingCollection.name}
+              onChange={(e) => setEditingCollection({ ...editingCollection, name: e.target.value })}
+              className="w-full px-3 py-2 rounded-xl text-sm mb-4"
+              style={{ background: 'var(--color-bg-tertiary)', border: '1px solid var(--color-border)', color: 'var(--color-text-primary)' }}
+              autoFocus
+            />
+            <div className="flex gap-2">
+              <button
+                onClick={() => setEditingCollection(null)}
+                className="flex-1 px-4 py-2 rounded-xl text-sm font-medium"
+                style={{ background: 'var(--color-bg-tertiary)', color: 'var(--color-text-secondary)' }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleEditCollection}
+                className="flex-1 px-4 py-2 rounded-xl text-sm font-medium text-white"
+                style={{ background: 'var(--color-accent)' }}
+              >
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Collection Dialog */}
+      <Dialog
+        open={!!deletingCollectionId}
+        onClose={() => setDeletingCollectionId(null)}
+        title="Delete collection?"
+        description="Links in this collection will not be deleted, but will no longer be in any collection."
+        confirmText="Delete"
+        cancelText="Cancel"
+        onConfirm={handleDeleteCollection}
+        variant="danger"
+      />
     </div>
   )
 }

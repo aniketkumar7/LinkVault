@@ -135,251 +135,182 @@ export function AddLinkForm({ onLinkAdded, existingTags, collections, onCollecti
     }
   }
 
-  const [showAdvanced, setShowAdvanced] = useState(false)
-
   return (
-    <form onSubmit={handleSubmit} className="rounded-2xl p-6" style={{
+    <form onSubmit={handleSubmit} className="rounded-2xl p-4" style={{
       background: 'var(--color-bg-card)',
       border: '1px solid var(--color-border)',
-      boxShadow: 'var(--shadow-card)',
     }}>
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center"
-               style={{ background: 'linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-muted) 100%)' }}>
-            <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-          </div>
-          <h2 className="text-lg font-semibold" style={{ color: 'var(--color-text-primary)' }}>
-            Quick Save
-          </h2>
-        </div>
-        <button
-          type="button"
-          onClick={() => setShowAdvanced(!showAdvanced)}
-          className="text-sm px-3 py-1.5 rounded-lg transition-colors"
-          style={{ 
-            background: showAdvanced ? 'var(--color-accent)' : 'var(--color-bg-tertiary)',
-            color: showAdvanced ? 'white' : 'var(--color-text-muted)',
-          }}
-        >
-          {showAdvanced ? 'Simple' : 'Advanced'}
-        </button>
-      </div>
-
-      <div className="space-y-4">
-        {/* URL Input */}
-        <div>
-          <div className="relative">
-            <input
-              ref={urlInputRef}
-              type="url"
-              value={url}
-              onChange={(e) => setUrl(e.target.value)}
-              placeholder="Paste URL here..."
-              className="w-full px-4 py-3 rounded-xl text-base transition-all pr-10"
-              style={{
-                background: 'var(--color-bg-tertiary)',
-                border: `1px solid ${duplicate ? 'var(--color-accent)' : 'var(--color-border)'}`,
-                color: 'var(--color-text-primary)',
-              }}
-              disabled={loading}
-              required
-            />
-            {checkingDuplicate && (
-              <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                <svg className="animate-spin h-5 w-5" style={{ color: 'var(--color-text-muted)' }} viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                </svg>
-              </div>
-            )}
-          </div>
-          
-          {/* Duplicate warning */}
-          {duplicate && !allowDuplicate && (
-            <div className="mt-2 p-3 rounded-lg text-sm flex items-center justify-between animate-slide-down" style={{
-              background: 'rgba(239, 68, 68, 0.1)',
-              border: '1px solid var(--color-error)',
-            }}>
-              <span style={{ color: 'var(--color-error)' }}>
-                ⚠️ Already saved: "{duplicate.title || 'Untitled'}" ({new Date(duplicate.created_at).toLocaleDateString()})
-              </span>
-              <button
-                type="button"
-                onClick={() => setAllowDuplicate(true)}
-                className="text-xs px-2 py-1 rounded font-medium transition-colors"
-                style={{ background: 'var(--color-error)', color: 'white' }}
-              >
-                Save anyway
-              </button>
-            </div>
-          )}
-          {duplicate && allowDuplicate && (
-            <div className="mt-2 p-2 rounded-lg text-sm" style={{
-              background: 'rgba(34, 197, 94, 0.1)',
-              border: '1px solid var(--color-success)',
-              color: 'var(--color-success)',
-            }}>
-              ✓ Duplicate allowed - click Save to add
-            </div>
-          )}
-        </div>
-
-        {/* Note */}
-        <div>
-          <textarea
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-            placeholder="Why is this useful? (helps you remember later)"
-            rows={2}
-            className="w-full px-4 py-3 rounded-xl text-base transition-all resize-none placeholder:text-gray-400"
+      {/* Row 1: URL + Favorite + Save */}
+      <div className="flex gap-2 items-center">
+        <div className="flex-1 relative">
+          <input
+            ref={urlInputRef}
+            type="url"
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+            placeholder="Paste URL here..."
+            className="w-full px-3 py-2.5 rounded-xl text-sm transition-all pr-8"
             style={{
               background: 'var(--color-bg-tertiary)',
-              border: '1px solid var(--color-border)',
+              border: `1px solid ${duplicate && !allowDuplicate ? 'var(--color-error)' : 'var(--color-border)'}`,
               color: 'var(--color-text-primary)',
             }}
             disabled={loading}
+            required
           />
-        </div>
-
-        {/* Basic row: Collection + Submit */}
-        <div className="flex gap-3 flex-wrap">
-          {showNewCollection ? (
-            <div className="flex-1 min-w-32 flex gap-2">
-              <input
-                type="text"
-                value={newCollectionName}
-                onChange={(e) => setNewCollectionName(e.target.value)}
-                placeholder="Collection name..."
-                className="flex-1 px-4 py-3 rounded-xl text-base"
-                style={{
-                  background: 'var(--color-bg-tertiary)',
-                  border: '1px solid var(--color-accent)',
-                  color: 'var(--color-text-primary)',
-                }}
-                autoFocus
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') { e.preventDefault(); handleCreateCollection() }
-                  if (e.key === 'Escape') { setShowNewCollection(false); setNewCollectionName('') }
-                }}
-              />
-              <button
-                type="button"
-                onClick={handleCreateCollection}
-                disabled={creatingCollection || !newCollectionName.trim()}
-                className="px-4 py-3 rounded-xl font-medium text-white disabled:opacity-50"
-                style={{ background: 'var(--color-accent)' }}
-              >
-                {creatingCollection ? '...' : 'Add'}
-              </button>
-              <button
-                type="button"
-                onClick={() => { setShowNewCollection(false); setNewCollectionName('') }}
-                className="px-3 py-3 rounded-xl"
-                style={{ background: 'var(--color-bg-tertiary)', color: 'var(--color-text-muted)' }}
-              >
-                ✕
-              </button>
-            </div>
-          ) : (
-            <div className="flex-1 min-w-32 flex gap-2">
-              <select
-                value={collectionId}
-                onChange={(e) => {
-                  if (e.target.value === '__new__') {
-                    setShowNewCollection(true)
-                  } else {
-                    setCollectionId(e.target.value)
-                  }
-                }}
-                className="flex-1 px-4 py-3 rounded-xl text-base"
-                style={{
-                  background: 'var(--color-bg-tertiary)',
-                  border: '1px solid var(--color-border)',
-                  color: collectionId ? 'var(--color-text-primary)' : 'var(--color-text-muted)',
-                }}
-                disabled={loading}
-              >
-                <option value="">No Collection</option>
-                {collections.map((col) => (
-                  <option key={col.id} value={col.id}>{col.name}</option>
-                ))}
-                <option value="__new__">+ Create new collection</option>
-              </select>
+          {checkingDuplicate && (
+            <div className="absolute right-2.5 top-1/2 -translate-y-1/2">
+              <svg className="animate-spin h-4 w-4" style={{ color: 'var(--color-text-muted)' }} viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+              </svg>
             </div>
           )}
-          
+        </div>
+        
+        <button
+          type="button"
+          onClick={() => setIsFavorite(!isFavorite)}
+          className="p-2.5 rounded-xl transition-all btn-press shrink-0"
+          style={{
+            background: isFavorite ? 'rgba(251, 191, 36, 0.15)' : 'var(--color-bg-tertiary)',
+            border: `1px solid ${isFavorite ? '#fbbf24' : 'var(--color-border)'}`,
+            color: isFavorite ? '#fbbf24' : 'var(--color-text-muted)',
+          }}
+          title={isFavorite ? 'Remove favorite' : 'Add favorite'}
+        >
+          <svg className="w-4 h-4" fill={isFavorite ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+          </svg>
+        </button>
+
+        <button
+          type="submit"
+          disabled={loading || !url.trim()}
+          className="px-5 py-2.5 rounded-xl font-semibold text-sm text-white transition-all disabled:opacity-50 btn-press shrink-0"
+          style={{
+            background: loading ? 'var(--color-border)' : 'var(--color-accent)',
+          }}
+        >
+          {loading ? '...' : 'Save'}
+        </button>
+      </div>
+
+      {/* Duplicate warning */}
+      {duplicate && !allowDuplicate && (
+        <div className="mt-2 px-3 py-2 rounded-lg text-xs flex items-center justify-between animate-slide-down" style={{
+          background: 'rgba(239, 68, 68, 0.1)',
+          border: '1px solid var(--color-error)',
+        }}>
+          <span style={{ color: 'var(--color-error)' }}>
+            ⚠️ Already saved: "{duplicate.title?.slice(0, 30) || 'Untitled'}..."
+          </span>
           <button
-            type="submit"
-            disabled={loading || !url.trim()}
-            className="px-6 py-3 rounded-xl font-semibold text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
-            style={{
-              background: loading ? 'var(--color-border)' : 'linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-muted) 100%)',
-              boxShadow: loading ? 'none' : 'var(--shadow-glow)',
-            }}
+            type="button"
+            onClick={() => setAllowDuplicate(true)}
+            className="text-xs px-2 py-0.5 rounded font-medium"
+            style={{ background: 'var(--color-error)', color: 'white' }}
           >
-            {loading ? (
-              <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-              </svg>
-            ) : (
-              'Save'
-            )}
+            Allow
           </button>
         </div>
+      )}
 
-        {/* Advanced options */}
-        {showAdvanced && (
-          <div className="pt-4 border-t space-y-3" style={{ borderColor: 'var(--color-border)' }}>
-            {/* Tags */}
-            <div>
-              <input
-                type="text"
-                value={tags}
-                onChange={(e) => setTags(e.target.value)}
-                placeholder="Tags (comma separated)"
-                list="tags"
-                className="w-full px-4 py-3 rounded-xl text-base transition-all"
-                style={{
-                  background: 'var(--color-bg-tertiary)',
-                  border: '1px solid var(--color-border)',
-                  color: 'var(--color-text-primary)',
-                }}
-                disabled={loading}
-              />
-              <datalist id="tags">
-                {existingTags.map((tag) => (
-                  <option key={tag} value={tag} />
-                ))}
-              </datalist>
-            </div>
-
-            {/* Favorite */}
-            <div className="flex gap-3">
-              <button
-                type="button"
-                onClick={() => setIsFavorite(!isFavorite)}
-                className="px-4 py-3 rounded-xl text-base font-medium transition-all"
-                style={{
-                  background: isFavorite ? 'rgba(42, 187, 247, 0.1)' : 'var(--color-bg-tertiary)',
-                  border: `1px solid ${isFavorite ? 'var(--color-accent)' : 'var(--color-border)'}`,
-                  color: isFavorite ? 'var(--color-accent)' : 'var(--color-text-muted)',
-                }}
-              >
-                {isFavorite ? '★ Favorite' : '☆ Favorite'}
-              </button>
-            </div>
+      {/* Row 2: Note + Tags + Collection */}
+      <div className="flex gap-2 mt-2 flex-wrap">
+        <input
+          value={note}
+          onChange={(e) => setNote(e.target.value)}
+          placeholder="Note (optional)"
+          className="flex-1 min-w-32 px-3 py-2 rounded-xl text-sm"
+          style={{
+            background: 'var(--color-bg-tertiary)',
+            border: '1px solid var(--color-border)',
+            color: 'var(--color-text-primary)',
+          }}
+          disabled={loading}
+        />
+        
+        <input
+          type="text"
+          value={tags}
+          onChange={(e) => setTags(e.target.value)}
+          placeholder="Tags (comma)"
+          list="existing-tags"
+          className="w-28 px-3 py-2 rounded-xl text-sm"
+          style={{
+            background: 'var(--color-bg-tertiary)',
+            border: '1px solid var(--color-border)',
+            color: 'var(--color-text-primary)',
+          }}
+          disabled={loading}
+        />
+        <datalist id="existing-tags">
+          {existingTags.map((tag) => <option key={tag} value={tag} />)}
+        </datalist>
+        
+        {showNewCollection ? (
+          <div className="flex gap-1">
+            <input
+              type="text"
+              value={newCollectionName}
+              onChange={(e) => setNewCollectionName(e.target.value)}
+              placeholder="New collection..."
+              className="w-28 px-3 py-2 rounded-xl text-sm"
+              style={{
+                background: 'var(--color-bg-tertiary)',
+                border: '1px solid var(--color-accent)',
+                color: 'var(--color-text-primary)',
+              }}
+              autoFocus
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') { e.preventDefault(); handleCreateCollection() }
+                if (e.key === 'Escape') { setShowNewCollection(false); setNewCollectionName('') }
+              }}
+            />
+            <button
+              type="button"
+              onClick={handleCreateCollection}
+              disabled={creatingCollection || !newCollectionName.trim()}
+              className="px-2 py-2 rounded-xl text-white text-xs disabled:opacity-50"
+              style={{ background: 'var(--color-accent)' }}
+            >
+              ✓
+            </button>
+            <button
+              type="button"
+              onClick={() => { setShowNewCollection(false); setNewCollectionName('') }}
+              className="px-2 py-2 rounded-xl text-xs"
+              style={{ background: 'var(--color-bg-tertiary)', color: 'var(--color-text-muted)' }}
+            >
+              ✕
+            </button>
           </div>
+        ) : (
+          <select
+            value={collectionId}
+            onChange={(e) => {
+              if (e.target.value === '__new__') setShowNewCollection(true)
+              else setCollectionId(e.target.value)
+            }}
+            className="w-36 px-3 py-2 rounded-xl text-sm"
+            style={{
+              background: 'var(--color-bg-tertiary)',
+              border: '1px solid var(--color-border)',
+              color: collectionId ? 'var(--color-text-primary)' : 'var(--color-text-muted)',
+            }}
+            disabled={loading}
+          >
+            <option value="">Collection</option>
+            {collections.map((col) => <option key={col.id} value={col.id}>{col.name}</option>)}
+            <option value="__new__">+ New</option>
+          </select>
         )}
       </div>
 
       {error && (
-        <div className="mt-4 p-3 rounded-xl text-sm" style={{
+        <div className="mt-2 px-3 py-2 rounded-xl text-xs" style={{
           background: 'rgba(239, 68, 68, 0.1)',
-          border: '1px solid var(--color-error)',
           color: 'var(--color-error)',
         }}>
           {error}

@@ -120,23 +120,22 @@ export function LinkCard({
   return (
     <>
       <div
-        className={`relative rounded-2xl overflow-hidden card-lift ${selected ? 'ring-2 ring-accent' : ''}`}
+        className={`relative rounded-xl overflow-hidden card-lift ${selected ? 'ring-2 ring-accent' : ''}`}
         style={{
           background: 'var(--color-bg-card)',
           border: '1px solid var(--color-border)',
-          boxShadow: 'var(--shadow-card)',
         }}
         onClick={selectable ? onSelect : undefined}
       >
         {/* Selection checkbox */}
         {selectable && (
-          <div className="absolute top-3 left-3 z-10">
+          <div className="absolute top-2 left-2 z-10">
             <div 
-              className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${selected ? 'border-accent bg-accent' : 'border-white/50 bg-black/30 backdrop-blur'}`}
+              className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${selected ? 'border-accent bg-accent' : 'border-white/50 bg-black/30 backdrop-blur'}`}
             >
               {selected && (
-                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                 </svg>
               )}
             </div>
@@ -145,54 +144,51 @@ export function LinkCard({
 
         {/* Favorite badge - top right */}
         {link.is_favorite && (
-          <div className="absolute top-3 right-3 z-10">
-            <span className="text-amber-400 text-lg drop-shadow">★</span>
+          <div className="absolute top-2 right-2 z-10">
+            <span className="text-amber-400 text-sm drop-shadow">★</span>
           </div>
         )}
 
-        {/* Image */}
-        <LazyImage
-          src={link.image_url}
-          alt={link.title || 'Link preview'}
-          className="aspect-video w-full"
-        />
-
-        {/* Content */}
-        <div className="p-4 space-y-2.5">
-          {/* Title row with favicon */}
-          <div className="flex items-start gap-2">
-            <FaviconImg src={link.favicon_url} />
-            <h3 className="font-semibold text-sm line-clamp-2 flex-1" style={{ color: 'var(--color-text-primary)' }}>
-              {link.title || 'Untitled'}
-            </h3>
+        {/* Compact image - smaller aspect ratio */}
+        <div className="relative">
+          <LazyImage
+            src={link.image_url}
+            alt={link.title || 'Link preview'}
+            className="aspect-2/1 w-full"
+          />
+          {/* Gradient overlay for text readability */}
+          <div className="absolute inset-0 bg-linear-to-t from-black/60 via-transparent to-transparent" />
+          
+          {/* Title overlay on image */}
+          <div className="absolute bottom-0 left-0 right-0 p-2.5">
+            <div className="flex items-center gap-1.5">
+              <FaviconImg src={link.favicon_url} />
+              <h3 className="font-medium text-xs line-clamp-1 text-white drop-shadow">
+                {link.title || 'Untitled'}
+              </h3>
+            </div>
           </div>
+        </div>
 
-          {/* Description */}
-          {link.description && (
-            <p className="text-xs line-clamp-2" style={{ color: 'var(--color-text-muted)' }}>
-              {link.description}
-            </p>
-          )}
-
+        {/* Content - compact */}
+        <div className="p-2.5 space-y-1.5">
           {/* Note */}
           {link.note && (
-            <p className="text-xs px-2 py-1.5 rounded-lg" style={{ background: 'var(--color-bg-tertiary)', color: 'var(--color-text-secondary)' }}>
+            <p className="text-xs line-clamp-1" style={{ color: 'var(--color-text-secondary)' }}>
               💬 {link.note}
             </p>
           )}
 
-          {/* Meta: Tags, Collection */}
-          <div className="flex flex-wrap gap-1.5 items-center">
-            {link.tags.slice(0, 3).map(tag => (
-              <span key={tag} className="px-1.5 py-0.5 rounded text-xs" style={{ color: 'var(--color-accent)' }}>
-                #{tag}
-              </span>
+          {/* Meta row: Tags + Collection */}
+          <div className="flex items-center gap-1 text-xs overflow-hidden">
+            {link.tags.slice(0, 2).map(tag => (
+              <span key={tag} className="shrink-0" style={{ color: 'var(--color-accent)' }}>#{tag}</span>
             ))}
-            {link.tags.length > 3 && (
-              <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>+{link.tags.length - 3}</span>
+            {link.tags.length > 2 && (
+              <span style={{ color: 'var(--color-text-muted)' }}>+{link.tags.length - 2}</span>
             )}
             {collectionName && (
-              <span className="text-xs ml-auto" style={{ color: 'var(--color-text-muted)' }}>📁 {collectionName}</span>
+              <span className="ml-auto truncate" style={{ color: 'var(--color-text-muted)' }}>📁 {collectionName}</span>
             )}
           </div>
 
@@ -254,75 +250,62 @@ export function LinkCard({
               </div>
             </div>
           ) : (
-            /* Single row of actions */
-            <div className="flex items-center gap-1 pt-2 border-t" style={{ borderColor: 'var(--color-border)' }}>
-              {/* Favorite */}
+            /* Compact action row */
+            <div className="flex items-center gap-0.5 pt-1.5 border-t" style={{ borderColor: 'var(--color-border)' }}>
               <button
                 onClick={(e) => { e.stopPropagation(); handleFavoriteClick() }}
-                className="p-2 rounded-lg btn-press hover:bg-bg-hover"
+                className="p-1.5 rounded btn-press"
                 style={{ color: link.is_favorite ? '#fbbf24' : 'var(--color-text-muted)' }}
-                title={link.is_favorite ? 'Remove favorite' : 'Add favorite'}
+                title={link.is_favorite ? 'Unfavorite' : 'Favorite'}
               >
-                <svg className="w-4 h-4" fill={link.is_favorite ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-3.5 h-3.5" fill={link.is_favorite ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
                 </svg>
               </button>
-
-              {/* Copy */}
               <button
                 onClick={(e) => { e.stopPropagation(); handleCopyUrl() }}
-                className="p-2 rounded-lg btn-press hover:bg-bg-hover"
+                className="p-1.5 rounded btn-press"
                 style={{ color: copied ? 'var(--color-success)' : 'var(--color-text-muted)' }}
-                title="Copy URL"
+                title="Copy"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
                 </svg>
               </button>
-
-              {/* Open */}
               <a
                 href={link.url}
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={(e) => e.stopPropagation()}
-                className="p-2 rounded-lg btn-press hover:bg-bg-hover"
+                className="p-1.5 rounded btn-press"
                 style={{ color: 'var(--color-text-muted)' }}
-                title="Open link"
+                title="Open"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                 </svg>
               </a>
-
-              {/* Spacer */}
               <div className="flex-1" />
-
-              {/* Date */}
-              <span className="text-xs px-2" style={{ color: 'var(--color-text-muted)' }}>
+              <span className="text-[10px] px-1" style={{ color: 'var(--color-text-muted)' }}>
                 {new Date(link.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
               </span>
-
-              {/* Edit */}
               <button
                 onClick={(e) => { e.stopPropagation(); setEditing(true) }}
-                className="p-2 rounded-lg btn-press hover:bg-bg-hover"
+                className="p-1.5 rounded btn-press"
                 style={{ color: 'var(--color-text-muted)' }}
                 title="Edit"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                 </svg>
               </button>
-
-              {/* Delete */}
               <button
                 onClick={(e) => { e.stopPropagation(); setShowDeleteDialog(true) }}
-                className="p-2 rounded-lg btn-press hover:bg-red-500/10"
+                className="p-1.5 rounded btn-press"
                 style={{ color: 'var(--color-error)' }}
                 title="Delete"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                 </svg>
               </button>
