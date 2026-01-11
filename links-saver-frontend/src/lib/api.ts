@@ -46,6 +46,7 @@ export interface CreateLinkInput {
   tags?: string[]
   is_favorite?: boolean
   collection_id?: string
+  allow_duplicate?: boolean
 }
 
 export interface LinkFilters {

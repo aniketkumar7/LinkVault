@@ -163,12 +163,29 @@ router.get('/export', async (req, res) => {
  */
 router.post('/', async (req, res) => {
     try {
-        const { url, note, tags, is_favorite, collection_id } = req.body;
+        const { url, note, tags, is_favorite, collection_id, allow_duplicate } = req.body;
 
         // Validate input
         const validation = validateLinkInput({ url, note });
         if (!validation.valid) {
             return res.status(400).json({ error: validation.error });
+        }
+
+        // Check for duplicate unless explicitly allowed
+        if (!allow_duplicate) {
+            const { data: existingLink } = await supabase
+                .from('useful_links')
+                .select('id, title')
+                .eq('user_id', req.user.id)
+                .eq('url', url.trim())
+                .maybeSingle();
+
+            if (existingLink) {
+                return res.status(409).json({ 
+                    error: 'This link already exists in your collection',
+                    existing: existingLink
+                });
+            }
         }
 
         // Fetch metadata from URL

@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useRef } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { jsPDF } from 'jspdf'
 import { useAuth } from '@/hooks/useAuth'
-import { useLinks, useCollections, useStats, useDeleteWithUndo, useBatchActions, useToggleFavorite } from '@/hooks/useLinks'
+import { useLinks, useCollections, useStats, useDeleteWithUndo, useBatchActions, useToggleFavorite, useInvalidateCollections } from '@/hooks/useLinks'
 import type { LinkFilters } from '@/lib/api'
 import { toast } from '@/lib/toast'
 import { SkeletonGrid } from '@/components/ui/Skeleton'
@@ -54,9 +54,34 @@ export function Dashboard() {
   const { data: links = [], isLoading, error, refetch } = useLinks(filters)
   const { data: collections = [] } = useCollections()
   const { data: stats } = useStats()
+  
+  // Cold start detection (first load taking > 3s)
+  const [coldStartMessage, setColdStartMessage] = useState<string | null>(null)
+  const isInitialLoading = isLoading && collections.length === 0
+  
+  useEffect(() => {
+    if (!isInitialLoading) {
+      setColdStartMessage(null)
+      return
+    }
+    
+    const timer1 = setTimeout(() => {
+      setColdStartMessage('Waking up server...')
+    }, 3000)
+    
+    const timer2 = setTimeout(() => {
+      setColdStartMessage('Still loading (free tier cold start)...')
+    }, 8000)
+    
+    return () => {
+      clearTimeout(timer1)
+      clearTimeout(timer2)
+    }
+  }, [isInitialLoading])
   const { deleteWithUndo } = useDeleteWithUndo()
   const { batchDelete, batchMoveToCollection } = useBatchActions()
   const toggleFavorite = useToggleFavorite()
+  const invalidateCollections = useInvalidateCollections()
 
   // Debounced search
   useEffect(() => {
@@ -205,6 +230,31 @@ export function Dashboard() {
     setSelectMode(false)
   }
 
+  // Show cold start overlay for initial load
+  if (isInitialLoading && coldStartMessage) {
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--color-bg-primary)' }}>
+        <div className="text-center animate-fade-in">
+          <div className="w-16 h-16 mx-auto mb-6">
+            <img src="/Logo.svg" alt="LinkVault" className="w-16 h-16 animate-pulse" />
+          </div>
+          <div className="flex items-center justify-center gap-3 mb-4">
+            <svg className="animate-spin h-5 w-5" style={{ color: 'var(--color-accent)' }} viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+            </svg>
+            <span className="text-lg font-medium" style={{ color: 'var(--color-text-primary)' }}>
+              {coldStartMessage}
+            </span>
+          </div>
+          <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>
+            This may take up to 60 seconds on first visit
+          </p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen" style={{ background: 'var(--color-bg-primary)' }}>
       {/* Header */}
@@ -264,6 +314,7 @@ export function Dashboard() {
           onLinkAdded={() => refetch()} 
           existingTags={allTags}
           collections={collections}
+          onCollectionCreated={invalidateCollections}
         />
 
         {/* Toolbar */}

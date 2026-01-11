@@ -120,10 +120,11 @@ export function LinkCard({
   return (
     <>
       <div
-        className={`relative rounded-2xl overflow-hidden transition-all duration-200 hover:shadow-lg ${selected ? 'ring-2 ring-accent' : ''}`}
+        className={`relative rounded-2xl overflow-hidden card-lift ${selected ? 'ring-2 ring-accent' : ''}`}
         style={{
           background: 'var(--color-bg-card)',
           border: '1px solid var(--color-border)',
+          boxShadow: 'var(--shadow-card)',
         }}
         onClick={selectable ? onSelect : undefined}
       >
@@ -258,7 +259,7 @@ export function LinkCard({
               {/* Favorite */}
               <button
                 onClick={(e) => { e.stopPropagation(); handleFavoriteClick() }}
-                className="p-2 rounded-lg transition-colors"
+                className="p-2 rounded-lg btn-press hover:bg-bg-hover"
                 style={{ color: link.is_favorite ? '#fbbf24' : 'var(--color-text-muted)' }}
                 title={link.is_favorite ? 'Remove favorite' : 'Add favorite'}
               >
@@ -270,7 +271,7 @@ export function LinkCard({
               {/* Copy */}
               <button
                 onClick={(e) => { e.stopPropagation(); handleCopyUrl() }}
-                className="p-2 rounded-lg transition-colors"
+                className="p-2 rounded-lg btn-press hover:bg-bg-hover"
                 style={{ color: copied ? 'var(--color-success)' : 'var(--color-text-muted)' }}
                 title="Copy URL"
               >
@@ -285,7 +286,7 @@ export function LinkCard({
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={(e) => e.stopPropagation()}
-                className="p-2 rounded-lg transition-colors"
+                className="p-2 rounded-lg btn-press hover:bg-bg-hover"
                 style={{ color: 'var(--color-text-muted)' }}
                 title="Open link"
               >
@@ -305,7 +306,7 @@ export function LinkCard({
               {/* Edit */}
               <button
                 onClick={(e) => { e.stopPropagation(); setEditing(true) }}
-                className="p-2 rounded-lg transition-colors"
+                className="p-2 rounded-lg btn-press hover:bg-bg-hover"
                 style={{ color: 'var(--color-text-muted)' }}
                 title="Edit"
               >
@@ -317,7 +318,7 @@ export function LinkCard({
               {/* Delete */}
               <button
                 onClick={(e) => { e.stopPropagation(); setShowDeleteDialog(true) }}
-                className="p-2 rounded-lg transition-colors"
+                className="p-2 rounded-lg btn-press hover:bg-red-500/10"
                 style={{ color: 'var(--color-error)' }}
                 title="Delete"
               >

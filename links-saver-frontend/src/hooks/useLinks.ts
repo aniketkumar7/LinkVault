@@ -27,6 +27,11 @@ export function useCollections() {
   })
 }
 
+export function useInvalidateCollections() {
+  const queryClient = useQueryClient()
+  return () => queryClient.invalidateQueries({ queryKey: queryKeys.collections })
+}
+
 export function useStats() {
   return useQuery({
     queryKey: queryKeys.stats,

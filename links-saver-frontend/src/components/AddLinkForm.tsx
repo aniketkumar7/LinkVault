@@ -7,9 +7,10 @@ interface Props {
   onLinkAdded: () => void
   existingTags: string[]
   collections: Collection[]
+  onCollectionCreated?: () => void
 }
 
-export function AddLinkForm({ onLinkAdded, existingTags, collections }: Props) {
+export function AddLinkForm({ onLinkAdded, existingTags, collections, onCollectionCreated }: Props) {
   const [url, setUrl] = useState('')
   const [note, setNote] = useState('')
   const [tags, setTags] = useState('')
@@ -20,6 +21,12 @@ export function AddLinkForm({ onLinkAdded, existingTags, collections }: Props) {
   const [error, setError] = useState<string | null>(null)
   const [duplicate, setDuplicate] = useState<{ id: string; title: string; created_at: string } | null>(null)
   const [checkingDuplicate, setCheckingDuplicate] = useState(false)
+  const [allowDuplicate, setAllowDuplicate] = useState(false)
+  
+  // New collection inline creation
+  const [showNewCollection, setShowNewCollection] = useState(false)
+  const [newCollectionName, setNewCollectionName] = useState('')
+  const [creatingCollection, setCreatingCollection] = useState(false)
   
   const urlInputRef = useRef<HTMLInputElement>(null)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -30,6 +37,9 @@ export function AddLinkForm({ onLinkAdded, existingTags, collections }: Props) {
 
   // Check for duplicates when URL changes
   useEffect(() => {
+    // Reset allow duplicate when URL changes
+    setAllowDuplicate(false)
+    
     if (!url.trim()) {
       setDuplicate(null)
       return
@@ -60,9 +70,36 @@ export function AddLinkForm({ onLinkAdded, existingTags, collections }: Props) {
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current) }
   }, [url])
 
+  const handleCreateCollection = async () => {
+    if (!newCollectionName.trim()) return
+    
+    setCreatingCollection(true)
+    try {
+      const newCollection = await api.createCollection({
+        name: newCollectionName.trim(),
+        color: '#2ABBF7',
+      })
+      setCollectionId(newCollection.id)
+      setNewCollectionName('')
+      setShowNewCollection(false)
+      toast.success('Collection created!')
+      onCollectionCreated?.()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to create collection')
+    } finally {
+      setCreatingCollection(false)
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!url.trim()) return
+    
+    // Block if duplicate detected and not explicitly allowed
+    if (duplicate && !allowDuplicate) {
+      toast.error('This link already exists. Click "Save anyway" to add it again.')
+      return
+    }
 
     setLoading(true)
     setError(null)
@@ -74,6 +111,7 @@ export function AddLinkForm({ onLinkAdded, existingTags, collections }: Props) {
         tags: tags.split(',').map(t => t.trim()).filter(Boolean),
         is_favorite: isFavorite,
         collection_id: collectionId || undefined,
+        allow_duplicate: allowDuplicate,
       })
       
       // Reset form
@@ -83,6 +121,7 @@ export function AddLinkForm({ onLinkAdded, existingTags, collections }: Props) {
       setCollectionId('')
       setIsFavorite(false)
       setDuplicate(null)
+      setAllowDuplicate(false)
       urlInputRef.current?.focus()
       
       toast.success('Link saved!')
@@ -159,22 +198,31 @@ export function AddLinkForm({ onLinkAdded, existingTags, collections }: Props) {
           </div>
           
           {/* Duplicate warning */}
-          {duplicate && (
-            <div className="mt-2 p-3 rounded-lg text-sm flex items-center justify-between" style={{
-              background: 'rgba(42, 187, 247, 0.1)',
-              border: '1px solid var(--color-accent)',
+          {duplicate && !allowDuplicate && (
+            <div className="mt-2 p-3 rounded-lg text-sm flex items-center justify-between animate-slide-down" style={{
+              background: 'rgba(239, 68, 68, 0.1)',
+              border: '1px solid var(--color-error)',
             }}>
-              <span style={{ color: 'var(--color-accent)' }}>
+              <span style={{ color: 'var(--color-error)' }}>
                 ⚠️ Already saved: "{duplicate.title || 'Untitled'}" ({new Date(duplicate.created_at).toLocaleDateString()})
               </span>
               <button
                 type="button"
-                onClick={() => setDuplicate(null)}
-                className="text-xs underline"
-                style={{ color: 'var(--color-text-muted)' }}
+                onClick={() => setAllowDuplicate(true)}
+                className="text-xs px-2 py-1 rounded font-medium transition-colors"
+                style={{ background: 'var(--color-error)', color: 'white' }}
               >
                 Save anyway
               </button>
+            </div>
+          )}
+          {duplicate && allowDuplicate && (
+            <div className="mt-2 p-2 rounded-lg text-sm" style={{
+              background: 'rgba(34, 197, 94, 0.1)',
+              border: '1px solid var(--color-success)',
+              color: 'var(--color-success)',
+            }}>
+              ✓ Duplicate allowed - click Save to add
             </div>
           )}
         </div>
@@ -198,23 +246,69 @@ export function AddLinkForm({ onLinkAdded, existingTags, collections }: Props) {
 
         {/* Basic row: Collection + Submit */}
         <div className="flex gap-3 flex-wrap">
-          {collections.length > 0 && (
-            <select
-              value={collectionId}
-              onChange={(e) => setCollectionId(e.target.value)}
-              className="flex-1 min-w-32 px-4 py-3 rounded-xl text-base"
-              style={{
-                background: 'var(--color-bg-tertiary)',
-                border: '1px solid var(--color-border)',
-                color: collectionId ? 'var(--color-text-primary)' : 'var(--color-text-muted)',
-              }}
-              disabled={loading}
-            >
-              <option value="">No Collection</option>
-              {collections.map((col) => (
-                <option key={col.id} value={col.id}>{col.name}</option>
-              ))}
-            </select>
+          {showNewCollection ? (
+            <div className="flex-1 min-w-32 flex gap-2">
+              <input
+                type="text"
+                value={newCollectionName}
+                onChange={(e) => setNewCollectionName(e.target.value)}
+                placeholder="Collection name..."
+                className="flex-1 px-4 py-3 rounded-xl text-base"
+                style={{
+                  background: 'var(--color-bg-tertiary)',
+                  border: '1px solid var(--color-accent)',
+                  color: 'var(--color-text-primary)',
+                }}
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') { e.preventDefault(); handleCreateCollection() }
+                  if (e.key === 'Escape') { setShowNewCollection(false); setNewCollectionName('') }
+                }}
+              />
+              <button
+                type="button"
+                onClick={handleCreateCollection}
+                disabled={creatingCollection || !newCollectionName.trim()}
+                className="px-4 py-3 rounded-xl font-medium text-white disabled:opacity-50"
+                style={{ background: 'var(--color-accent)' }}
+              >
+                {creatingCollection ? '...' : 'Add'}
+              </button>
+              <button
+                type="button"
+                onClick={() => { setShowNewCollection(false); setNewCollectionName('') }}
+                className="px-3 py-3 rounded-xl"
+                style={{ background: 'var(--color-bg-tertiary)', color: 'var(--color-text-muted)' }}
+              >
+                ✕
+              </button>
+            </div>
+          ) : (
+            <div className="flex-1 min-w-32 flex gap-2">
+              <select
+                value={collectionId}
+                onChange={(e) => {
+                  if (e.target.value === '__new__') {
+                    setShowNewCollection(true)
+                  } else {
+                    setCollectionId(e.target.value)
+                  }
+                }}
+                className="flex-1 px-4 py-3 rounded-xl text-base"
+                style={{
+                  background: 'var(--color-bg-tertiary)',
+                  border: '1px solid var(--color-border)',
+                  color: collectionId ? 'var(--color-text-primary)' : 'var(--color-text-muted)',
+                }}
+                disabled={loading}
+              >
+                <option value="">No Collection</option>
+                {collections.map((col) => (
+                  <option key={col.id} value={col.id}>{col.name}</option>
+                ))}
+                <option value="__new__">+ Create new collection</option>
+              </select>
+            </div>
           )}
           
           <button
