@@ -8,9 +8,6 @@ interface ExportOptions {
   collectionName?: string
 }
 
-// Convert logo to base64 for embedding in PDF
-const LOGO_BASE64 = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIHZpZXdCb3g9IjAgMCA2NCA2NCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTYiIGZpbGw9IiMyQUJCRjciLz4KPHBhdGggZD0iTTIwIDI0TDMyIDM2TDQ0IDI0IiBzdHJva2U9IndoaXRlIiBzdHJva2Utd2lkdGg9IjQiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPgo8cGF0aCBkPSJNMjAgMzZMMzIgNDhMNDQgMzYiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS13aWR0aD0iNCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+Cjwvc3ZnPg=='
-
 export async function generatePDF({ links, collections, collectionId, collectionName }: ExportOptions): Promise<string> {
   const exportLinks = collectionId 
     ? links.filter(l => l.collection_id === collectionId)
