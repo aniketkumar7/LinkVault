@@ -1,21 +1,36 @@
 # LinkVault
 
-A personal web app to quickly save and organize useful links from social media videos (Reels, Shorts, TikToks, YouTube), and useful websites.
+Your personal link vault — save, organize, and never lose a useful link again.
+
+Save links from **YouTube videos**, **Medium articles**, **websites**, **documentation**, **social media**, **blogs**, **news articles**, and any URL you want to remember.
 
 ![LinkVault](links-saver-frontend/public/Logo.png)
 
 ## Features
 
-- **Quick Save** - Paste a URL and save in seconds with auto-fetched metadata (title, description, image, favicon)
-- **Collections** - Organize links into folders with custom colors and descriptions
+- **Quick Save** - Paste any URL and save in seconds with auto-fetched metadata (title, description, image, favicon)
+- **Collections** - Organize links into custom folders with colors
+- **Tags** - Add tags for flexible categorization
 - **Favorites** - Star important links for quick access
 - **Search & Filter** - Find links by title, note, URL, tags, or collection
 - **Bulk Import** - Import up to 20 URLs at once
-- **Export** - Download your links as JSON or CSV
-- **Duplicate Detection** - Warns you before saving a link you already have
+- **PDF Export** - Export your links as a beautifully formatted PDF
+- **Duplicate Detection** - Prevents saving the same link twice
 - **Dark/Light Theme** - Toggle between themes with persistence
 - **Responsive Design** - Works on desktop and mobile
 - **Magic Link Auth** - Passwordless login via email
+
+### Supported Link Types
+
+- 🎬 **YouTube** - Videos, playlists, channels
+- 📝 **Medium** - Articles and publications
+- 🌐 **Websites** - Any webpage
+- 📚 **Documentation** - Dev docs, tutorials
+- 📱 **Social Media** - Twitter/X, LinkedIn, Reddit, Instagram
+- 📰 **News** - Articles from any news source
+- 🛒 **Products** - Amazon, eBay, or any e-commerce
+- 📖 **Blogs** - Personal blogs, tech blogs
+- And literally **any URL**!
 
 ## Tech Stack
 
@@ -153,7 +168,7 @@ Open http://localhost:5173 in your browser.
 | GET | `/api/links/check-duplicate` | Check if URL exists |
 | POST | `/api/links/bulk` | Bulk import URLs |
 | GET | `/api/links/stats` | Get statistics |
-| GET | `/api/links/export` | Export links (JSON/CSV) |
+| GET | `/api/links/export` | Export Pdf |
 
 ### Collections
 | Method | Endpoint | Description |

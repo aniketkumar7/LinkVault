@@ -10,7 +10,7 @@ import { NoLinksEmpty, NoResultsEmpty } from '@/components/ui/EmptyState'
 import { AddLinkForm } from './AddLinkForm'
 import { LinkCard } from './LinkCard'
 import { BulkImportModal } from './BulkImportModal'
-import { CollectionsPanel } from './CollectionsPanel'
+import { Select } from './ui/Select'
 
 type Theme = 'dark' | 'light'
 type SortField = 'created_at' | 'updated_at' | 'title'
@@ -32,7 +32,6 @@ export function Dashboard() {
   // UI state
   const [theme, setTheme] = useState<Theme>(() => (localStorage.getItem('theme') as Theme) || 'dark')
   const [showBulkImport, setShowBulkImport] = useState(false)
-  const [showCollections, setShowCollections] = useState(false)
   const [exporting, setExporting] = useState(false)
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false)
   
@@ -137,64 +136,151 @@ export function Dashboard() {
     try {
       const doc = new jsPDF()
       const pageWidth = doc.internal.pageSize.getWidth()
+      const pageHeight = doc.internal.pageSize.getHeight()
+      const margin = 20
+      const contentWidth = pageWidth - margin * 2
       
-      // Header
-      doc.setFontSize(20)
-      doc.setTextColor(42, 187, 247) // accent color
-      doc.text('LinkVault Export', 14, 20)
+      // Colors
+      const accentColor: [number, number, number] = [42, 187, 247]
+      const darkText: [number, number, number] = [30, 30, 30]
+      const mutedText: [number, number, number] = [120, 120, 120]
+      const lightBg: [number, number, number] = [248, 250, 252]
+      
+      // Helper to add header/footer to each page
+      const addPageFrame = (pageNum: number, totalPages: number) => {
+        // Footer
+        doc.setFontSize(8)
+        doc.setTextColor(...mutedText)
+        doc.text(`Page ${pageNum} of ${totalPages}`, pageWidth / 2, pageHeight - 10, { align: 'center' })
+        doc.text('LinkVault', margin, pageHeight - 10)
+        doc.text(new Date().toLocaleDateString(), pageWidth - margin, pageHeight - 10, { align: 'right' })
+      }
+      
+      // Cover page
+      doc.setFillColor(...accentColor)
+      doc.rect(0, 0, pageWidth, 60, 'F')
+      
+      doc.setFontSize(32)
+      doc.setTextColor(255, 255, 255)
+      doc.text('LinkVault', margin, 38)
+      
+      doc.setFontSize(12)
+      doc.text('Your Saved Links Collection', margin, 50)
+      
+      // Stats section
+      let y = 80
+      doc.setFillColor(...lightBg)
+      doc.roundedRect(margin, y - 5, contentWidth, 35, 3, 3, 'F')
+      
+      doc.setFontSize(24)
+      doc.setTextColor(...accentColor)
+      doc.text(String(links.length), margin + 15, y + 15)
       
       doc.setFontSize(10)
-      doc.setTextColor(128, 128, 128)
-      doc.text(`Exported on ${new Date().toLocaleDateString()}`, 14, 28)
-      doc.text(`Total: ${links.length} links`, 14, 34)
+      doc.setTextColor(...mutedText)
+      doc.text('Total Links', margin + 15, y + 23)
       
-      let y = 45
-      const lineHeight = 7
-      const maxWidth = pageWidth - 28
+      const favoriteCount = links.filter(l => l.is_favorite).length
+      doc.setFontSize(24)
+      doc.setTextColor(...accentColor)
+      doc.text(String(favoriteCount), margin + 70, y + 15)
+      
+      doc.setFontSize(10)
+      doc.setTextColor(...mutedText)
+      doc.text('Favorites', margin + 70, y + 23)
+      
+      const tagCount = new Set(links.flatMap(l => l.tags)).size
+      doc.setFontSize(24)
+      doc.setTextColor(...accentColor)
+      doc.text(String(tagCount), margin + 120, y + 15)
+      
+      doc.setFontSize(10)
+      doc.setTextColor(...mutedText)
+      doc.text('Tags', margin + 120, y + 23)
+      
+      doc.setFontSize(10)
+      doc.setTextColor(...mutedText)
+      doc.text(`Exported: ${new Date().toLocaleString()}`, pageWidth - margin, y + 15, { align: 'right' })
+      
+      // Links start on page 2
+      doc.addPage()
+      y = 25
       
       links.forEach((link, index) => {
+        const cardHeight = 45 + (link.note ? 12 : 0) + (link.tags.length > 0 ? 10 : 0)
+        
         // Check if we need a new page
-        if (y > 270) {
+        if (y + cardHeight > pageHeight - 25) {
           doc.addPage()
-          y = 20
+          y = 25
         }
         
-        // Link number and title
+        // Card background
+        doc.setFillColor(...lightBg)
+        doc.roundedRect(margin, y, contentWidth, cardHeight - 5, 3, 3, 'F')
+        
+        // Index number circle
+        doc.setFillColor(...accentColor)
+        doc.circle(margin + 10, y + 12, 8, 'F')
+        doc.setFontSize(10)
+        doc.setTextColor(255, 255, 255)
+        doc.text(String(index + 1), margin + 10, y + 15, { align: 'center' })
+        
+        // Favorite star
+        if (link.is_favorite) {
+          doc.setFontSize(12)
+          doc.setTextColor(251, 191, 36)
+          doc.text('★', pageWidth - margin - 10, y + 12)
+        }
+        
+        // Title
         doc.setFontSize(11)
-        doc.setTextColor(0, 0, 0)
-        const title = `${index + 1}. ${link.title || 'Untitled'}`
-        const titleLines = doc.splitTextToSize(title, maxWidth)
-        doc.text(titleLines, 14, y)
-        y += titleLines.length * lineHeight
+        doc.setTextColor(...darkText)
+        const title = link.title || 'Untitled'
+        const titleTruncated = title.length > 60 ? title.substring(0, 60) + '...' : title
+        doc.text(titleTruncated, margin + 25, y + 14)
         
         // URL
-        doc.setFontSize(9)
-        doc.setTextColor(42, 187, 247)
-        const urlLines = doc.splitTextToSize(link.url, maxWidth)
-        doc.text(urlLines, 14, y)
-        y += urlLines.length * lineHeight
+        doc.setFontSize(8)
+        doc.setTextColor(...accentColor)
+        const urlTruncated = link.url.length > 80 ? link.url.substring(0, 80) + '...' : link.url
+        doc.text(urlTruncated, margin + 25, y + 22)
         
-        // Note (if exists)
+        // Collection badge (if any)
+        const collection = collections.find(c => c.id === link.collection_id)
+        if (collection) {
+          doc.setFontSize(7)
+          doc.setTextColor(...mutedText)
+          doc.text(`📁 ${collection.name}`, margin + 25, y + 30)
+        }
+        
+        let contentY = y + (collection ? 36 : 30)
+        
+        // Note
         if (link.note) {
-          doc.setTextColor(100, 100, 100)
-          const noteLines = doc.splitTextToSize(`Note: ${link.note}`, maxWidth)
-          doc.text(noteLines, 14, y)
-          y += noteLines.length * lineHeight
+          doc.setFontSize(8)
+          doc.setTextColor(...mutedText)
+          const noteTruncated = link.note.length > 100 ? link.note.substring(0, 100) + '...' : link.note
+          doc.text(`💬 ${noteTruncated}`, margin + 25, contentY)
+          contentY += 10
         }
         
         // Tags
         if (link.tags.length > 0) {
-          doc.setTextColor(150, 150, 150)
-          doc.text(`Tags: ${link.tags.join(', ')}`, 14, y)
-          y += lineHeight
+          doc.setFontSize(7)
+          doc.setTextColor(...accentColor)
+          doc.text(link.tags.map(t => `#${t}`).join('  '), margin + 25, contentY)
         }
         
-        // Separator
-        y += 4
-        doc.setDrawColor(230, 230, 230)
-        doc.line(14, y, pageWidth - 14, y)
-        y += 8
+        y += cardHeight
       })
+      
+      // Add page numbers to all pages
+      const totalPages = doc.getNumberOfPages()
+      for (let i = 1; i <= totalPages; i++) {
+        doc.setPage(i)
+        addPageFrame(i, totalPages)
+      }
       
       // Save
       doc.save(`linkvault-export-${new Date().toISOString().split('T')[0]}.pdf`)
@@ -345,24 +431,17 @@ export function Dashboard() {
             <div className="flex gap-2">
               <button
                 onClick={() => setShowBulkImport(true)}
-                className="px-4 py-2.5 rounded-xl text-sm font-medium transition-colors"
-                style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)', color: 'var(--color-text-secondary)' }}
+                className="px-4 py-2.5 rounded-xl text-sm font-medium transition-colors btn-press"
+                style={{ background: 'var(--color-bg-tertiary)', border: '1px solid var(--color-border)', color: 'var(--color-text-secondary)' }}
               >
                 <span className="hidden sm:inline">Bulk Import</span>
                 <span className="sm:hidden">Import</span>
               </button>
               <button
-                onClick={() => setShowCollections(true)}
-                className="px-4 py-2.5 rounded-xl text-sm font-medium transition-colors"
-                style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)', color: 'var(--color-text-secondary)' }}
-              >
-                Collections
-              </button>
-              <button
                 onClick={handleExportPDF}
                 disabled={exporting || links.length === 0}
-                className="px-4 py-2.5 rounded-xl text-sm font-medium transition-colors disabled:opacity-50"
-                style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)', color: 'var(--color-text-secondary)' }}
+                className="px-4 py-2.5 rounded-xl text-sm font-medium transition-colors disabled:opacity-50 btn-press"
+                style={{ background: 'var(--color-bg-tertiary)', border: '1px solid var(--color-border)', color: 'var(--color-text-secondary)' }}
               >
                 {exporting ? 'Exporting...' : 'Export PDF'}
               </button>
@@ -381,44 +460,65 @@ export function Dashboard() {
             </button>
 
             {/* Filter chips - hidden on mobile unless open */}
-            <div className={`${mobileFiltersOpen ? 'flex' : 'hidden'} sm:flex flex-wrap gap-2 w-full sm:w-auto`}>
+            <div className={`${mobileFiltersOpen ? 'flex' : 'hidden'} sm:flex flex-wrap gap-2 w-full sm:w-auto items-center`}>
               {collections.length > 0 && (
-                <select value={collectionFilter} onChange={(e) => setCollectionFilter(e.target.value)} className="px-3 py-2 rounded-lg text-sm" style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)', color: 'var(--color-text-secondary)' }}>
-                  <option value="">All Collections</option>
-                  {collections.map(col => <option key={col.id} value={col.id}>{col.name}</option>)}
-                </select>
+                <Select
+                  value={collectionFilter}
+                  onChange={setCollectionFilter}
+                  options={[
+                    { value: '', label: 'All Collections', icon: <span className="text-sm">📁</span> },
+                    ...collections.map(col => ({ value: col.id, label: col.name, color: col.color }))
+                  ]}
+                  placeholder="Collection"
+                  size="sm"
+                  className="min-w-36"
+                />
               )}
 
               {allTags.length > 0 && (
-                <select value={tagFilter} onChange={(e) => setTagFilter(e.target.value)} className="px-3 py-2 rounded-lg text-sm" style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)', color: 'var(--color-text-secondary)' }}>
-                  <option value="">All Tags</option>
-                  {allTags.map(tag => <option key={tag} value={tag}>#{tag}</option>)}
-                </select>
+                <Select
+                  value={tagFilter}
+                  onChange={setTagFilter}
+                  options={[
+                    { value: '', label: 'All Tags', icon: <span className="text-sm">#</span> },
+                    ...allTags.map(tag => ({ value: tag, label: `#${tag}` }))
+                  ]}
+                  placeholder="Tag"
+                  size="sm"
+                  className="min-w-32"
+                />
               )}
 
               <button
                 onClick={() => setFavoriteFilter(!favoriteFilter)}
-                className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${favoriteFilter ? 'text-white' : ''}`}
+                className={`px-3 py-2 rounded-xl text-sm font-medium transition-all btn-press ${favoriteFilter ? 'text-white' : ''}`}
                 style={{ 
-                  background: favoriteFilter ? 'var(--color-accent)' : 'var(--color-bg-card)', 
+                  background: favoriteFilter ? 'var(--color-accent)' : 'var(--color-bg-tertiary)', 
                   border: '1px solid var(--color-border)',
                   color: favoriteFilter ? 'white' : 'var(--color-text-secondary)',
+                  boxShadow: favoriteFilter ? 'var(--shadow-glow)' : 'none',
                 }}
               >
                 ★ Favorites
               </button>
 
-              <select value={`${sortField}-${sortOrder}`} onChange={(e) => { const [f, o] = e.target.value.split('-'); setSortField(f as SortField); setSortOrder(o as SortOrder) }} className="px-3 py-2 rounded-lg text-sm" style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)', color: 'var(--color-text-secondary)' }}>
-                <option value="created_at-desc">Newest first</option>
-                <option value="created_at-asc">Oldest first</option>
-                <option value="updated_at-desc">Recently updated</option>
-                <option value="title-asc">Title A-Z</option>
-                <option value="title-desc">Title Z-A</option>
-              </select>
+              <Select
+                value={`${sortField}-${sortOrder}`}
+                onChange={(val) => { const [f, o] = val.split('-'); setSortField(f as SortField); setSortOrder(o as SortOrder) }}
+                options={[
+                  { value: 'created_at-desc', label: 'Newest first', icon: <span className="text-sm">📅</span> },
+                  { value: 'created_at-asc', label: 'Oldest first' },
+                  { value: 'updated_at-desc', label: 'Recently updated' },
+                  { value: 'title-asc', label: 'Title A-Z' },
+                  { value: 'title-desc', label: 'Title Z-A' },
+                ]}
+                size="sm"
+                className="min-w-36"
+              />
 
               {hasFilters && (
-                <button onClick={clearFilters} className="px-3 py-2 rounded-lg text-sm" style={{ color: 'var(--color-accent)' }}>
-                  Clear filters
+                <button onClick={clearFilters} className="px-3 py-2 rounded-xl text-sm font-medium btn-press" style={{ color: 'var(--color-accent)', background: 'rgba(42, 187, 247, 0.1)' }}>
+                  ✕ Clear
                 </button>
               )}
             </div>
@@ -440,15 +540,21 @@ export function Dashboard() {
           {/* Batch actions bar */}
           {selectMode && selectedIds.size > 0 && (
             <div className="flex flex-wrap gap-2 p-3 rounded-xl animate-slide-up" style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)' }}>
-              <button onClick={selectAll} className="px-3 py-1.5 rounded-lg text-xs" style={{ background: 'var(--color-bg-tertiary)', color: 'var(--color-text-secondary)' }}>Select All</button>
-              <button onClick={deselectAll} className="px-3 py-1.5 rounded-lg text-xs" style={{ background: 'var(--color-bg-tertiary)', color: 'var(--color-text-secondary)' }}>Deselect All</button>
-              <div className="w-px mx-2" style={{ background: 'var(--color-border)' }} />
-              <select onChange={(e) => e.target.value && handleBatchCollection(e.target.value === 'null' ? null : e.target.value)} className="px-3 py-1.5 rounded-lg text-xs" style={{ background: 'var(--color-bg-tertiary)', color: 'var(--color-text-secondary)' }}>
-                <option value="">Move to collection...</option>
-                <option value="null">No collection</option>
-                {collections.map(col => <option key={col.id} value={col.id}>{col.name}</option>)}
-              </select>
-              <button onClick={handleBatchDelete} className="px-3 py-1.5 rounded-lg text-xs ml-auto" style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444' }}>Delete Selected</button>
+              <button onClick={selectAll} className="px-3 py-1.5 rounded-xl text-xs btn-press" style={{ background: 'var(--color-bg-tertiary)', color: 'var(--color-text-secondary)' }}>Select All</button>
+              <button onClick={deselectAll} className="px-3 py-1.5 rounded-xl text-xs btn-press" style={{ background: 'var(--color-bg-tertiary)', color: 'var(--color-text-secondary)' }}>Deselect All</button>
+              <div className="w-px mx-2 h-6" style={{ background: 'var(--color-border)' }} />
+              <Select
+                value=""
+                onChange={(val) => val && handleBatchCollection(val === 'null' ? null : val)}
+                options={[
+                  { value: '', label: 'Move to...' },
+                  { value: 'null', label: 'No collection' },
+                  ...collections.map(col => ({ value: col.id, label: col.name, color: col.color }))
+                ]}
+                size="sm"
+                className="min-w-36"
+              />
+              <button onClick={handleBatchDelete} className="px-3 py-1.5 rounded-xl text-xs font-medium ml-auto btn-press" style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444' }}>Delete Selected</button>
             </div>
           )}
         </div>
@@ -531,13 +637,6 @@ export function Dashboard() {
           onClose={() => setShowBulkImport(false)} 
           onImported={() => refetch()}
           collections={collections}
-        />
-      )}
-
-      {showCollections && (
-        <CollectionsPanel 
-          onClose={() => setShowCollections(false)}
-          onCollectionChange={() => refetch()}
         />
       )}
     </div>

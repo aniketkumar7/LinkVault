@@ -68,7 +68,7 @@ export function LoginPage({ onBack }: Props) {
             LinkVault
           </h1>
           <p className="mt-2" style={{ color: 'var(--color-text-secondary)' }}>
-            Save links from reels before you forget them
+            Save links before you forget them
           </p>
         </div>
 

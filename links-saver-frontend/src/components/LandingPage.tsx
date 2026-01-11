@@ -141,7 +141,7 @@ export function LandingPage({ onGetStarted }: Props) {
             }}
           >
             <span className="w-2 h-2 rounded-full animate-pulse" style={{ background: 'var(--color-accent)' }} />
-            Save links from Reels, Shorts & TikToks
+            Save & Organize All Your Links
           </div>
           
           <h1 
@@ -166,7 +166,7 @@ export function LandingPage({ onGetStarted }: Props) {
             className="text-xl max-w-2xl mx-auto mb-10 leading-relaxed"
             style={{ color: 'var(--color-text-secondary)' }}
           >
-            Found something cool in a reel? Save it instantly with your personal note. 
+            Found a great article, video, or website? Save it instantly with your personal note. 
             Rich previews, smart organization, and lightning-fast search.
           </p>
 

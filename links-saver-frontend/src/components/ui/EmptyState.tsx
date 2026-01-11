@@ -51,7 +51,7 @@ export function NoLinksEmpty({ onAddLink }: { onAddLink?: () => void }) {
                 </svg>
             }
             title="No links saved yet"
-            description="Start saving useful links from reels, shorts, and videos. They'll appear here with rich previews."
+            description="Start saving useful links from YouTube, Medium, websites, and more. They'll appear here with rich previews."
             action={onAddLink ? { label: 'Save your first link', onClick: onAddLink } : undefined}
         />
     )
