@@ -1,12 +1,12 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
-import { jsPDF } from 'jspdf'
 import { useAuth } from '@/hooks/useAuth'
 import { useLinks, useCollections, useStats, useDeleteWithUndo, useBatchActions, useToggleFavorite, useInvalidateCollections } from '@/hooks/useLinks'
 import type { LinkFilters } from '@/lib/api'
 import { api } from '@/lib/api'
 import { toast } from '@/lib/toast'
 import { Dialog } from '@/components/ui/Dialog'
+import { generatePDF } from '@/utils/pdfExport'
 import { SkeletonGrid } from '@/components/ui/Skeleton'
 import { NoLinksEmpty, NoResultsEmpty } from '@/components/ui/EmptyState'
 import { AddLinkForm } from './AddLinkForm'
@@ -119,11 +119,11 @@ export function Dashboard() {
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [])
 
-  // Virtualization for large lists
+  // Virtualization for large lists (4 columns)
   const rowVirtualizer = useVirtualizer({
-    count: Math.ceil(links.length / 3),
+    count: Math.ceil(links.length / 4),
     getScrollElement: () => parentRef.current,
-    estimateSize: () => 420,
+    estimateSize: () => 280,
     overscan: 2,
   })
 
@@ -144,155 +144,24 @@ export function Dashboard() {
     setShowExportModal(false)
     
     try {
-      // Filter links by selected collection
-      const exportLinks = exportCollectionId 
-        ? links.filter(l => l.collection_id === exportCollectionId)
-        : links
+      const collectionName = exportCollectionId 
+        ? collections.find(c => c.id === exportCollectionId)?.name 
+        : undefined
       
-      const exportCollectionName = exportCollectionId 
-        ? collections.find(c => c.id === exportCollectionId)?.name || 'Collection'
-        : 'All Links'
-      
-      if (exportLinks.length === 0) {
-        toast.error('No links to export')
-        setExporting(false)
-        return
-      }
-      
-      const doc = new jsPDF()
-      const pageWidth = doc.internal.pageSize.getWidth()
-      const pageHeight = doc.internal.pageSize.getHeight()
-      const margin = 15
-      const contentWidth = pageWidth - margin * 2
-      
-      // Colors
-      const accent: [number, number, number] = [42, 187, 247]
-      const dark: [number, number, number] = [15, 23, 42]
-      const muted: [number, number, number] = [100, 116, 139]
-      const light: [number, number, number] = [241, 245, 249]
-      
-      // === COVER PAGE ===
-      // Gradient header simulation
-      doc.setFillColor(15, 23, 42)
-      doc.rect(0, 0, pageWidth, pageHeight, 'F')
-      
-      // Accent circle decoration
-      doc.setFillColor(...accent)
-      doc.circle(pageWidth - 30, 40, 60, 'F')
-      doc.setFillColor(6, 182, 212)
-      doc.circle(30, pageHeight - 50, 40, 'F')
-      
-      // Title
-      doc.setFontSize(42)
-      doc.setTextColor(255, 255, 255)
-      doc.text('LinkVault', margin + 5, 60)
-      
-      doc.setFontSize(16)
-      doc.setTextColor(...accent)
-      doc.text(exportCollectionName, margin + 5, 75)
-      
-      // Stats box
-      const boxY = 100
-      doc.setFillColor(30, 41, 59)
-      doc.roundedRect(margin, boxY, contentWidth, 50, 5, 5, 'F')
-      
-      // Stats
-      const statWidth = contentWidth / 3
-      doc.setFontSize(32)
-      doc.setTextColor(...accent)
-      doc.text(String(exportLinks.length), margin + statWidth * 0.5, boxY + 28, { align: 'center' })
-      doc.text(String(exportLinks.filter(l => l.is_favorite).length), margin + statWidth * 1.5, boxY + 28, { align: 'center' })
-      doc.text(String(new Set(exportLinks.flatMap(l => l.tags)).size), margin + statWidth * 2.5, boxY + 28, { align: 'center' })
-      
-      doc.setFontSize(10)
-      doc.setTextColor(148, 163, 184)
-      doc.text('Links', margin + statWidth * 0.5, boxY + 42, { align: 'center' })
-      doc.text('Favorites', margin + statWidth * 1.5, boxY + 42, { align: 'center' })
-      doc.text('Tags', margin + statWidth * 2.5, boxY + 42, { align: 'center' })
-      
-      // Date
-      doc.setFontSize(11)
-      doc.setTextColor(148, 163, 184)
-      doc.text(`Exported ${new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}`, margin + 5, boxY + 70)
-      
-      // Decorative line
-      doc.setDrawColor(...accent)
-      doc.setLineWidth(2)
-      doc.line(margin, boxY + 80, margin + 60, boxY + 80)
-      
-      // === LINK PAGES ===
-      doc.addPage()
-      doc.setFillColor(255, 255, 255)
-      doc.rect(0, 0, pageWidth, pageHeight, 'F')
-      
-      let y = 20
-      const rowHeight = 28
-      
-      exportLinks.forEach((link, index) => {
-        if (y + rowHeight > pageHeight - 20) {
-          doc.addPage()
-          y = 20
-        }
-        
-        // Alternating row bg
-        if (index % 2 === 0) {
-          doc.setFillColor(...light)
-          doc.rect(margin, y - 5, contentWidth, rowHeight - 2, 'F')
-        }
-        
-        // Number
-        doc.setFontSize(9)
-        doc.setTextColor(...muted)
-        doc.text(String(index + 1).padStart(2, '0'), margin + 5, y + 8)
-        
-        // Favorite
-        if (link.is_favorite) {
-          doc.setTextColor(251, 191, 36)
-          doc.text('★', margin + 18, y + 8)
-        }
-        
-        // Title
-        doc.setFontSize(10)
-        doc.setTextColor(...dark)
-        const title = (link.title || 'Untitled').substring(0, 50) + (link.title && link.title.length > 50 ? '...' : '')
-        doc.text(title, margin + 28, y + 8)
-        
-        // URL below title
-        doc.setFontSize(7)
-        doc.setTextColor(...accent)
-        const url = link.url.substring(0, 70) + (link.url.length > 70 ? '...' : '')
-        doc.text(url, margin + 28, y + 16)
-        
-        // Tags on right
-        if (link.tags.length > 0) {
-          doc.setFontSize(7)
-          doc.setTextColor(...muted)
-          const tagText = link.tags.slice(0, 3).map(t => `#${t}`).join(' ')
-          doc.text(tagText, pageWidth - margin - 5, y + 8, { align: 'right' })
-        }
-        
-        y += rowHeight
+      await generatePDF({
+        links,
+        collections,
+        collectionId: exportCollectionId || undefined,
+        collectionName,
       })
       
-      // Footer on all pages
-      const totalPages = doc.getNumberOfPages()
-      for (let i = 1; i <= totalPages; i++) {
-        doc.setPage(i)
-        doc.setFontSize(8)
-        doc.setTextColor(...muted)
-        doc.text('LinkVault', margin, pageHeight - 8)
-        doc.text(`${i}/${totalPages}`, pageWidth - margin, pageHeight - 8, { align: 'right' })
-      }
-      
-      // Save
-      const filename = exportCollectionId 
-        ? `linkvault-${exportCollectionName.toLowerCase().replace(/\s+/g, '-')}-${new Date().toISOString().split('T')[0]}.pdf`
-        : `linkvault-all-${new Date().toISOString().split('T')[0]}.pdf`
-      doc.save(filename)
-      toast.success(`Exported ${exportLinks.length} links`)
+      const count = exportCollectionId 
+        ? links.filter(l => l.collection_id === exportCollectionId).length 
+        : links.length
+      toast.success(`Exported ${count} links`)
     } catch (err) {
       console.error('PDF export failed:', err)
-      toast.error('Export failed')
+      toast.error(err instanceof Error ? err.message : 'Export failed')
     } finally {
       setExporting(false)
       setExportCollectionId('')
@@ -379,7 +248,7 @@ export function Dashboard() {
         background: 'var(--color-bg-primary)', 
         borderBottom: '1px solid var(--color-border)' 
       }}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4">
+        <div className="w-full px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl flex items-center justify-center">
@@ -425,7 +294,7 @@ export function Dashboard() {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
+      <main className="w-full px-4 sm:px-6 lg:px-8 py-6">
         {/* Add Link Form */}
         <AddLinkForm 
           onLinkAdded={() => refetch()} 
@@ -637,7 +506,7 @@ export function Dashboard() {
           )
         ) : links.length <= 30 ? (
           // Regular grid for small lists
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {links.map((link, index) => (
               <div 
                 key={link.id} 
@@ -662,12 +531,12 @@ export function Dashboard() {
           <div ref={parentRef} className="h-[calc(100vh-400px)] overflow-auto">
             <div style={{ height: `${rowVirtualizer.getTotalSize()}px`, width: '100%', position: 'relative' }}>
               {rowVirtualizer.getVirtualItems().map((virtualRow) => {
-                const startIndex = virtualRow.index * 3
-                const rowLinks = links.slice(startIndex, startIndex + 3)
+                const startIndex = virtualRow.index * 4
+                const rowLinks = links.slice(startIndex, startIndex + 4)
                 return (
                   <div
                     key={virtualRow.index}
-                    className="absolute top-0 left-0 w-full grid gap-6 sm:grid-cols-2 lg:grid-cols-3"
+                    className="absolute top-0 left-0 w-full grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
                     style={{ transform: `translateY(${virtualRow.start}px)` }}
                   >
                     {rowLinks.map((link) => (

@@ -171,16 +171,23 @@ export function LinkCard({
         </div>
 
         {/* Content - compact */}
-        <div className="p-2.5 space-y-1.5">
+        <div className="p-2 space-y-1">
+          {/* Description */}
+          {link.description && (
+            <p className="text-[11px] line-clamp-2" style={{ color: 'var(--color-text-muted)' }}>
+              {link.description}
+            </p>
+          )}
+          
           {/* Note */}
           {link.note && (
-            <p className="text-xs line-clamp-1" style={{ color: 'var(--color-text-secondary)' }}>
+            <p className="text-[11px] line-clamp-1" style={{ color: 'var(--color-text-secondary)' }}>
               💬 {link.note}
             </p>
           )}
 
           {/* Meta row: Tags + Collection */}
-          <div className="flex items-center gap-1 text-xs overflow-hidden">
+          <div className="flex items-center gap-1 text-[10px] overflow-hidden">
             {link.tags.slice(0, 2).map(tag => (
               <span key={tag} className="shrink-0" style={{ color: 'var(--color-accent)' }}>#{tag}</span>
             ))}

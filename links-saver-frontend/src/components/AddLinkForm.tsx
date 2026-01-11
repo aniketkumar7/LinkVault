@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { api } from '@/lib/api'
 import type { Collection } from '@/lib/api'
 import { toast } from '@/lib/toast'
+import { Select } from './ui/Select'
 
 interface Props {
   onLinkAdded: () => void
@@ -216,14 +217,15 @@ export function AddLinkForm({ onLinkAdded, existingTags, collections, onCollecti
         </div>
       )}
 
-      {/* Row 2: Note + Tags + Collection */}
-      <div className="flex gap-2 mt-2 flex-wrap">
+      {/* Row 2: Note (40%) + Tags (30%) + Collection (30%) */}
+      <div className="flex gap-2 mt-2">
         <input
           value={note}
           onChange={(e) => setNote(e.target.value)}
           placeholder="Note (optional)"
-          className="flex-1 min-w-32 px-3 py-2 rounded-xl text-sm"
+          className="px-3 py-2 rounded-xl text-sm"
           style={{
+            width: '40%',
             background: 'var(--color-bg-tertiary)',
             border: '1px solid var(--color-border)',
             color: 'var(--color-text-primary)',
@@ -237,8 +239,9 @@ export function AddLinkForm({ onLinkAdded, existingTags, collections, onCollecti
           onChange={(e) => setTags(e.target.value)}
           placeholder="Tags (comma)"
           list="existing-tags"
-          className="w-28 px-3 py-2 rounded-xl text-sm"
+          className="px-3 py-2 rounded-xl text-sm"
           style={{
+            width: '30%',
             background: 'var(--color-bg-tertiary)',
             border: '1px solid var(--color-border)',
             color: 'var(--color-text-primary)',
@@ -250,13 +253,13 @@ export function AddLinkForm({ onLinkAdded, existingTags, collections, onCollecti
         </datalist>
         
         {showNewCollection ? (
-          <div className="flex gap-1">
+          <div className="flex gap-1" style={{ width: '30%' }}>
             <input
               type="text"
               value={newCollectionName}
               onChange={(e) => setNewCollectionName(e.target.value)}
               placeholder="New collection..."
-              className="w-28 px-3 py-2 rounded-xl text-sm"
+              className="flex-1 px-3 py-2 rounded-xl text-sm"
               style={{
                 background: 'var(--color-bg-tertiary)',
                 border: '1px solid var(--color-accent)',
@@ -287,24 +290,22 @@ export function AddLinkForm({ onLinkAdded, existingTags, collections, onCollecti
             </button>
           </div>
         ) : (
-          <select
+          <Select
             value={collectionId}
-            onChange={(e) => {
-              if (e.target.value === '__new__') setShowNewCollection(true)
-              else setCollectionId(e.target.value)
+            onChange={(val) => {
+              if (val === '__new__') setShowNewCollection(true)
+              else setCollectionId(val)
             }}
-            className="w-36 px-3 py-2 rounded-xl text-sm"
-            style={{
-              background: 'var(--color-bg-tertiary)',
-              border: '1px solid var(--color-border)',
-              color: collectionId ? 'var(--color-text-primary)' : 'var(--color-text-muted)',
-            }}
+            options={[
+              { value: '', label: 'Collection' },
+              ...collections.map(col => ({ value: col.id, label: col.name, color: col.color })),
+              { value: '__new__', label: '+ New' }
+            ]}
+            placeholder="Collection"
+            size="sm"
             disabled={loading}
-          >
-            <option value="">Collection</option>
-            {collections.map((col) => <option key={col.id} value={col.id}>{col.name}</option>)}
-            <option value="__new__">+ New</option>
-          </select>
+            className="w-[30%]"
+          />
         )}
       </div>
 
