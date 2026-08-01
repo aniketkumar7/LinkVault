@@ -140,21 +140,6 @@ export function Dashboard() {
     setShowFilters(false)
   }
 
-  const startSelectionMode = () => {
-    setSelectMode(true)
-    setSelectedIds(new Set())
-  }
-
-  const handleCardLongPress = (id: string) => {
-    if (selectMode) {
-      toggleSelect(id)
-      return
-    }
-
-    startSelectionMode()
-    setSelectedIds(new Set([id]))
-  }
-
   const handleExportPDF = async () => {
     setExporting(true)
     setShowExportModal(false)
@@ -466,6 +451,16 @@ export function Dashboard() {
                 className="w-28"
               />
 
+              <button
+                onClick={() => { setSelectMode(v => !v); setSelectedIds(new Set()) }}
+                className="rounded-2xl border px-3 py-2.5 text-sm font-medium"
+                style={{
+                  background: selectMode ? 'rgba(42,187,247,0.1)' : 'var(--color-bg-tertiary)',
+                  borderColor: selectMode ? 'var(--color-accent)' : 'var(--color-border)',
+                  color: selectMode ? 'var(--color-accent)' : 'var(--color-text-secondary)',
+                }}
+              >{selectMode ? `${selectedIds.size} selected` : 'Select'}</button>
+
               {hasFilters && (
                 <button onClick={clearFilters}
                   className="rounded-2xl border px-3 py-2.5 text-sm font-medium"
@@ -535,6 +530,15 @@ export function Dashboard() {
                       ]}
                       size="sm" className="w-full"
                     />
+                    <button
+                      onClick={() => { setSelectMode(v => !v); setSelectedIds(new Set()); setShowFilters(false) }}
+                      className="rounded-2xl border px-3 py-2.5 text-sm font-medium text-left"
+                      style={{
+                        background: selectMode ? 'rgba(42,187,247,0.1)' : 'var(--color-bg-tertiary)',
+                        borderColor: selectMode ? 'var(--color-accent)' : 'var(--color-border)',
+                        color: selectMode ? 'var(--color-accent)' : 'var(--color-text-secondary)',
+                      }}
+                    >{selectMode ? `✓ ${selectedIds.size} selected` : 'Select cards'}</button>
                     {hasFilters && (
                       <button onClick={clearFilters}
                         className="rounded-2xl border px-3 py-2.5 text-sm font-medium"
@@ -600,7 +604,6 @@ export function Dashboard() {
                   selected={selectedIds.has(link.id)}
                   onSelect={() => toggleSelect(link.id)}
                   onToggleFavorite={() => toggleFavorite.mutate(link.id)}
-                  onLongPress={handleCardLongPress}
                 />
               </div>
             ))}
