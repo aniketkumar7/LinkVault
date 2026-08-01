@@ -103,9 +103,7 @@ export function BulkImportModal({ onClose, onImported, collections }: Props) {
     }
   }
 
-  const vw = typeof window !== 'undefined' ? window.innerWidth : 1024
-  const vh = typeof window !== 'undefined' ? window.innerHeight : 768
-  const targetW = Math.min(520, vw - 32)
+  const targetW = Math.min(520, (typeof window !== 'undefined' ? window.innerWidth : 1024) - 32)
 
   const inputStyle = { background: 'var(--color-bg-tertiary)', color: 'var(--color-text-primary)' }
 

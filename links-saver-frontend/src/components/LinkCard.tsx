@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Plus, X, CaretDown, Check } from '@phosphor-icons/react'
+import { X, CaretDown, Check } from '@phosphor-icons/react'
 import { api } from '@/lib/api'
 import type { Link, Collection } from '@/lib/api'
 import { toast } from '@/lib/toast'
