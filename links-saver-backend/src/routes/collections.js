@@ -3,13 +3,19 @@ const router = express.Router();
 const { supabase } = require('../config/supabase');
 const crypto = require('crypto');
 
+const DEFAULT_COLLECTIONS = [
+    { name: 'Design', color: '#E05C50' },
+    { name: 'Movies', color: '#8F54D8' },
+    { name: 'Study', color: '#48B068' },
+];
+
 /**
  * GET /api/collections
- * Get all collections for authenticated user
+ * Get all collections for authenticated user, seeding defaults if none exist
  */
 router.get('/', async (req, res) => {
     try {
-        const { data, error } = await supabase
+        let { data, error } = await supabase
             .from('collections')
             .select('*, useful_links(count)')
             .eq('user_id', req.user.id)
@@ -17,7 +23,15 @@ router.get('/', async (req, res) => {
 
         if (error) throw error;
 
-        // Transform to include link count
+        // Seed defaults for new users
+        if (data.length === 0) {
+            const { data: seeded, error: seedError } = await supabase
+                .from('collections')
+                .insert(DEFAULT_COLLECTIONS.map(c => ({ ...c, user_id: req.user.id })))
+                .select('*, useful_links(count)');
+            if (!seedError) data = seeded;
+        }
+
         const collections = data.map(c => ({
             ...c,
             link_count: c.useful_links?.[0]?.count || 0,

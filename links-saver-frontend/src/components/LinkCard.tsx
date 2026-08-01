@@ -14,49 +14,47 @@ interface Props {
   selected?: boolean
   onSelect?: () => void
   onToggleFavorite?: () => void
+  onLongPress?: (id: string) => void
 }
 
-function FaviconImg({ src }: { src: string | null }) {
-  const [error, setError] = useState(false)
-  
-  if (!src || error) {
-    return (
-      <div className="w-5 h-5 rounded flex items-center justify-center" style={{ background: 'var(--color-bg-tertiary)' }}>
-        <svg className="w-3 h-3" style={{ color: 'var(--color-text-muted)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-        </svg>
-      </div>
-    )
+function formatDate(value: string) {
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return ''
+
+  return date.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+  })
+}
+
+function getDomain(url: string) {
+  try {
+    return new URL(url).hostname.replace(/^www\./, '')
+  } catch {
+    return 'link'
   }
-  
-  return (
-    <img 
-      src={src} 
-      alt="" 
-      className="w-5 h-5 rounded object-contain"
-      onError={() => setError(true)}
-    />
-  )
 }
 
-export function LinkCard({ 
-  link, 
-  onUpdated, 
-  onDeleted, 
+export function LinkCard({
+  link,
+  onUpdated,
+  onDeleted,
   collections = [],
   selectable = false,
   selected = false,
   onSelect,
   onToggleFavorite,
+  onLongPress,
 }: Props) {
   const [deleting, setDeleting] = useState(false)
   const [editing, setEditing] = useState(false)
   const [saving, setSaving] = useState(false)
   const [copied, setCopied] = useState(false)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
-  
-  // Edit state
-  const [editNote, setEditNote] = useState(link.note)
+  const [pressTimer, setPressTimer] = useState<number | null>(null)
+  const [suppressClick, setSuppressClick] = useState(false)
+
+  const [editNote, setEditNote] = useState(link.note ?? '')
   const [editTags, setEditTags] = useState(link.tags.join(', '))
   const [editCollectionId, setEditCollectionId] = useState(link.collection_id || '')
 
@@ -79,7 +77,7 @@ export function LinkCard({
     try {
       await api.updateLink(link.id, {
         note: editNote,
-        tags: editTags.split(',').map(t => t.trim()).filter(Boolean),
+        tags: editTags.split(',').map((t) => t.trim()).filter(Boolean),
         collection_id: editCollectionId || undefined,
       })
       setEditing(false)
@@ -95,7 +93,7 @@ export function LinkCard({
 
   const handleCancelEdit = () => {
     setEditing(false)
-    setEditNote(link.note)
+    setEditNote(link.note ?? '')
     setEditTags(link.tags.join(', '))
     setEditCollectionId(link.collection_id || '')
   }
@@ -115,99 +113,156 @@ export function LinkCard({
     }
   }
 
-  const collectionName = collections.find(c => c.id === link.collection_id)?.name
+  const handlePressStart = () => {
+    if (!onLongPress) return
+    const timer = window.setTimeout(() => {
+      onLongPress(link.id)
+      setSuppressClick(true)
+    }, 450)
+    setPressTimer(timer)
+  }
+
+  const handlePressEnd = () => {
+    if (pressTimer) {
+      window.clearTimeout(pressTimer)
+      setPressTimer(null)
+    }
+  }
+
+  const handleCardClick = () => {
+    if (selectable && suppressClick) {
+      setSuppressClick(false)
+      return
+    }
+    onSelect?.()
+  }
+
+  const collectionName = collections.find((c) => c.id === link.collection_id)?.name
+  const tags = link.tags.filter(Boolean).slice(0, 3)
+  const domain = getDomain(link.url)
+  const previewTitle = link.title?.trim() || 'Untitled link'
+  const previewDescription = link.description?.trim() || 'No description yet.'
+  const savedDate = formatDate(link.updated_at || link.created_at)
 
   return (
     <>
-      <div
-        className={`relative rounded-xl overflow-hidden card-lift ${selected ? 'ring-2 ring-accent' : ''}`}
+      <article
+        className={`group relative w-full min-w-0 overflow-hidden rounded-[24px] border transition-all duration-200 hover:-translate-y-1 ${selected ? 'ring-1 ring-sky-400/30' : ''}`}
         style={{
           background: 'var(--color-bg-card)',
-          border: '1px solid var(--color-border)',
+          borderColor: selected ? 'rgba(42, 187, 247, 0.32)' : 'var(--color-border)',
+          boxShadow: selected
+            ? '0 20px 55px -24px rgba(42, 187, 247, 0.24)'
+            : '0 18px 46px -24px rgba(15, 23, 42, 0.28)',
         }}
-        onClick={selectable ? onSelect : undefined}
+        onClick={selectable ? handleCardClick : undefined}
+        onMouseDown={handlePressStart}
+        onMouseUp={handlePressEnd}
+        onMouseLeave={handlePressEnd}
+        onTouchStart={handlePressStart}
+        onTouchEnd={handlePressEnd}
+        onTouchCancel={handlePressEnd}
       >
-        {/* Selection checkbox */}
         {selectable && (
-          <div className="absolute top-2 left-2 z-10">
-            <div 
-              className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${selected ? 'border-accent bg-accent' : 'border-white/50 bg-black/30 backdrop-blur'}`}
-            >
-              {selected && (
-                <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                </svg>
-              )}
-            </div>
-          </div>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation()
+              onSelect?.()
+            }}
+            aria-pressed={selected}
+            className="absolute left-3 top-3 z-10 flex h-8 w-8 items-center justify-center rounded-full border text-sm transition-all"
+            style={{
+              background: selected ? 'rgba(42, 187, 247, 0.14)' : 'rgba(2, 6, 23, 0.44)',
+              borderColor: selected ? 'rgba(42, 187, 247, 0.28)' : 'rgba(255,255,255,0.16)',
+              color: selected ? 'var(--color-accent)' : 'white',
+            }}
+            title={selected ? 'Deselect' : 'Select'}
+          >
+            {selected ? '✓' : '○'}
+          </button>
         )}
 
-        {/* Favorite badge - top right */}
         {link.is_favorite && (
-          <div className="absolute top-2 right-2 z-10">
-            <span className="text-amber-400 text-sm drop-shadow">★</span>
+          <div className="absolute right-3 top-3 z-10 rounded-full border border-amber-400/20 bg-amber-400/10 px-2 py-1 text-[11px] font-medium text-amber-400">
+            ★ Favorite
           </div>
         )}
 
-        {/* Compact image - smaller aspect ratio */}
-        <div className="relative">
-          <LazyImage
-            src={link.image_url}
-            alt={link.title || 'Link preview'}
-            className="aspect-2/1 w-full"
-          />
-          {/* Gradient overlay for text readability */}
-          <div className="absolute inset-0 bg-linear-to-t from-black/60 via-transparent to-transparent" />
-          
-          {/* Title overlay on image */}
-          <div className="absolute bottom-0 left-0 right-0 p-2.5">
-            <div className="flex items-center gap-1.5">
-              <FaviconImg src={link.favicon_url} />
-              <h3 className="font-medium text-xs line-clamp-1 text-white drop-shadow">
-                {link.title || 'Untitled'}
-              </h3>
-            </div>
+        <div className="p-3">
+          <div className="overflow-hidden rounded-[18px] border" style={{ borderColor: 'var(--color-border)' }}>
+            <LazyImage
+              src={link.image_url}
+              alt={previewTitle}
+              className="aspect-16/10 w-full"
+            />
           </div>
         </div>
 
-        {/* Content - compact */}
-        <div className="p-2 space-y-1">
-          {/* Description */}
-          {link.description && (
-            <p className="text-[11px] line-clamp-2" style={{ color: 'var(--color-text-muted)' }}>
-              {link.description}
-            </p>
-          )}
-          
-          {/* Note */}
-          {link.note && (
-            <p className="text-[11px] line-clamp-1" style={{ color: 'var(--color-text-secondary)' }}>
-              💬 {link.note}
-            </p>
-          )}
-
-          {/* Meta row: Tags + Collection */}
-          <div className="flex items-center gap-1 text-[10px] overflow-hidden">
-            {link.tags.slice(0, 2).map(tag => (
-              <span key={tag} className="shrink-0" style={{ color: 'var(--color-accent)' }}>#{tag}</span>
-            ))}
-            {link.tags.length > 2 && (
-              <span style={{ color: 'var(--color-text-muted)' }}>+{link.tags.length - 2}</span>
-            )}
-            {collectionName && (
-              <span className="ml-auto truncate" style={{ color: 'var(--color-text-muted)' }}>📁 {collectionName}</span>
+        <div className="space-y-3 p-4 pt-0">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.24em]" style={{ color: 'var(--color-accent)' }}>
+                {domain}
+              </p>
+              <h3 className="mt-1 truncate text-[15px] font-semibold leading-5" style={{ color: 'var(--color-text-primary)' }}>
+                {previewTitle}
+              </h3>
+            </div>
+            {savedDate && (
+              <span className="shrink-0 rounded-full border px-2.5 py-1 text-[11px] font-medium" style={{ background: 'rgba(42, 187, 247, 0.06)', borderColor: 'rgba(42, 187, 247, 0.12)', color: 'var(--color-text-muted)' }}>
+                {savedDate}
+              </span>
             )}
           </div>
 
-          {/* Edit Mode */}
+          <p
+            className="text-sm leading-6"
+            style={{
+              color: 'var(--color-text-secondary)',
+              display: '-webkit-box',
+              WebkitLineClamp: 3,
+              WebkitBoxOrient: 'vertical',
+              overflow: 'hidden',
+            }}
+          >
+            {previewDescription}
+          </p>
+
+          {(tags.length > 0 || collectionName) && (
+            <div className="flex flex-wrap gap-2">
+              {collectionName && (
+                <span className="rounded-full border px-2.5 py-1 text-[11px] font-medium" style={{ background: 'rgba(15, 23, 42, 0.04)', borderColor: 'var(--color-border)', color: 'var(--color-text-secondary)' }}>
+                  {collectionName}
+                </span>
+              )}
+              {tags.map((tag) => (
+                <span key={tag} className="rounded-full border px-2.5 py-1 text-[11px] font-medium" style={{ background: 'rgba(42, 187, 247, 0.06)', borderColor: 'rgba(42, 187, 247, 0.12)', color: 'var(--color-accent)' }}>
+                  #{tag}
+                </span>
+              ))}
+            </div>
+          )}
+
+          {link.note && (
+            <div className="rounded-2xl border px-3 py-2" style={{ background: 'rgba(15, 23, 42, 0.03)', borderColor: 'var(--color-border)' }}>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.24em]" style={{ color: 'var(--color-text-muted)' }}>
+                Note
+              </p>
+              <p className="mt-1 text-sm" style={{ color: 'var(--color-text-secondary)' }}>
+                {link.note}
+              </p>
+            </div>
+          )}
+
           {editing ? (
-            <div className="space-y-2 pt-2 border-t" style={{ borderColor: 'var(--color-border)' }}>
+            <div className="space-y-2 border-t pt-3" style={{ borderColor: 'var(--color-border)' }}>
               <input
                 type="text"
                 value={editNote}
                 onChange={(e) => setEditNote(e.target.value)}
                 placeholder="Note..."
-                className="w-full px-3 py-2 rounded-lg text-sm"
+                className="w-full rounded-xl px-3 py-2 text-sm"
                 style={{ background: 'var(--color-bg-tertiary)', border: '1px solid var(--color-border)', color: 'var(--color-text-primary)' }}
               />
               <input
@@ -215,31 +270,34 @@ export function LinkCard({
                 value={editTags}
                 onChange={(e) => setEditTags(e.target.value)}
                 placeholder="Tags (comma separated)"
-                className="w-full px-3 py-2 rounded-lg text-sm"
+                className="w-full rounded-xl px-3 py-2 text-sm"
                 style={{ background: 'var(--color-bg-tertiary)', border: '1px solid var(--color-border)', color: 'var(--color-text-primary)' }}
               />
               {collections.length > 0 && (
                 <select
                   value={editCollectionId}
                   onChange={(e) => setEditCollectionId(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg text-sm"
+                  className="w-full rounded-xl px-3 py-2 text-sm"
                   style={{ background: 'var(--color-bg-tertiary)', border: '1px solid var(--color-border)', color: 'var(--color-text-primary)' }}
                 >
                   <option value="">No collection</option>
-                  {collections.map(col => (
-                    <option key={col.id} value={col.id}>{col.name}</option>
+                  {collections.map((col) => (
+                    <option key={col.id} value={col.id}>
+                      {col.name}
+                    </option>
                   ))}
                 </select>
               )}
               <div className="flex gap-2">
                 <button
+                  type="button"
                   onClick={handleSaveEdit}
                   disabled={saving}
-                  className="flex-1 px-3 py-2 rounded-lg text-sm font-medium text-white disabled:opacity-50 flex items-center justify-center gap-2"
+                  className="flex flex-1 items-center justify-center gap-2 rounded-xl px-3 py-2 text-sm font-medium text-white disabled:opacity-50"
                   style={{ background: 'var(--color-accent)' }}
                 >
                   {saving && (
-                    <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                    <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24">
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                     </svg>
@@ -247,9 +305,10 @@ export function LinkCard({
                   Save
                 </button>
                 <button
+                  type="button"
                   onClick={handleCancelEdit}
                   disabled={saving}
-                  className="flex-1 px-3 py-2 rounded-lg text-sm font-medium disabled:opacity-50"
+                  className="flex-1 rounded-xl px-3 py-2 text-sm font-medium disabled:opacity-50"
                   style={{ background: 'var(--color-bg-tertiary)', color: 'var(--color-text-secondary)' }}
                 >
                   Cancel
@@ -257,25 +316,32 @@ export function LinkCard({
               </div>
             </div>
           ) : (
-            /* Compact action row */
-            <div className="flex items-center gap-0.5 pt-1.5 border-t" style={{ borderColor: 'var(--color-border)' }}>
+            <div className="flex flex-wrap items-center gap-2 border-t pt-3" style={{ borderColor: 'var(--color-border)' }}>
               <button
-                onClick={(e) => { e.stopPropagation(); handleFavoriteClick() }}
-                className="p-1.5 rounded btn-press"
-                style={{ color: link.is_favorite ? '#fbbf24' : 'var(--color-text-muted)' }}
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  handleFavoriteClick()
+                }}
+                className="flex h-9 w-9 items-center justify-center rounded-full"
+                style={{ background: 'var(--color-bg-tertiary)', color: link.is_favorite ? '#fbbf24' : 'var(--color-text-muted)' }}
                 title={link.is_favorite ? 'Unfavorite' : 'Favorite'}
               >
-                <svg className="w-3.5 h-3.5" fill={link.is_favorite ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="h-4 w-4" fill={link.is_favorite ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
                 </svg>
               </button>
               <button
-                onClick={(e) => { e.stopPropagation(); handleCopyUrl() }}
-                className="p-1.5 rounded btn-press"
-                style={{ color: copied ? 'var(--color-success)' : 'var(--color-text-muted)' }}
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  handleCopyUrl()
+                }}
+                className="flex h-9 w-9 items-center justify-center rounded-full"
+                style={{ background: 'var(--color-bg-tertiary)', color: copied ? 'var(--color-success)' : 'var(--color-text-muted)' }}
                 title="Copy"
               >
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
                 </svg>
               </button>
@@ -284,44 +350,44 @@ export function LinkCard({
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={(e) => e.stopPropagation()}
-                className="p-1.5 rounded btn-press"
-                style={{ color: 'var(--color-text-muted)' }}
+                className="flex h-9 w-9 items-center justify-center rounded-full"
+                style={{ background: 'var(--color-bg-tertiary)', color: 'var(--color-text-muted)' }}
                 title="Open"
               >
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                 </svg>
               </a>
-              <div className="flex-1" />
-              <span className="text-[10px] px-1" style={{ color: 'var(--color-text-muted)' }}>
-                {new Date(link.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-              </span>
+              <div className="flex-1 min-w-0" />
               <button
-                onClick={(e) => { e.stopPropagation(); setEditing(true) }}
-                className="p-1.5 rounded btn-press"
-                style={{ color: 'var(--color-text-muted)' }}
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setEditing(true)
+                }}
+                className="rounded-full px-3 py-2 text-sm font-medium"
+                style={{ background: 'rgba(42, 187, 247, 0.08)', color: 'var(--color-accent)' }}
                 title="Edit"
               >
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                </svg>
+                Edit
               </button>
               <button
-                onClick={(e) => { e.stopPropagation(); setShowDeleteDialog(true) }}
-                className="p-1.5 rounded btn-press"
-                style={{ color: 'var(--color-error)' }}
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setShowDeleteDialog(true)
+                }}
+                className="rounded-full px-3 py-2 text-sm font-medium"
+                style={{ background: 'rgba(239,68,68,0.08)', color: 'var(--color-error)' }}
                 title="Delete"
               >
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                </svg>
+                Delete
               </button>
             </div>
           )}
         </div>
-      </div>
+      </article>
 
-      {/* Delete confirmation dialog */}
       <Dialog
         open={showDeleteDialog}
         onClose={() => setShowDeleteDialog(false)}

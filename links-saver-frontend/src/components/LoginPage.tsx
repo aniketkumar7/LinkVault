@@ -7,33 +7,37 @@ interface Props {
 
 export function LoginPage({ onBack }: Props) {
   const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [isSignUp, setIsSignUp] = useState(false)
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
-  const { signInWithEmail } = useAuth()
+  const { signInWithEmail, signUp } = useAuth()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!email.trim()) return
+    if (!email.trim() || !password.trim()) return
 
     setLoading(true)
     setMessage(null)
 
     try {
-      await signInWithEmail(email.trim())
-      setMessage({ type: 'success', text: 'Check your email for the magic link!' })
-      setEmail('')
+      if (isSignUp) {
+        await signUp(email.trim(), password)
+        setMessage({ type: 'success', text: 'Account created! Check your email to confirm, then sign in.' })
+      } else {
+        await signInWithEmail(email.trim(), password)
+      }
     } catch (err) {
-      setMessage({ type: 'error', text: err instanceof Error ? err.message : 'Failed to send magic link' })
+      setMessage({ type: 'error', text: err instanceof Error ? err.message : 'Authentication failed' })
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4" 
+    <div className="min-h-screen flex items-center justify-center p-4"
          style={{ background: 'linear-gradient(135deg, var(--color-bg-primary) 0%, var(--color-bg-secondary) 50%, var(--color-bg-primary) 100%)' }}>
-      
-      {/* Decorative elements */}
+
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-40 -right-40 w-80 h-80 rounded-full opacity-20"
              style={{ background: 'radial-gradient(circle, var(--color-accent) 0%, transparent 70%)' }} />
@@ -42,7 +46,6 @@ export function LoginPage({ onBack }: Props) {
       </div>
 
       <div className="w-full max-w-md relative">
-        {/* Back button */}
         {onBack && (
           <button
             onClick={onBack}
@@ -56,7 +59,6 @@ export function LoginPage({ onBack }: Props) {
           </button>
         )}
 
-        {/* Logo/Brand */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-4"
                style={{ background: 'linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-muted) 100%)', boxShadow: 'var(--shadow-glow)' }}>
@@ -68,17 +70,16 @@ export function LoginPage({ onBack }: Props) {
             LinkVault
           </h1>
           <p className="mt-2" style={{ color: 'var(--color-text-secondary)' }}>
-            Save links before you forget them
+            {isSignUp ? 'Create your account' : 'Welcome back'}
           </p>
         </div>
 
-        {/* Login Card */}
-        <div className="rounded-2xl p-8" style={{ 
-          background: 'var(--color-bg-card)', 
+        <div className="rounded-2xl p-8" style={{
+          background: 'var(--color-bg-card)',
           border: '1px solid var(--color-border)',
           boxShadow: 'var(--shadow-card)'
         }}>
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label htmlFor="email" className="block text-sm font-medium mb-2" style={{ color: 'var(--color-text-secondary)' }}>
                 Email address
@@ -90,19 +91,33 @@ export function LoginPage({ onBack }: Props) {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com"
                 className="w-full px-4 py-3 rounded-xl text-base transition-all"
-                style={{
-                  background: 'var(--color-bg-tertiary)',
-                  border: '1px solid var(--color-border)',
-                  color: 'var(--color-text-primary)',
-                }}
+                style={{ background: 'var(--color-bg-tertiary)', border: '1px solid var(--color-border)', color: 'var(--color-text-primary)' }}
                 disabled={loading}
                 required
               />
             </div>
 
+            <div>
+              <label htmlFor="password" className="block text-sm font-medium mb-2" style={{ color: 'var(--color-text-secondary)' }}>
+                Password
+              </label>
+              <input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                className="w-full px-4 py-3 rounded-xl text-base transition-all"
+                style={{ background: 'var(--color-bg-tertiary)', border: '1px solid var(--color-border)', color: 'var(--color-text-primary)' }}
+                disabled={loading}
+                required
+                minLength={6}
+              />
+            </div>
+
             <button
               type="submit"
-              disabled={loading || !email.trim()}
+              disabled={loading || !email.trim() || !password.trim()}
               className="w-full py-3 px-4 rounded-xl font-semibold text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               style={{
                 background: loading ? 'var(--color-border)' : 'linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-muted) 100%)',
@@ -115,10 +130,10 @@ export function LoginPage({ onBack }: Props) {
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                   </svg>
-                  Sending...
+                  {isSignUp ? 'Creating account...' : 'Signing in...'}
                 </span>
               ) : (
-                'Send Magic Link'
+                isSignUp ? 'Create Account' : 'Sign In'
               )}
             </button>
           </form>
@@ -135,13 +150,19 @@ export function LoginPage({ onBack }: Props) {
               {message.text}
             </div>
           )}
-        </div>
 
-        <p className="text-center mt-6 text-sm" style={{ color: 'var(--color-text-muted)' }}>
-          We'll send you a magic link to sign in instantly
-        </p>
+          <p className="text-center mt-6 text-sm" style={{ color: 'var(--color-text-muted)' }}>
+            {isSignUp ? 'Already have an account?' : "Don't have an account?"}{' '}
+            <button
+              onClick={() => { setIsSignUp(!isSignUp); setMessage(null) }}
+              className="font-medium hover:underline"
+              style={{ color: 'var(--color-accent)' }}
+            >
+              {isSignUp ? 'Sign in' : 'Sign up'}
+            </button>
+          </p>
+        </div>
       </div>
     </div>
   )
 }
-
