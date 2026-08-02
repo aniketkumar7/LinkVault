@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, CaretDown, Check } from '@phosphor-icons/react'
+import { X, CaretDown, Check, Plus } from '@phosphor-icons/react'
 import { api } from '@/lib/api'
 import type { Link, Collection } from '@/lib/api'
 import { toast } from '@/lib/toast'
@@ -46,6 +46,7 @@ export function LinkCard({
   const [editCollectionId, setEditCollectionId] = useState(link.collection_id || '')
   const [saving, setSaving] = useState(false)
   const [collectionDropOpen, setCollectionDropOpen] = useState(false)
+  const [newCollectionName, setNewCollectionName] = useState('')
   const selectedCollection = collections.find(c => c.id === editCollectionId)
 
   const vw = typeof window !== 'undefined' ? window.innerWidth : 1024
@@ -92,6 +93,12 @@ export function LinkCard({
     } finally {
       setDeleting(false)
     }
+  }
+
+  const createCollectionAndSelect = async () => {
+    if (!newCollectionName.trim()) return
+    try { const collection = await api.createCollection({ name: newCollectionName.trim() }); setEditCollectionId(collection.id); setNewCollectionName(''); setCollectionDropOpen(false); onUpdated(); toast.success('Collection created') }
+    catch { toast.error('Failed to create collection') }
   }
 
   const handleCopyUrl = async () => {
@@ -339,6 +346,8 @@ export function LinkCard({
                                 {editCollectionId === col.id && <Check size={14} weight="bold" style={{ color: 'var(--color-accent)' }} />}
                               </button>
                             ))}
+                            <div className="mx-3 my-1 h-px" style={{ background: 'var(--color-border)' }} />
+                            <div className="flex gap-2 px-3 py-2"><input value={newCollectionName} onChange={e => setNewCollectionName(e.target.value)} onKeyDown={e => e.key === 'Enter' && createCollectionAndSelect()} placeholder="Create collection" className="min-w-0 flex-1 rounded-lg px-2 py-1.5 text-xs" style={{ background: 'var(--color-bg-tertiary)' }} /><button type="button" onClick={createCollectionAndSelect} className="rounded-lg px-2" style={{ color: 'var(--color-accent)' }}><Plus size={14} /></button></div>
                           </motion.div>
                         )}
                       </AnimatePresence>

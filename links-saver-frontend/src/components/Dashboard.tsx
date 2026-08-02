@@ -12,6 +12,7 @@ import { AddLinkForm } from './AddLinkForm'
 import { LinkCard } from './LinkCard'
 import { BulkImportModal } from './BulkImportModal'
 import { Select } from './ui/Select'
+import { CollectionManager } from './CollectionManager'
 
 type Theme = 'dark' | 'light'
 type SortField = 'created_at' | 'updated_at' | 'title'
@@ -36,6 +37,7 @@ export function Dashboard() {
   const [showExportModal, setShowExportModal] = useState(false)
   const [showFilters, setShowFilters] = useState(false)
   const [showProfileMenu, setShowProfileMenu] = useState(false)
+  const [showCollectionManager, setShowCollectionManager] = useState(false)
   const [exportCollectionId, setExportCollectionId] = useState<string>('')
   const [exporting, setExporting] = useState(false)
 
@@ -304,6 +306,13 @@ export function Dashboard() {
                     <p className="mt-1 text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>{profileName}</p>
                   </div>
                   <div className="flex flex-col gap-2">
+                    <button
+                      onClick={() => { setShowCollectionManager(true); setShowProfileMenu(false) }}
+                      className="rounded-xl border px-3 py-2 text-sm text-left"
+                      style={{ background: 'var(--color-bg-tertiary)', borderColor: 'var(--color-border)', color: 'var(--color-text-secondary)' }}
+                    >
+                      Manage collections
+                    </button>
                     <button
                       onClick={() => {
                         setShowExportModal(true)
@@ -620,6 +629,7 @@ export function Dashboard() {
         open={showAddLinkForm}
         onOpenChange={setShowAddLinkForm}
       />
+      <CollectionManager open={showCollectionManager} onClose={() => setShowCollectionManager(false)} collections={collections} onChanged={() => { invalidateCollections(); refetch() }} />
 
       {/* Modals */}
       {showBulkImport && (

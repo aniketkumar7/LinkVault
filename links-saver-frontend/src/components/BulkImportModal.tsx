@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, CaretDown, Check, UploadSimple, TextT, Image, ArrowLeft } from '@phosphor-icons/react'
+import { X, CaretDown, Check, UploadSimple, TextT, Image, ArrowLeft, Plus } from '@phosphor-icons/react'
 import { api } from '@/lib/api'
 import type { Collection, BulkImportResult, ExtractedLink } from '@/lib/api'
 import { toast } from '@/lib/toast'
@@ -12,11 +12,19 @@ interface Props {
 }
 
 const MORPH = { type: 'spring' as const, stiffness: 320, damping: 30, mass: 1 }
+const MAX_IMPORT_URLS = 500
+const API_BATCH_SIZE = 20
+const REVIEW_BATCH_SIZE = 20
+
+function chunk<T>(items: T[], size: number): T[][] {
+  return Array.from({ length: Math.ceil(items.length / size) }, (_, index) => items.slice(index * size, (index + 1) * size))
+}
 
 function extractUrlsFromText(text: string): string[] {
-  return text.split('\n').map(l => l.trim()).filter(l => {
-    try { new URL(l); return true } catch { return false }
-  })
+  const matches = text.match(/https?:\/\/[^\s<>()"']+/gi) ?? []
+  return [...new Set(matches.map(url => url.replace(/[.,;:!?]+$/, '')).filter(url => {
+    try { new URL(url); return true } catch { return false }
+  }))]
 }
 
 function extractUrlsFromCsv(text: string): string[] {
@@ -31,14 +39,52 @@ function extractUrlsFromCsv(text: string): string[] {
   return [...new Set(urls)]
 }
 
+async function extractUrlsFromExcel(file: File): Promise<string[]> {
+  const XLSX = await import('xlsx')
+  const workbook = XLSX.read(await file.arrayBuffer(), { type: 'array' })
+  const urls = new Set<string>()
+  workbook.SheetNames.forEach(name => {
+    const rows = XLSX.utils.sheet_to_json<unknown[]>(workbook.Sheets[name], { header: 1, raw: false })
+    rows.flat().forEach(value => extractUrlsFromText(String(value ?? '')).forEach(url => urls.add(url)))
+  })
+  return [...urls]
+}
+
+async function extractUrlsFromPdf(file: File): Promise<string[]> {
+  const pdfjs = await import('pdfjs-dist')
+  pdfjs.GlobalWorkerOptions.workerSrc = new URL('pdfjs-dist/build/pdf.worker.min.mjs', import.meta.url).toString()
+  const pdf = await pdfjs.getDocument({ data: new Uint8Array(await file.arrayBuffer()) }).promise
+  const urls = new Set<string>()
+  for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber++) {
+    const page = await pdf.getPage(pageNumber)
+    const [text, annotations] = await Promise.all([page.getTextContent(), page.getAnnotations()])
+    extractUrlsFromText(text.items.map(item => 'str' in item ? item.str : '').join(' ')).forEach(url => urls.add(url))
+    annotations.forEach(annotation => {
+      if ('url' in annotation && typeof annotation.url === 'string') extractUrlsFromText(annotation.url).forEach(url => urls.add(url))
+    })
+  }
+  return [...urls]
+}
+
+function extractUrlsFromHtml(html: string): string[] {
+  const document = new DOMParser().parseFromString(html, 'text/html')
+  const links = [...document.querySelectorAll('a[href]')]
+    .map(link => link.getAttribute('href')?.trim() ?? '')
+    .filter(href => /^https?:\/\//i.test(href))
+  return [...new Set([...links, ...extractUrlsFromText(html)])]
+}
+
 export function BulkImportModal({ onClose, onImported, collections }: Props) {
   const [tab, setTab] = useState<'paste' | 'file' | 'screenshots'>('paste')
   const [urlsText, setUrlsText] = useState('')
   const [fileUrls, setFileUrls] = useState<string[]>([])
+  const [processedFileUrls, setProcessedFileUrls] = useState<Set<string>>(new Set())
+  const [fileSessionKey, setFileSessionKey] = useState('')
   const [fileName, setFileName] = useState('')
   const [tags, setTags] = useState('')
   const [collectionId, setCollectionId] = useState('')
   const [collectionOpen, setCollectionOpen] = useState(false)
+  const [newCollectionName, setNewCollectionName] = useState('')
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<BulkImportResult | null>(null)
   // Screenshots tab state
@@ -50,6 +96,7 @@ export function BulkImportModal({ onClose, onImported, collections }: Props) {
   // Per-link collection overrides: url -> collectionId
   const [overrides, setOverrides] = useState<Record<string, string | null>>({})
   const [openOverrideDropdown, setOpenOverrideDropdown] = useState<string | null>(null)
+  const [overrideCollectionName, setOverrideCollectionName] = useState('')
   // suggested new collections: name -> created Collection (once user clicks create)
   const [createdSuggestions, setCreatedSuggestions] = useState<Record<string, Collection>>({})
   const fileRef = useRef<HTMLInputElement>(null)
@@ -64,7 +111,7 @@ export function BulkImportModal({ onClose, onImported, collections }: Props) {
 
   const pastedUrls = extractUrlsFromText(urlsText)
   const urls = tab === 'paste' ? pastedUrls : fileUrls
-  const tooMany = urls.length > 20
+  const tooMany = urls.length > MAX_IMPORT_URLS
 
   // Close dropdowns on outside click
   useEffect(() => {
@@ -118,6 +165,30 @@ export function BulkImportModal({ onClose, onImported, collections }: Props) {
     }
   }
 
+  async function handleFileExtract() {
+    const nextBatch = fileUrls.filter(url => !processedFileUrls.has(url)).slice(0, REVIEW_BATCH_SIZE)
+    if (!nextBatch.length) { toast('All links in this file have been reviewed'); return }
+    setExtracting(true)
+    try {
+      const links = await api.recommendUrls(nextBatch, localCollections)
+      const initial: Record<string, string | null> = {}
+      links.forEach(link => { initial[link.url] = link.collectionId })
+      setOverrides(initial)
+      setExtracted(links)
+      setProcessedFileUrls(previous => {
+        const next = new Set([...previous, ...nextBatch])
+        if (fileSessionKey) sessionStorage.setItem(fileSessionKey, JSON.stringify([...next]))
+        return next
+      })
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : 'Extraction failed')
+    } finally { setExtracting(false) }
+  }
+
+  function skipExtractedLink(url: string) {
+    setExtracted(previous => previous?.filter(link => link.url !== url) ?? null)
+  }
+
   async function handleSaveExtracted() {
     if (!extracted) return
     setLoading(true)
@@ -131,11 +202,13 @@ export function BulkImportModal({ onClose, onImported, collections }: Props) {
     })
     const allResults: BulkImportResult = { success: [], failed: [], duplicates: [] }
     try {
-      for (const [key, urls] of Object.entries(groups)) {
-        const r = await api.bulkImport(urls, { collection_id: key === '__none__' ? undefined : key })
-        allResults.success.push(...r.success)
-        allResults.failed.push(...r.failed)
-        allResults.duplicates.push(...r.duplicates)
+      for (const [key, groupedUrls] of Object.entries(groups)) {
+        for (const urls of chunk(groupedUrls, API_BATCH_SIZE)) {
+          const r = await api.bulkImport(urls, { collection_id: key === '__none__' ? undefined : key })
+          allResults.success.push(...r.success)
+          allResults.failed.push(...r.failed)
+          allResults.duplicates.push(...r.duplicates)
+        }
       }
       setResult(allResults)
       if (allResults.success.length > 0) {
@@ -178,6 +251,24 @@ export function BulkImportModal({ onClose, onImported, collections }: Props) {
     }
   }
 
+  async function createCollectionAndSelect() {
+    if (!newCollectionName.trim()) return
+    try {
+      const collection = await api.createCollection({ name: newCollectionName.trim() })
+      setLocalCollections(prev => [collection, ...prev])
+      setCollectionId(collection.id); setNewCollectionName(''); setCollectionOpen(false); onImported()
+    } catch { toast.error('Failed to create collection') }
+  }
+
+  async function createOverrideCollection(url: string) {
+    if (!overrideCollectionName.trim()) return
+    try {
+      const collection = await api.createCollection({ name: overrideCollectionName.trim() })
+      setLocalCollections(prev => [collection, ...prev]); setOverrides(prev => ({ ...prev, [url]: collection.id }))
+      setOverrideCollectionName(''); setOpenOverrideDropdown(null); onImported()
+    } catch { toast.error('Failed to create collection') }
+  }
+
   // Group extracted links by collection for review UI
   const extractedGroups: { collection: Collection | null; urls: string[] }[] = []
   if (extracted) {
@@ -192,29 +283,46 @@ export function BulkImportModal({ onClose, onImported, collections }: Props) {
     })
   }
 
-  function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
+  async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
+    const sessionKey = `linkvault-reviewed:${file.name}:${file.size}:${file.lastModified}`
+    setFileSessionKey(sessionKey)
+    try { setProcessedFileUrls(new Set(JSON.parse(sessionStorage.getItem(sessionKey) || '[]'))) } catch { setProcessedFileUrls(new Set()) }
     setFileName(file.name)
-    const reader = new FileReader()
-    reader.onload = (ev) => {
-      const text = ev.target?.result as string
-      const extracted = file.name.endsWith('.csv') || file.name.endsWith('.xlsx')
-        ? extractUrlsFromCsv(text)
-        : extractUrlsFromText(text)
+    try {
+      const extension = file.name.split('.').pop()?.toLowerCase()
+      const extracted = extension === 'xlsx' || extension === 'xls'
+        ? await extractUrlsFromExcel(file)
+          : extension === 'pdf'
+            ? await extractUrlsFromPdf(file)
+            : extension === 'html' || extension === 'htm'
+              ? extractUrlsFromHtml(await file.text())
+            : extension === 'csv'
+            ? extractUrlsFromCsv(await file.text())
+            : extractUrlsFromText(await file.text())
       setFileUrls(extracted)
+      if (!extracted.length) toast('No valid URLs found in this file')
+    } catch {
+      setFileUrls([])
+      toast.error('Could not read this file')
     }
-    reader.readAsText(file)
   }
 
   async function handleImport() {
     if (urls.length === 0 || tooMany) return
     setLoading(true)
     try {
-      const importResult = await api.bulkImport(urls, {
-        tags: tags.split(',').map(t => t.trim()).filter(Boolean),
-        collection_id: collectionId || undefined,
-      })
+      const importResult: BulkImportResult = { success: [], failed: [], duplicates: [] }
+      for (const batch of chunk(urls, API_BATCH_SIZE)) {
+        const result = await api.bulkImport(batch, {
+          tags: tags.split(',').map(t => t.trim()).filter(Boolean),
+          collection_id: collectionId || undefined,
+        })
+        importResult.success.push(...result.success)
+        importResult.failed.push(...result.failed)
+        importResult.duplicates.push(...result.duplicates)
+      }
       setResult(importResult)
       if (importResult.success.length > 0) {
         toast.success(`Imported ${importResult.success.length} links`)
@@ -230,7 +338,7 @@ export function BulkImportModal({ onClose, onImported, collections }: Props) {
   }
 
   const targetW = Math.min(520, (typeof window !== 'undefined' ? window.innerWidth : 1024) - 32)
-  const isScreenshotReview = tab === 'screenshots' && extracted !== null
+  const isScreenshotReview = (tab === 'screenshots' || tab === 'file') && extracted !== null
 
   const inputStyle = { background: 'var(--color-bg-tertiary)', color: 'var(--color-text-primary)' }
 
@@ -354,7 +462,7 @@ export function BulkImportModal({ onClose, onImported, collections }: Props) {
                     onBlur={e => (e.target.style.borderColor = 'transparent')}
                   />
                   <p className="pl-2 text-xs" style={{ color: tooMany ? 'var(--color-error)' : 'var(--color-text-muted)' }}>
-                    {pastedUrls.length} valid URL{pastedUrls.length !== 1 ? 's' : ''} detected{tooMany ? ' — max 20' : ''}
+                    {pastedUrls.length} valid URL{pastedUrls.length !== 1 ? 's' : ''} detected{tooMany ? ` — max ${MAX_IMPORT_URLS}` : ''}
                   </p>
                 </div>
               )}
@@ -441,6 +549,7 @@ export function BulkImportModal({ onClose, onImported, collections }: Props) {
                                 onError={e => { (e.target as HTMLImageElement).style.display = 'none' }}
                               />
                               <span className="flex-1 text-[13px] truncate" style={{ color: 'var(--color-text-primary)' }}>{url}</span>
+                              <button type="button" onClick={() => skipExtractedLink(url)} className="p-1" title="Skip this link" aria-label={`Skip ${url}`} style={{ color: 'var(--color-text-muted)' }}><X size={14} weight="bold" /></button>
 
                               {/* Per-link collection override dropdown */}
                               <div className="relative shrink-0">
@@ -476,6 +585,8 @@ export function BulkImportModal({ onClose, onImported, collections }: Props) {
                                           {overrides[url] === col.id && <Check size={12} weight="bold" style={{ color: 'var(--color-accent)' }} />}
                                         </button>
                                       ))}
+                                      <div className="mx-3 my-1 h-px" style={{ background: 'var(--color-border)' }} />
+                                      <div className="flex gap-1 px-3 py-2"><input value={overrideCollectionName} onChange={e => setOverrideCollectionName(e.target.value)} onKeyDown={e => e.key === 'Enter' && createOverrideCollection(url)} placeholder="Create collection" className="min-w-0 flex-1 rounded-lg px-2 py-1.5 text-xs" style={{ background: 'var(--color-bg-tertiary)' }} /><button type="button" onClick={() => createOverrideCollection(url)} className="p-1" style={{ color: 'var(--color-accent)' }}><Plus size={14} /></button></div>
                                     </motion.div>
                                   )}
                                 </AnimatePresence>
@@ -493,6 +604,11 @@ export function BulkImportModal({ onClose, onImported, collections }: Props) {
                                 <span className="w-2 h-2 rounded-full" style={{ background: suggestion.color }} />
                                 Create &amp; apply &ldquo;{suggestion.name}&rdquo;
                               </motion.button>
+                            )}
+                            {extractedItem?.recommendation && (
+                              <p className="ml-3 text-[11px]" style={{ color: 'var(--color-text-muted)' }}>
+                                {extractedItem.recommendation.confidence}% match · {extractedItem.recommendation.reason}
+                              </p>
                             )}
                           </div>
                         )
@@ -517,7 +633,7 @@ export function BulkImportModal({ onClose, onImported, collections }: Props) {
               )}
 
               {/* File tab */}
-              {tab === 'file' && (
+              {tab === 'file' && !isScreenshotReview && (
                 <div className="flex flex-col gap-1">
                   <button
                     onClick={() => fileRef.current?.click()}
@@ -529,20 +645,28 @@ export function BulkImportModal({ onClose, onImported, collections }: Props) {
                       <p className="text-sm font-medium" style={{ color: fileName ? 'var(--color-text-primary)' : 'var(--color-text-muted)' }}>
                         {fileName || 'Click to upload'}
                       </p>
-                      <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>CSV, Excel (.xlsx), or .txt — one URL per line/cell</p>
+                      <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>CSV, Excel, PDF, HTML, or text — links are detected automatically</p>
                     </div>
                   </button>
-                  <input ref={fileRef} type="file" accept=".csv,.xlsx,.txt,.xls" className="hidden" onChange={handleFile} />
+                  <input ref={fileRef} type="file" accept=".csv,.xlsx,.xls,.pdf,.txt,.html,.htm" className="hidden" onChange={handleFile} />
                   {fileUrls.length > 0 && (
                     <p className="pl-2 text-xs" style={{ color: tooMany ? 'var(--color-error)' : 'var(--color-text-muted)' }}>
-                      {fileUrls.length} URL{fileUrls.length !== 1 ? 's' : ''} found{tooMany ? ' — max 20' : ''}
+                      {fileUrls.length} URL{fileUrls.length !== 1 ? 's' : ''} found{tooMany ? ` — max ${MAX_IMPORT_URLS}` : ''}
                     </p>
+                  )}
+                  {fileUrls.length > 0 && (
+                    <div className="flex flex-col items-end gap-1 pt-2">
+                      <motion.button onClick={handleFileExtract} disabled={extracting || tooMany} whileHover={extracting ? {} : { scale: 1.04 }} whileTap={extracting ? {} : { scale: 0.96 }} className="rounded-full px-6 py-3 text-[14px] font-bold text-white disabled:opacity-50" style={{ background: 'linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-muted) 100%)' }}>
+                        {extracting ? 'Extracting...' : `Extract & review ${Math.min(REVIEW_BATCH_SIZE, fileUrls.filter(url => !processedFileUrls.has(url)).length)} links`}
+                      </motion.button>
+                      {fileUrls.filter(url => !processedFileUrls.has(url)).length > REVIEW_BATCH_SIZE && <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Review the next 20 after re-uploading this file.</p>}
+                    </div>
                   )}
                 </div>
               )}
 
               {/* Collection + Tags + Submit — paste/file tabs only */}
-              {tab !== 'screenshots' && (
+              {(tab !== 'screenshots' && tab !== 'file') && (
                 <>
                   <div className="relative" ref={collectionRef}>
                     <button
@@ -576,6 +700,8 @@ export function BulkImportModal({ onClose, onImported, collections }: Props) {
                               {collectionId === col.id && <Check size={14} weight="bold" style={{ color: 'var(--color-accent)' }} />}
                             </button>
                           ))}
+                          <div className="mx-3 my-1 h-px" style={{ background: 'var(--color-border)' }} />
+                          <div className="flex gap-2 px-3 py-2"><input value={newCollectionName} onChange={e => setNewCollectionName(e.target.value)} onKeyDown={e => e.key === 'Enter' && createCollectionAndSelect()} placeholder="Create collection" className="min-w-0 flex-1 rounded-lg px-2 py-1.5 text-xs" style={{ background: 'var(--color-bg-tertiary)' }} /><button type="button" onClick={createCollectionAndSelect} className="rounded-lg px-2 text-xs font-semibold" style={{ color: 'var(--color-accent)' }}><Plus size={14} /></button></div>
                         </motion.div>
                       )}
                     </AnimatePresence>

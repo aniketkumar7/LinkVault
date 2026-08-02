@@ -68,6 +68,7 @@ export interface ExtractedLink {
   url: string
   collectionId: string | null
   suggestedCollection: { name: string; color: string } | null
+  recommendation?: { confidence: number; reason: string } | null
 }
 
 export interface BulkImportResult {
@@ -214,13 +215,23 @@ export const api = {
     if (!session?.access_token) throw new Error('Not authenticated')
     const form = new FormData()
     images.forEach(img => form.append('screenshots', img))
-    form.append('collections', JSON.stringify(collections.map(c => ({ id: c.id, name: c.name }))))
+    form.append('collections', JSON.stringify(collections.map(c => ({ id: c.id, name: c.name, description: c.description, link_count: c.link_count }))))
     const res = await fetch(`${API_URL}/api/screenshots/extract`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${session.access_token}` },
       body: form,
     })
     if (!res.ok) throw new Error((await res.json()).error || 'Failed to extract links')
+    return (await res.json()).links
+  },
+
+  async recommendUrls(urls: string[], collections: Collection[]): Promise<ExtractedLink[]> {
+    const headers = await getAuthHeaders()
+    const res = await fetch(`${API_URL}/api/screenshots/recommend`, {
+      method: 'POST', headers,
+      body: JSON.stringify({ urls, collections: collections.map(c => ({ id: c.id, name: c.name, description: c.description, link_count: c.link_count })) }),
+    })
+    if (!res.ok) throw new Error((await res.json()).error || 'Failed to recommend collections')
     return (await res.json()).links
   },
 }
