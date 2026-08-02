@@ -13,10 +13,12 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "@google/genai": "^2.15.0",
     "@supabase/supabase-js": "^2.90.1",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
     "express": "^5.2.1",
+    "multer": "^2.2.0",
     "open-graph-scraper": "^6.11.0"
   },
   "devDependencies": {

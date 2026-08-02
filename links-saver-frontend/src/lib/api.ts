@@ -64,6 +64,12 @@ export interface Stats {
   tags: string[]
 }
 
+export interface ExtractedLink {
+  url: string
+  collectionId: string | null
+  suggestedCollection: { name: string; color: string } | null
+}
+
 export interface BulkImportResult {
   success: Link[]
   failed: { url: string; error: string }[]
@@ -201,5 +207,20 @@ export const api = {
     const headers = await getAuthHeaders()
     const res = await fetch(`${API_URL}/api/collections/${id}/share`, { method: 'DELETE', headers })
     if (!res.ok) throw new Error((await res.json()).error || 'Failed to unshare collection')
+  },
+
+  async extractFromScreenshots(images: File[], collections: Collection[]): Promise<ExtractedLink[]> {
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session?.access_token) throw new Error('Not authenticated')
+    const form = new FormData()
+    images.forEach(img => form.append('screenshots', img))
+    form.append('collections', JSON.stringify(collections.map(c => ({ id: c.id, name: c.name }))))
+    const res = await fetch(`${API_URL}/api/screenshots/extract`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${session.access_token}` },
+      body: form,
+    })
+    if (!res.ok) throw new Error((await res.json()).error || 'Failed to extract links')
+    return (await res.json()).links
   },
 }
