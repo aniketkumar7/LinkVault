@@ -13,6 +13,32 @@ const upload = multer({
 });
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+const PRIMARY_MODEL = process.env.GEMINI_MODEL || 'gemini-3.1-flash-lite';
+const FALLBACK_MODELS = (process.env.GEMINI_FALLBACK_MODELS || 'gemini-3.5-flash-lite,gemini-3-flash,gemini-2.5-flash-lite')
+    .split(',')
+    .map(model => model.trim())
+    .filter(model => model && model !== PRIMARY_MODEL);
+
+async function generateWithFallback(contents) {
+    try {
+        return await ai.models.generateContent({ model: PRIMARY_MODEL, contents });
+    } catch (error) {
+        const isQuotaError = error?.status === 429 || /quota|rate limit|resource exhausted/i.test(error?.message || '');
+        if (!isQuotaError) throw error;
+        let lastError = error;
+        for (const model of FALLBACK_MODELS) {
+            try {
+                console.warn(`Gemini quota reached; retrying with ${model}`);
+                return await ai.models.generateContent({ model, contents });
+            } catch (fallbackError) {
+                const fallbackQuotaError = fallbackError?.status === 429 || /quota|rate limit|resource exhausted/i.test(fallbackError?.message || '');
+                if (!fallbackQuotaError) throw fallbackError;
+                lastError = fallbackError;
+            }
+        }
+        throw lastError;
+    }
+}
 
 router.post('/recommend', async (req, res) => {
     try {
@@ -20,10 +46,7 @@ router.post('/recommend', async (req, res) => {
         const collections = Array.isArray(req.body.collections) ? req.body.collections : [];
         if (!urls.length) return res.status(400).json({ error: 'URLs array required' });
         const collectionList = collections.map(c => `- id: "${c.id}", name: "${c.name}", description: "${c.description || ''}"`).join('\n') || 'No collections available';
-        const response = await ai.models.generateContent({
-            model: 'gemini-3.1-flash-lite',
-            contents: [{ role: 'user', parts: [{ text: `Recommend collections for these URLs. Existing collections:\n${collectionList}\n\nURLs:\n${urls.join('\n')}\n\nUse an existing collection only for a strong semantic match. Otherwise suggest a specific new collection. Return only JSON: [{"url":"...","collectionId":"uuid-or-null","suggestedCollection":{"name":"Name","color":"#hex"}|null,"recommendation":{"confidence":0,"reason":"short reason"}}]` }] }]
-        });
+        const response = await generateWithFallback([{ role: 'user', parts: [{ text: `Recommend collections for these URLs. Existing collections:\n${collectionList}\n\nURLs:\n${urls.join('\n')}\n\nUse an existing collection only for a strong semantic match. Otherwise suggest a specific new collection. Return only JSON: [{"url":"...","collectionId":"uuid-or-null","suggestedCollection":{"name":"Name","color":"#hex"}|null,"recommendation":{"confidence":0,"reason":"short reason"}}]` }] }]);
         const raw = response.candidates?.[0]?.content?.parts?.[0]?.text || '[]';
         const suggestions = JSON.parse(raw.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim());
         const byUrl = new Map(Array.isArray(suggestions) ? suggestions.map(item => [item.url, item]) : []);
@@ -92,10 +115,7 @@ Respond ONLY with a valid JSON array, no markdown, no explanation:
             }))
         ];
 
-        const response = await ai.models.generateContent({
-            model: 'gemini-3.1-flash-lite',
-            contents: [{ role: 'user', parts }]
-        });
+        const response = await generateWithFallback([{ role: 'user', parts }]);
 
         const text = response.candidates?.[0]?.content?.parts?.[0]?.text || '[]';
 
