@@ -172,10 +172,13 @@ export function AddLinkForm({ onLinkAdded, existingTags, collections, onCollecti
 
   const vw = typeof window !== 'undefined' ? window.innerWidth : 1024
   const vh = typeof window !== 'undefined' ? window.innerHeight : 768
+  const effectiveOrigin: ButtonRect = isOpen
+    ? (origin ?? { x: vw / 2 - 60, y: vh / 2, w: 120, h: 44 })
+    : null
   const targetW = Math.min(480, vw - 32)
-  const initialOffsetX = origin ? origin.x + origin.w / 2 - vw / 2 : 0
-  const initialOffsetY = origin ? origin.y + origin.h / 2 - vh / 2 : 0
-  const initialScaleX = origin ? origin.w / targetW : 1
+  const initialOffsetX = effectiveOrigin ? effectiveOrigin.x + effectiveOrigin.w / 2 - vw / 2 : 0
+  const initialOffsetY = effectiveOrigin ? effectiveOrigin.y + effectiveOrigin.h / 2 - vh / 2 : 0
+  const initialScaleX = effectiveOrigin ? effectiveOrigin.w / targetW : 1
 
   const inputStyle = {
     background: 'var(--color-bg-tertiary)',
@@ -219,7 +222,7 @@ export function AddLinkForm({ onLinkAdded, existingTags, collections, onCollecti
 
       {/* Modal */}
       <AnimatePresence>
-        {isOpen && origin && (
+        {isOpen && effectiveOrigin && (
           <div className="fixed inset-0 z-50 flex items-center justify-center px-4" onClick={handleClose}>
             <motion.div
               initial={{ x: initialOffsetX, y: initialOffsetY, scaleX: initialScaleX, scaleY: 0.18, borderRadius: 9999, opacity: 0.85 }}
