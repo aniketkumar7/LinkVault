@@ -6,18 +6,18 @@
 /* Custom CSS Variables for theming */
 @theme {
   /* Colors - Dark theme */
-  --color-bg-primary: #080808;
-  --color-bg-secondary: #0f0f0f;
-  --color-bg-tertiary: #1c1c1c;
-  --color-bg-card: #111111;
-  --color-bg-hover: #222222;
+  --color-bg-primary: #151310;
+  --color-bg-secondary: #1c1a16;
+  --color-bg-tertiary: #242018;
+  --color-bg-card: #1a1815;
+  --color-bg-hover: #2c2820;
 
-  --color-border: #1f1f1f;
-  --color-border-hover: #2e2e2e;
+  --color-border: #2c2820;
+  --color-border-hover: #3d372c;
 
-  --color-text-primary: #ededed;
-  --color-text-secondary: #888888;
-  --color-text-muted: #444444;
+  --color-text-primary: #ede8e3;
+  --color-text-secondary: #8a8178;
+  --color-text-muted: #4a4540;
 
   /* Accent */
   --color-accent: #2ABBF7;
@@ -29,7 +29,7 @@
   --color-error: #ef4444;
 
   /* Shadows */
-  --shadow-card: 0 1px 0 0 #1f1f1f, 0 8px 32px -8px rgba(0,0,0,0.8);
+  --shadow-card: 0 1px 0 0 #2c2820, 0 8px 32px -8px rgba(0,0,0,0.8);
   --shadow-glow: 0 0 40px -12px rgba(42,187,247,0.5);
 
   /* Font */
@@ -82,20 +82,20 @@ body {
 
 /* Light theme */
 [data-theme="light"] {
-  --color-bg-primary: #ffffff;
-  --color-bg-secondary: #fafafa;
-  --color-bg-tertiary: #f2f2f2;
-  --color-bg-card: #ffffff;
-  --color-bg-hover: #f5f5f5;
+  --color-bg-primary: #F4F2EC;
+  --color-bg-secondary: #EDE9E1;
+  --color-bg-tertiary: #E5E0D6;
+  --color-bg-card: #F4F2EC;
+  --color-bg-hover: #EDE9E1;
 
-  --color-border: #e8e8e8;
-  --color-border-hover: #d0d0d0;
+  --color-border: #D8D3C8;
+  --color-border-hover: #C5BFB2;
 
-  --color-text-primary: #0a0a0a;
-  --color-text-secondary: #525252;
-  --color-text-muted: #a3a3a3;
+  --color-text-primary: #151310;
+  --color-text-secondary: #52493e;
+  --color-text-muted: #9e9488;
 
-  --shadow-card: 0 1px 0 0 #e8e8e8, 0 4px 16px -4px rgba(0,0,0,0.06);
+  --shadow-card: 0 1px 0 0 #D8D3C8, 0 4px 16px -4px rgba(0,0,0,0.06);
   --shadow-glow: 0 0 40px -12px rgba(42,187,247,0.2);
 }
 

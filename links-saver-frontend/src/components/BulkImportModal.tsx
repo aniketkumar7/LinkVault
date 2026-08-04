@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, CaretDown, Check, UploadSimple, TextT, Image, ArrowLeft, Plus } from '@phosphor-icons/react'
 import { api } from '@/lib/api'
@@ -25,6 +25,15 @@ function extractUrlsFromText(text: string): string[] {
   return [...new Set(matches.map(url => url.replace(/[.,;:!?]+$/, '')).filter(url => {
     try { new URL(url); return true } catch { return false }
   }))]
+}
+
+function normalizePastedUrls(text: string): string {
+  return text.split('\n').map(line => {
+    const trimmed = line.trim()
+    if (!trimmed || /^https?:\/\//i.test(trimmed)) return line
+    if (/^[a-zA-Z0-9][\w-]*\.[a-zA-Z]{2,}/i.test(trimmed)) return 'https://' + trimmed
+    return line
+  }).join('\n')
 }
 
 function extractUrlsFromCsv(text: string): string[] {
@@ -92,7 +101,9 @@ export function BulkImportModal({ onClose, onImported, collections }: Props) {
   const [screenshotPreviews, setScreenshotPreviews] = useState<string[]>([])
   const [extracting, setExtracting] = useState(false)
   const [extracted, setExtracted] = useState<ExtractedLink[] | null>(null)
-  const [localCollections, setLocalCollections] = useState<Collection[]>(collections)
+  const [extraCollections, setExtraCollections] = useState<Collection[]>([])
+  const [duplicateUrls, setDuplicateUrls] = useState<Set<string>>(new Set())
+  const dupeCheckRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   // Per-link collection overrides: url -> collectionId
   const [overrides, setOverrides] = useState<Record<string, string | null>>({})
   const [openOverrideDropdown, setOpenOverrideDropdown] = useState<string | null>(null)
@@ -103,15 +114,31 @@ export function BulkImportModal({ onClose, onImported, collections }: Props) {
   const screenshotRef = useRef<HTMLInputElement>(null)
   const collectionRef = useRef<HTMLDivElement>(null)
 
-  useEffect(() => {
-    setLocalCollections(collections)
-  }, [collections])
+  const localCollections = useMemo(() => {
+    const ids = new Set(collections.map(c => c.id))
+    return [...extraCollections.filter(c => !ids.has(c.id)), ...collections]
+  }, [collections, extraCollections])
 
   const selectedCollection = localCollections.find(c => c.id === collectionId)
 
-  const pastedUrls = extractUrlsFromText(urlsText)
+  const pastedUrls = extractUrlsFromText(normalizePastedUrls(urlsText))
   const urls = tab === 'paste' ? pastedUrls : fileUrls
   const tooMany = urls.length > MAX_IMPORT_URLS
+
+  // Duplicate check for paste tab (debounced, first 50 urls)
+  useEffect(() => {
+    if (dupeCheckRef.current) clearTimeout(dupeCheckRef.current)
+    if (tab !== 'paste') return
+    dupeCheckRef.current = setTimeout(async () => {
+      const toCheck = extractUrlsFromText(normalizePastedUrls(urlsText)).slice(0, 50)
+      if (!toCheck.length) { setDuplicateUrls(new Set()); return }
+      const hits = await Promise.all(toCheck.map(async url => {
+        try { return (await api.checkDuplicate(url)).exists ? url : null } catch { return null }
+      }))
+      setDuplicateUrls(new Set(hits.filter((u): u is string => u !== null)))
+    }, 800)
+    return () => { if (dupeCheckRef.current) clearTimeout(dupeCheckRef.current) }
+  }, [urlsText, tab])
 
   // Close dropdowns on outside click
   useEffect(() => {
@@ -158,6 +185,10 @@ export function BulkImportModal({ onClose, onImported, collections }: Props) {
       links.forEach(l => { init[l.url] = l.collectionId })
       setOverrides(init)
       setExtracted(links)
+      const hits = await Promise.all(links.map(async ({ url }) => {
+        try { return (await api.checkDuplicate(url)).exists ? url : null } catch { return null }
+      }))
+      setDuplicateUrls(new Set(hits.filter((u): u is string => u !== null)))
     } catch (e: unknown) {
       toast.error(e instanceof Error ? e.message : 'Extraction failed')
     } finally {
@@ -175,6 +206,9 @@ export function BulkImportModal({ onClose, onImported, collections }: Props) {
       links.forEach(link => { initial[link.url] = link.collectionId })
       setOverrides(initial)
       setExtracted(links)
+      Promise.all(links.map(async ({ url }) => {
+        try { return (await api.checkDuplicate(url)).exists ? url : null } catch { return null }
+      })).then(hits => setDuplicateUrls(new Set(hits.filter((u): u is string => u !== null))))
       setProcessedFileUrls(previous => {
         const next = new Set([...previous, ...nextBatch])
         if (fileSessionKey) sessionStorage.setItem(fileSessionKey, JSON.stringify([...next]))
@@ -236,7 +270,7 @@ export function BulkImportModal({ onClose, onImported, collections }: Props) {
         })
         .map(item => item.url)
 
-      setLocalCollections(prev => prev.some(c => c.id === col.id) ? prev : [col, ...prev])
+      setExtraCollections(prev => prev.some(c => c.id === col.id) ? prev : [col, ...prev])
       setCreatedSuggestions(prev => ({ ...prev, [suggestionKey]: col }))
       setOverrides(prev => {
         const next = { ...prev }
@@ -255,7 +289,7 @@ export function BulkImportModal({ onClose, onImported, collections }: Props) {
     if (!newCollectionName.trim()) return
     try {
       const collection = await api.createCollection({ name: newCollectionName.trim() })
-      setLocalCollections(prev => [collection, ...prev])
+      setExtraCollections(prev => [collection, ...prev])
       setCollectionId(collection.id); setNewCollectionName(''); setCollectionOpen(false); onImported()
     } catch { toast.error('Failed to create collection') }
   }
@@ -264,7 +298,7 @@ export function BulkImportModal({ onClose, onImported, collections }: Props) {
     if (!overrideCollectionName.trim()) return
     try {
       const collection = await api.createCollection({ name: overrideCollectionName.trim() })
-      setLocalCollections(prev => [collection, ...prev]); setOverrides(prev => ({ ...prev, [url]: collection.id }))
+      setExtraCollections(prev => [collection, ...prev]); setOverrides(prev => ({ ...prev, [url]: collection.id }))
       setOverrideCollectionName(''); setOpenOverrideDropdown(null); onImported()
     } catch { toast.error('Failed to create collection') }
   }
@@ -367,7 +401,7 @@ export function BulkImportModal({ onClose, onImported, collections }: Props) {
           <div className="relative mb-5 flex items-center justify-center">
             {isScreenshotReview && (
               <motion.button
-                onClick={() => setExtracted(null)}
+                onClick={() => { setExtracted(null); setDuplicateUrls(new Set()) }}
                 whileTap={{ scale: 0.88 }} whileHover={{ scale: 1.1 }}
                 transition={{ type: 'spring', stiffness: 400, damping: 26 }}
                 className="absolute left-0 flex size-9 items-center justify-center rounded-full"
@@ -463,6 +497,7 @@ export function BulkImportModal({ onClose, onImported, collections }: Props) {
                   />
                   <p className="pl-2 text-xs" style={{ color: tooMany ? 'var(--color-error)' : 'var(--color-text-muted)' }}>
                     {pastedUrls.length} valid URL{pastedUrls.length !== 1 ? 's' : ''} detected{tooMany ? ` — max ${MAX_IMPORT_URLS}` : ''}
+                    {duplicateUrls.size > 0 && <span style={{ color: '#fbbf24' }}> · {duplicateUrls.size} already saved</span>}
                   </p>
                 </div>
               )}
@@ -549,6 +584,9 @@ export function BulkImportModal({ onClose, onImported, collections }: Props) {
                                 onError={e => { (e.target as HTMLImageElement).style.display = 'none' }}
                               />
                               <span className="flex-1 text-[13px] truncate" style={{ color: 'var(--color-text-primary)' }}>{url}</span>
+                              {duplicateUrls.has(url) && (
+                                <span className="shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold" style={{ background: 'rgba(251,191,36,0.15)', color: '#fbbf24' }}>Saved</span>
+                              )}
                               <button type="button" onClick={() => skipExtractedLink(url)} className="p-1" title="Skip this link" aria-label={`Skip ${url}`} style={{ color: 'var(--color-text-muted)' }}><X size={14} weight="bold" /></button>
 
                               {/* Per-link collection override dropdown */}
@@ -686,20 +724,22 @@ export function BulkImportModal({ onClose, onImported, collections }: Props) {
                         <motion.div
                           initial={{ opacity: 0, y: -8, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -8, scale: 0.97 }}
                           transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-                          className="absolute top-[56px] left-0 right-0 z-10 rounded-2xl overflow-hidden py-1"
+                          className="absolute top-[56px] left-0 right-0 z-10 rounded-2xl py-1"
                           style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)', boxShadow: '0 8px 24px rgba(0,0,0,0.2)' }}
                         >
-                          {[{ id: '', name: 'No collection', color: 'var(--color-border)' }, ...localCollections].map(col => (
-                            <button key={col.id} type="button"
-                              onClick={() => { setCollectionId(col.id); setCollectionOpen(false) }}
-                              className="w-full flex items-center gap-3 px-4 py-3 text-[14px] font-medium text-left transition-colors hover:bg-[var(--color-bg-tertiary)]"
-                              style={{ color: 'var(--color-text-primary)' }}
-                            >
-                              <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: col.color }} />
-                              <span className="flex-1">{col.name}</span>
-                              {collectionId === col.id && <Check size={14} weight="bold" style={{ color: 'var(--color-accent)' }} />}
-                            </button>
-                          ))}
+                          <div style={{ maxHeight: 224, overflowY: 'auto' }}>
+                            {[{ id: '', name: 'No collection', color: 'var(--color-border)' }, ...localCollections].map(col => (
+                              <button key={col.id} type="button"
+                                onClick={() => { setCollectionId(col.id); setCollectionOpen(false) }}
+                                className="w-full flex items-center gap-3 px-4 py-3 text-[14px] font-medium text-left transition-colors hover:bg-[var(--color-bg-tertiary)]"
+                                style={{ color: 'var(--color-text-primary)' }}
+                              >
+                                <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: col.color }} />
+                                <span className="flex-1">{col.name}</span>
+                                {collectionId === col.id && <Check size={14} weight="bold" style={{ color: 'var(--color-accent)' }} />}
+                              </button>
+                            ))}
+                          </div>
                           <div className="mx-3 my-1 h-px" style={{ background: 'var(--color-border)' }} />
                           <div className="flex gap-2 px-3 py-2"><input value={newCollectionName} onChange={e => setNewCollectionName(e.target.value)} onKeyDown={e => e.key === 'Enter' && createCollectionAndSelect()} placeholder="Create collection" className="min-w-0 flex-1 rounded-lg px-2 py-1.5 text-xs" style={{ background: 'var(--color-bg-tertiary)' }} /><button type="button" onClick={createCollectionAndSelect} className="rounded-lg px-2 text-xs font-semibold" style={{ color: 'var(--color-accent)' }}><Plus size={14} /></button></div>
                         </motion.div>

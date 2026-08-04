@@ -84,16 +84,6 @@ export function AddLinkForm({ onLinkAdded, existingTags, collections, onCollecti
     setNewCollectionName('')
   }
 
-  // When opened externally (controlled), set center origin if not set
-  useEffect(() => {
-    if (isOpen && !origin) {
-      const vw = window.innerWidth
-      const vh = window.innerHeight
-      setOrigin({ x: vw / 2 - 60, y: vh / 2, w: 120, h: 44 })
-    }
-    if (!isOpen) setOrigin(null)
-  }, [isOpen])
-
   useEffect(() => {
     if (isOpen) {
       const t = setTimeout(() => urlRef.current?.focus(), 320)
@@ -121,13 +111,11 @@ export function AddLinkForm({ onLinkAdded, existingTags, collections, onCollecti
 
   // Duplicate check
   useEffect(() => {
-    setAllowDuplicate(false)
-    const normalized = normalizeUrl(url)
-    if (!normalized) { setDuplicate(null); return }
-    try { new URL(normalized) } catch { setDuplicate(null); return }
-
     if (debounceRef.current) clearTimeout(debounceRef.current)
     debounceRef.current = setTimeout(async () => {
+      const normalized = normalizeUrl(url)
+      if (!normalized) { setDuplicate(null); return }
+      try { new URL(normalized) } catch { setDuplicate(null); return }
       try {
         const result = await api.checkDuplicate(normalized)
         setDuplicate(result.existing || null)
@@ -277,7 +265,7 @@ export function AddLinkForm({ onLinkAdded, existingTags, collections, onCollecti
                     <input
                       ref={urlRef}
                       value={url}
-                      onChange={(e) => { setUrl(e.target.value); setUrlError(false) }}
+                      onChange={(e) => { setUrl(e.target.value); setUrlError(false); setAllowDuplicate(false) }}
                       placeholder="Enter URL"
                       className={`h-[52px] w-full rounded-full border-2 px-5 text-[15px] font-medium outline-none transition-[border-color] ${urlError ? 'border-red-400' : 'border-transparent'}`}
                       style={inputStyle}
@@ -346,22 +334,24 @@ export function AddLinkForm({ onLinkAdded, existingTags, collections, onCollecti
                             animate={{ opacity: 1, y: 0, scale: 1 }}
                             exit={{ opacity: 0, y: -8, scale: 0.97 }}
                             transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-                            className="absolute top-[56px] left-0 right-0 z-10 rounded-2xl overflow-hidden py-1"
+                            className="absolute top-[56px] left-0 right-0 z-10 rounded-2xl py-1"
                             style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)', boxShadow: '0 8px 24px rgba(0,0,0,0.18)' }}
                           >
-                            {collections.map(col => (
-                              <button
-                                key={col.id}
-                                type="button"
-                                onClick={() => { setCollectionId(col.id); setCollectionError(false); setCollectionOpen(false) }}
-                                className="w-full flex items-center gap-3 px-4 py-3 text-[14px] font-medium text-left transition-colors hover:bg-[var(--color-bg-tertiary)]"
-                                style={{ color: 'var(--color-text-primary)' }}
-                              >
-                                <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: col.color }} />
-                                <span className="flex-1">{col.name}</span>
-                                {collectionId === col.id && <Check size={14} weight="bold" style={{ color: 'var(--color-accent)' }} />}
-                              </button>
-                            ))}
+                            <div style={{ maxHeight: 224, overflowY: 'auto' }}>
+                              {collections.map(col => (
+                                <button
+                                  key={col.id}
+                                  type="button"
+                                  onClick={() => { setCollectionId(col.id); setCollectionError(false); setCollectionOpen(false) }}
+                                  className="w-full flex items-center gap-3 px-4 py-3 text-[14px] font-medium text-left transition-colors hover:bg-[var(--color-bg-tertiary)]"
+                                  style={{ color: 'var(--color-text-primary)' }}
+                                >
+                                  <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: col.color }} />
+                                  <span className="flex-1">{col.name}</span>
+                                  {collectionId === col.id && <Check size={14} weight="bold" style={{ color: 'var(--color-accent)' }} />}
+                                </button>
+                              ))}
+                            </div>
 
                             <div className="mx-3 my-1 h-px" style={{ background: 'var(--color-border)' }} />
 
