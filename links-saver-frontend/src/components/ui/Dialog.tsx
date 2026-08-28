@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useId, useRef } from 'react'
 
 interface Props {
   open: boolean
@@ -24,13 +24,17 @@ export function Dialog({
   loading = false,
 }: Props) {
   const dialogRef = useRef<HTMLDivElement>(null)
+  const previousFocus = useRef<HTMLElement | null>(null)
+  const titleId = useId()
 
   useEffect(() => {
     if (open) {
+      previousFocus.current = document.activeElement as HTMLElement
       document.body.style.overflow = 'hidden'
       dialogRef.current?.focus()
     } else {
       document.body.style.overflow = ''
+      previousFocus.current?.focus()
     }
     return () => { document.body.style.overflow = '' }
   }, [open])
@@ -38,6 +42,13 @@ export function Dialog({
   useEffect(() => {
     const handleEsc = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && open) onClose()
+      if (e.key !== 'Tab' || !open || !dialogRef.current) return
+      const focusable = [...dialogRef.current.querySelectorAll<HTMLElement>('button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled])')]
+      if (!focusable.length) return
+      const first = focusable[0]
+      const last = focusable[focusable.length - 1]
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus() }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus() }
     }
     window.addEventListener('keydown', handleEsc)
     return () => window.removeEventListener('keydown', handleEsc)
@@ -54,6 +65,9 @@ export function Dialog({
       <div
         ref={dialogRef}
         tabIndex={-1}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
         className="relative w-full max-w-md rounded-2xl p-6 animate-scale-in"
         style={{
           background: 'var(--color-bg-card)',
@@ -61,7 +75,7 @@ export function Dialog({
           boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
         }}
       >
-        <h2 className="text-lg font-semibold mb-2" style={{ color: 'var(--color-text-primary)' }}>
+        <h2 id={titleId} className="text-lg font-semibold mb-2" style={{ color: 'var(--color-text-primary)' }}>
           {title}
         </h2>
         {description && (

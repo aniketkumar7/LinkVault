@@ -65,7 +65,7 @@ export function LandingPage({ onGetStarted }: Props) {
   const [hoveredFeature, setHoveredFeature] = useState<number | null>(null)
 
   return (
-    <div className="min-h-screen overflow-hidden" style={{ background: 'var(--color-bg-primary)' }}>
+    <div className="landing-shell min-h-screen overflow-hidden" style={{ background: 'var(--color-bg-primary)' }}>
       {/* Animated background */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div 
@@ -87,9 +87,7 @@ export function LandingPage({ onGetStarted }: Props) {
         <div 
           className="absolute inset-0 opacity-5"
           style={{
-            backgroundImage: `linear-gradient(var(--color-border) 1px, transparent 1px),
-                              linear-gradient(90deg, var(--color-border) 1px, transparent 1px)`,
-            backgroundSize: '60px 60px',
+            backgroundImage: 'none',
           }}
         />
       </div>
@@ -150,7 +148,7 @@ export function LandingPage({ onGetStarted }: Props) {
           >
             Never forget a
             <span 
-              className="block bg-clip-text text-transparent"
+              className="landing-accent block"
               style={{ 
                 backgroundImage: 'linear-gradient(135deg, var(--color-accent) 0%, #06b6d4 50%, var(--color-accent) 100%)',
                 backgroundSize: '200% 200%',

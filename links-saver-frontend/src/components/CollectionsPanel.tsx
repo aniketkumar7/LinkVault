@@ -42,7 +42,8 @@ export function CollectionsPanel({ onClose, onCollectionChange }: Props) {
     }
 
     useEffect(() => {
-        fetchCollections()
+        const timer = window.setTimeout(() => { void fetchCollections() }, 0)
+        return () => window.clearTimeout(timer)
     }, [])
 
     const handleCreate = async () => {

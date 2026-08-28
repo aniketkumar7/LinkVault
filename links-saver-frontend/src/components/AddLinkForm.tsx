@@ -4,6 +4,7 @@ import { Plus, X, CaretDown, Check } from '@phosphor-icons/react'
 import { api } from '@/lib/api'
 import type { Collection } from '@/lib/api'
 import { toast } from '@/lib/toast'
+import { normalizeUrl as canonicalizeUrl } from '@/lib/url'
 
 interface Props {
   onLinkAdded: () => void
@@ -27,8 +28,7 @@ export function AddLinkForm({ onLinkAdded, existingTags, collections, onCollecti
       onOpenChange?.(next)
     }
   }
-  const [origin, setOrigin] = useState<ButtonRect>(null)
-  const buttonRef = useRef<HTMLButtonElement>(null)
+  const [origin] = useState<ButtonRect>(null)
   const urlRef = useRef<HTMLInputElement>(null)
 
   const [url, setUrl] = useState('')
@@ -51,23 +51,7 @@ export function AddLinkForm({ onLinkAdded, existingTags, collections, onCollecti
   const selectedCollection = collections.find(c => c.id === collectionId)
 
   function normalizeUrl(raw: string) {
-    const trimmed = raw.trim()
-    if (!trimmed) return ''
-    if (/^https?:\/\//i.test(trimmed)) return trimmed
-    return 'https://' + trimmed
-  }
-
-  function handleOpen() {
-    if (buttonRef.current) {
-      const r = buttonRef.current.getBoundingClientRect()
-      setOrigin({ x: r.left, y: r.top, w: r.width, h: r.height })
-    } else {
-      // opened externally — animate from center
-      const vw = window.innerWidth
-      const vh = window.innerHeight
-      setOrigin({ x: vw / 2 - 60, y: vh / 2, w: 120, h: 44 })
-    }
-    setOpenState(true)
+    return canonicalizeUrl(raw)
   }
 
   function handleClose() {
@@ -96,6 +80,8 @@ export function AddLinkForm({ onLinkAdded, existingTags, collections, onCollecti
     function onKey(e: KeyboardEvent) { if (e.key === 'Escape') handleClose() }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
+  // handleClose intentionally remains local to the modal lifecycle.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen])
   useEffect(() => {
     function onClickOutside(e: MouseEvent) {
@@ -187,25 +173,6 @@ export function AddLinkForm({ onLinkAdded, existingTags, collections, onCollecti
 
   return (
     <>
-      {/* Floating button — mobile only, icon only */}
-      <motion.button
-        ref={buttonRef}
-        onClick={handleOpen}
-        animate={{ opacity: isOpen ? 0 : 1, scale: isOpen ? 0.85 : 1, y: isOpen ? 8 : 0 }}
-        transition={isOpen ? { duration: 0.18 } : { type: 'spring', stiffness: 400, damping: 28 }}
-        whileHover={isOpen ? {} : { scale: 1.06, y: -2 }}
-        whileTap={isOpen ? {} : { scale: 0.96 }}
-        style={{
-          position: 'fixed', bottom: 28, right: 24,
-          borderRadius: 9999, pointerEvents: isOpen ? 'none' : 'auto', zIndex: 40,
-          boxShadow: '0 8px 32px rgba(0,0,0,0.28), 0 2px 8px rgba(0,0,0,0.18)',
-        }}
-        className="sm:hidden flex items-center justify-center w-14 h-14"
-      >
-        <div style={{ position: 'absolute', inset: 0, borderRadius: 9999, background: 'linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-muted) 100%)' }} />
-        <Plus size={22} weight="bold" className="relative text-white" />
-      </motion.button>
-
       {/* Backdrop */}
       <AnimatePresence>
         {isOpen && (

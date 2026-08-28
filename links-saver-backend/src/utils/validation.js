@@ -10,6 +10,22 @@ function isValidUrl(string) {
     }
 }
 
+/** Normalize URLs so duplicate checks are consistent across the app. */
+function normalizeUrl(value) {
+    const input = typeof value === 'string' ? value.trim() : '';
+    if (!input) return '';
+
+    const url = new URL(input);
+    url.protocol = url.protocol.toLowerCase();
+    url.hostname = url.hostname.toLowerCase();
+    if ((url.protocol === 'https:' && url.port === '443') || (url.protocol === 'http:' && url.port === '80')) {
+        url.port = '';
+    }
+    url.hash = '';
+    url.pathname = url.pathname.replace(/\/$/, '') || '/';
+    return url.toString();
+}
+
 /**
  * Validate link input data
  */
@@ -35,5 +51,6 @@ function validateLinkInput({ url, note }) {
 
 module.exports = {
     isValidUrl,
+    normalizeUrl,
     validateLinkInput
 };

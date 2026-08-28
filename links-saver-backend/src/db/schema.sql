@@ -42,6 +42,7 @@ CREATE INDEX IF NOT EXISTS idx_useful_links_is_favorite ON public.useful_links(i
 CREATE INDEX IF NOT EXISTS idx_useful_links_tags ON public.useful_links USING GIN(tags);
 CREATE INDEX IF NOT EXISTS idx_useful_links_collection ON public.useful_links(collection_id);
 CREATE INDEX IF NOT EXISTS idx_useful_links_url ON public.useful_links(url);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_useful_links_unique_user_url ON public.useful_links(user_id, url);
 
 CREATE INDEX IF NOT EXISTS idx_collections_user_id ON public.collections(user_id);
 CREATE INDEX IF NOT EXISTS idx_collections_share_slug ON public.collections(share_slug);

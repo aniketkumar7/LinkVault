@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { supabase } = require('../config/supabase');
 const { fetchMetadata } = require('../utils/metadataFetcher');
-const { validateLinkInput } = require('../utils/validation');
+const { validateLinkInput, normalizeUrl } = require('../utils/validation');
 
 /**
  * GET /api/links
@@ -58,12 +58,14 @@ router.get('/check-duplicate', async (req, res) => {
         if (!url) {
             return res.status(400).json({ error: 'URL required' });
         }
+        const normalizedUrl = normalizeUrl(String(url));
+        if (!normalizedUrl) return res.status(400).json({ error: 'Invalid URL format' });
 
         const { data, error } = await supabase
             .from('useful_links')
             .select('id, title, created_at')
             .eq('user_id', req.user.id)
-            .eq('url', url.trim())
+            .eq('url', normalizedUrl)
             .maybeSingle();
 
         if (error) throw error;
@@ -170,6 +172,7 @@ router.post('/', async (req, res) => {
         if (!validation.valid) {
             return res.status(400).json({ error: validation.error });
         }
+        const normalizedUrl = normalizeUrl(url);
 
         // Check for duplicate unless explicitly allowed
         if (!allow_duplicate) {
@@ -177,7 +180,7 @@ router.post('/', async (req, res) => {
                 .from('useful_links')
                 .select('id, title')
                 .eq('user_id', req.user.id)
-                .eq('url', url.trim())
+                .eq('url', normalizedUrl)
                 .maybeSingle();
 
             if (existingLink) {
@@ -189,13 +192,13 @@ router.post('/', async (req, res) => {
         }
 
         // Fetch metadata from URL
-        console.log(`Fetching metadata for: ${url}`);
-        const metadata = await fetchMetadata(url);
+        console.log(`Fetching metadata for: ${normalizedUrl}`);
+        const metadata = await fetchMetadata(normalizedUrl);
 
         // Prepare link data
         const linkData = {
             user_id: req.user.id,
-            url: url.trim(),
+            url: normalizedUrl,
             note: note?.trim() || '',
             tags: Array.isArray(tags) ? tags.map(t => t.trim()).filter(Boolean) : [],
             is_favorite: is_favorite || false,
@@ -238,8 +241,8 @@ router.post('/bulk', async (req, res) => {
             return res.status(400).json({ error: 'URLs array required' });
         }
 
-        if (urls.length > 20) {
-            return res.status(400).json({ error: 'Maximum 20 URLs at once' });
+        if (urls.length > 100) {
+            return res.status(400).json({ error: 'Maximum 100 URLs per request' });
         }
 
         const results = {
@@ -249,16 +252,19 @@ router.post('/bulk', async (req, res) => {
         };
 
         for (const urlItem of urls) {
-            const url = typeof urlItem === 'string' ? urlItem : urlItem.url;
+            const rawUrl = typeof urlItem === 'string' ? urlItem : urlItem.url;
             const note = typeof urlItem === 'object' ? urlItem.note : '';
 
             try {
+                const validation = validateLinkInput({ url: rawUrl, note });
+                if (!validation.valid) throw new Error(validation.error);
+                const url = normalizeUrl(rawUrl);
                 // Check duplicate
                 const { data: existing } = await supabase
                     .from('useful_links')
                     .select('id')
                     .eq('user_id', req.user.id)
-                    .eq('url', url.trim())
+                    .eq('url', url)
                     .maybeSingle();
 
                 if (existing) {
@@ -274,7 +280,7 @@ router.post('/bulk', async (req, res) => {
                     .from('useful_links')
                     .insert([{
                         user_id: req.user.id,
-                        url: url.trim(),
+                        url,
                         note: note || '',
                         tags: tags || [],
                         collection_id: collection_id || null,

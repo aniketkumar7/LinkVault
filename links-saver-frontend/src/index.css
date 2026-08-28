@@ -6,18 +6,18 @@
 /* Custom CSS Variables for theming */
 @theme {
   /* Colors - Dark theme */
-  --color-bg-primary: #151310;
-  --color-bg-secondary: #1c1a16;
-  --color-bg-tertiary: #242018;
-  --color-bg-card: #1a1815;
-  --color-bg-hover: #2c2820;
+  --color-bg-primary: #0F0F0F;
+  --color-bg-secondary: #141414;
+  --color-bg-tertiary: #1A1A1A;
+  --color-bg-card: #1C1C1C;
+  --color-bg-hover: #242424;
 
-  --color-border: #2c2820;
-  --color-border-hover: #3d372c;
+  --color-border: #2A2A2A;
+  --color-border-hover: #383838;
 
-  --color-text-primary: #ede8e3;
-  --color-text-secondary: #8a8178;
-  --color-text-muted: #4a4540;
+  --color-text-primary: #EDEAE6;
+  --color-text-secondary: #908C87;
+  --color-text-muted: #504D49;
 
   /* Accent */
   --color-accent: #2ABBF7;
@@ -29,11 +29,11 @@
   --color-error: #ef4444;
 
   /* Shadows */
-  --shadow-card: 0 1px 0 0 #2c2820, 0 8px 32px -8px rgba(0,0,0,0.8);
+  --shadow-card: inset 0 1px rgba(255,255,255,0.06), 0 2px 4px rgba(0,0,0,0.4), 0 8px 32px rgba(0,0,0,0.25);
   --shadow-glow: 0 0 40px -12px rgba(42,187,247,0.5);
 
   /* Font */
-  --font-sans: "Satoshi", "Inter", system-ui, sans-serif;
+  --font-sans: "Plus Jakarta Sans", "Inter", system-ui, sans-serif;
 }
 
 /* Base styles */
@@ -82,20 +82,20 @@ body {
 
 /* Light theme */
 [data-theme="light"] {
-  --color-bg-primary: #F4F2EC;
-  --color-bg-secondary: #EDE9E1;
-  --color-bg-tertiary: #E5E0D6;
-  --color-bg-card: #F4F2EC;
-  --color-bg-hover: #EDE9E1;
+  --color-bg-primary: #F7F7F5;
+  --color-bg-secondary: #EDEDF0;
+  --color-bg-tertiary: #E4E4E8;
+  --color-bg-card: #FFFFFF;
+  --color-bg-hover: #F0F0EE;
 
-  --color-border: #D8D3C8;
-  --color-border-hover: #C5BFB2;
+  --color-border: #E0DED8;
+  --color-border-hover: #C8C5BE;
 
-  --color-text-primary: #151310;
-  --color-text-secondary: #52493e;
-  --color-text-muted: #9e9488;
+  --color-text-primary: #111118;
+  --color-text-secondary: #5A5855;
+  --color-text-muted: #9E9B97;
 
-  --shadow-card: 0 1px 0 0 #D8D3C8, 0 4px 16px -4px rgba(0,0,0,0.06);
+  --shadow-card: 0 1px 0 0 rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.06);
   --shadow-glow: 0 0 40px -12px rgba(42,187,247,0.2);
 }
 
@@ -344,4 +344,93 @@ select {
 .tooltip:hover::after {
   opacity: 1;
   transform: translateX(-50%) translateY(-8px);
+}
+
+.collection-tile {
+  transition: border-color .25s ease, box-shadow .35s ease, background-color .25s ease;
+}
+
+.collection-tile:hover {
+  border-color: var(--color-accent) !important;
+  box-shadow: 0 20px 44px -28px rgba(0,0,0,.85);
+}
+
+.collection-tile-line { opacity: .45; transition: opacity .25s ease; }
+.collection-tile:hover .collection-tile-line { opacity: 1; }
+
+/* Collection home: folders are the primary navigation surface. */
+.vault-command {
+  padding: 0 !important;
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+.vault-command > .flex.items-center.justify-between { display: none; }
+
+.folder-visual {
+  position: relative;
+  height: 190px;
+  isolation: isolate;
+  perspective: 700px;
+}
+
+.folder-back,
+.folder-flap {
+  position: absolute;
+  inset: 24px 0 0;
+  border: 1px solid color-mix(in srgb, var(--folder-color) 60%, var(--color-border));
+  border-radius: 14px 14px 16px 16px;
+  background: color-mix(in srgb, var(--folder-color) 28%, var(--color-bg-secondary));
+  box-shadow: inset 0 1px rgba(255,255,255,.12), 0 16px 26px -22px rgba(0,0,0,.9);
+}
+
+.folder-back::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: -18px;
+  width: 42%;
+  height: 28px;
+  border-radius: 12px 12px 0 0;
+  background: color-mix(in srgb, var(--folder-color) 35%, var(--color-bg-secondary));
+  border: 1px solid color-mix(in srgb, var(--folder-color) 60%, var(--color-border));
+  border-bottom: 0;
+}
+
+.folder-flap {
+  z-index: 4;
+  inset: 38px 0 0;
+  transform-origin: bottom center;
+  transform: rotateX(0deg);
+  background: linear-gradient(145deg, color-mix(in srgb, var(--folder-color) 48%, var(--color-bg-secondary)), color-mix(in srgb, var(--folder-color) 20%, var(--color-bg-primary)));
+  transition: transform .55s cubic-bezier(.16,1,.3,1), filter .35s ease;
+}
+
+.collection-tile:hover .folder-flap { transform: rotateX(-38deg); filter: brightness(1.12); }
+
+.folder-papers { position: absolute; z-index: 3; inset: 26px 18% auto; height: 112px; }
+.folder-papers span { position: absolute; inset: 0; border-radius: 8px; background: var(--color-text-primary); box-shadow: 0 8px 12px -8px rgba(0,0,0,.6); transform: rotate(-5deg); }
+.folder-papers span:nth-child(2) { transform: rotate(3deg) translateY(-5px); background: color-mix(in srgb, var(--color-text-primary) 88%, var(--folder-color)); }
+.folder-papers span:nth-child(3) { transform: rotate(8deg) translateY(-9px); background: color-mix(in srgb, var(--color-text-primary) 74%, var(--folder-color)); }
+
+.capture-dock { position: fixed; z-index: 35; bottom: 22px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 4px; padding: 5px; border: 1px solid var(--color-border); border-radius: 16px; background: color-mix(in srgb, var(--color-bg-card) 92%, transparent); box-shadow: 0 16px 40px -22px rgba(0,0,0,.9); backdrop-filter: blur(16px); }
+.capture-dock button { padding: 10px 15px; border-radius: 11px; font-size: 13px; font-weight: 700; white-space: nowrap; }
+.capture-primary { color: var(--color-bg-primary); background: var(--color-accent); }
+.capture-secondary { color: var(--color-text-secondary); background: var(--color-bg-tertiary); }
+
+@media (max-width: 640px) {
+  .capture-dock { bottom: 14px; width: calc(100% - 28px); justify-content: center; }
+  .capture-dock button { flex: 1; }
+  .folder-visual { height: 165px; }
+}
+
+/* The SVG artwork has a fixed internal canvas. Keep its layout footprint bounded
+   on narrow screens so neighboring folders never collide. */
+.folder-cell,
+.folder-root { max-width: 100%; }
+
+@media (max-width: 419px) {
+  .folder-cell { width: 100%; }
+  .folder-root { margin-inline: auto; }
 }

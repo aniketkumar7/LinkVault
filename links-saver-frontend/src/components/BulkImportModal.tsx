@@ -4,6 +4,7 @@ import { X, CaretDown, Check, UploadSimple, TextT, Image, ArrowLeft, Plus } from
 import { api } from '@/lib/api'
 import type { Collection, BulkImportResult, ExtractedLink } from '@/lib/api'
 import { toast } from '@/lib/toast'
+import { normalizeUrl } from '@/lib/url'
 
 interface Props {
   onClose: () => void
@@ -21,8 +22,12 @@ function chunk<T>(items: T[], size: number): T[][] {
 }
 
 function extractUrlsFromText(text: string): string[] {
-  const matches = text.match(/https?:\/\/[^\s<>()"']+/gi) ?? []
-  return [...new Set(matches.map(url => url.replace(/[.,;:!?]+$/, '')).filter(url => {
+  // also match bare domains without protocol
+  const withProtocol = text.replace(/(?<![\w:/])([a-zA-Z0-9][\w-]*(?:\.[a-zA-Z]{2,})+(?:\/[^\s<>()"']*)?)/g, (m) =>
+    /^https?:\/\//i.test(m) ? m : 'https://' + m
+  )
+  const matches = withProtocol.match(/https?:\/\/[^\s<>()"']+/gi) ?? []
+  return [...new Set(matches.map(url => url.replace(/[.,;:!?]+$/, '')).map(normalizeUrl).filter(url => {
     try { new URL(url); return true } catch { return false }
   }))]
 }
@@ -30,9 +35,10 @@ function extractUrlsFromText(text: string): string[] {
 function normalizePastedUrls(text: string): string {
   return text.split('\n').map(line => {
     const trimmed = line.trim()
-    if (!trimmed || /^https?:\/\//i.test(trimmed)) return line
+    if (!trimmed) return line
+    if (/^https?:\/\//i.test(trimmed)) return trimmed
     if (/^[a-zA-Z0-9][\w-]*\.[a-zA-Z]{2,}/i.test(trimmed)) return 'https://' + trimmed
-    return line
+    return trimmed
   }).join('\n')
 }
 
@@ -42,7 +48,7 @@ function extractUrlsFromCsv(text: string): string[] {
   for (const line of lines) {
     const cells = line.split(',').map(c => c.trim().replace(/^"|"$/g, ''))
     for (const cell of cells) {
-      try { new URL(cell); urls.push(cell) } catch { /* skip */ }
+      try { urls.push(normalizeUrl(cell)) } catch { /* skip */ }
     }
   }
   return [...new Set(urls)]
@@ -95,6 +101,7 @@ export function BulkImportModal({ onClose, onImported, collections }: Props) {
   const [collectionOpen, setCollectionOpen] = useState(false)
   const [newCollectionName, setNewCollectionName] = useState('')
   const [loading, setLoading] = useState(false)
+  const [importProgress, setImportProgress] = useState<{ completed: number; total: number } | null>(null)
   const [result, setResult] = useState<BulkImportResult | null>(null)
   // Screenshots tab state
   const [screenshots, setScreenshots] = useState<File[]>([])
@@ -155,6 +162,8 @@ export function BulkImportModal({ onClose, onImported, collections }: Props) {
     function onKey(e: KeyboardEvent) { if (e.key === 'Escape') onClose() }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
+    // onClose is supplied by the dashboard and is stable for this modal lifecycle.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   function handleScreenshots(e: React.ChangeEvent<HTMLInputElement>) {
@@ -346,16 +355,22 @@ export function BulkImportModal({ onClose, onImported, collections }: Props) {
   async function handleImport() {
     if (urls.length === 0 || tooMany) return
     setLoading(true)
+    setImportProgress({ completed: 0, total: urls.length })
     try {
       const importResult: BulkImportResult = { success: [], failed: [], duplicates: [] }
       for (const batch of chunk(urls, API_BATCH_SIZE)) {
-        const result = await api.bulkImport(batch, {
-          tags: tags.split(',').map(t => t.trim()).filter(Boolean),
-          collection_id: collectionId || undefined,
-        })
-        importResult.success.push(...result.success)
-        importResult.failed.push(...result.failed)
-        importResult.duplicates.push(...result.duplicates)
+        try {
+          const result = await api.bulkImport(batch, {
+            tags: tags.split(',').map(t => t.trim()).filter(Boolean),
+            collection_id: collectionId || undefined,
+          })
+          importResult.success.push(...result.success)
+          importResult.failed.push(...result.failed)
+          importResult.duplicates.push(...result.duplicates)
+        } catch (error) {
+          importResult.failed.push(...batch.map(url => ({ url, error: error instanceof Error ? error.message : 'Batch failed' })))
+        }
+        setImportProgress(progress => progress ? { ...progress, completed: Math.min(progress.completed + batch.length, progress.total) } : null)
       }
       setResult(importResult)
       if (importResult.success.length > 0) {
@@ -368,6 +383,7 @@ export function BulkImportModal({ onClose, onImported, collections }: Props) {
       toast.error('Bulk import failed')
     } finally {
       setLoading(false)
+      setImportProgress(null)
     }
   }
 
@@ -484,17 +500,30 @@ export function BulkImportModal({ onClose, onImported, collections }: Props) {
 
               {/* Paste tab */}
               {tab === 'paste' && (
-                <div className="flex flex-col gap-1">
-                  <textarea
-                    value={urlsText}
-                    onChange={e => setUrlsText(e.target.value)}
-                    placeholder={'https://example.com\nhttps://another.com\nhttps://more.com'}
-                    rows={6}
-                    className="w-full rounded-2xl border-2 border-transparent px-5 py-4 text-sm font-mono resize-none outline-none transition-[border-color]"
-                    style={inputStyle}
-                    onFocus={e => (e.target.style.borderColor = 'var(--color-accent)')}
-                    onBlur={e => (e.target.style.borderColor = 'transparent')}
-                  />
+                  <div className="flex flex-col gap-1">
+                  <div className="relative">
+                    <textarea
+                      value={urlsText}
+                      onChange={e => {
+        const cleaned = e.target.value.replace(/^https?:\/\//gim, '')
+                        setUrlsText(cleaned)
+                      }}
+                      onPaste={e => {
+                        e.preventDefault()
+                        const pasted = e.clipboardData.getData('text')
+                        const cleaned = pasted.split('\n').map(line => line.trim().replace(/^https?:\/\//i, '')).join('\n')
+                        const pos = e.currentTarget.selectionStart ?? urlsText.length
+                        const next = urlsText.slice(0, pos) + cleaned + urlsText.slice(e.currentTarget.selectionEnd ?? pos)
+                        setUrlsText(next)
+                      }}
+                      placeholder={'example.com\nanother.com\nmore.com'}
+                      rows={6}
+                      className="w-full rounded-2xl border-2 border-transparent px-5 py-4 text-sm font-mono resize-none outline-none transition-[border-color]"
+                      style={inputStyle}
+                      onFocus={e => (e.target.style.borderColor = 'var(--color-accent)')}
+                      onBlur={e => (e.target.style.borderColor = 'transparent')}
+                    />
+                  </div>
                   <p className="pl-2 text-xs" style={{ color: tooMany ? 'var(--color-error)' : 'var(--color-text-muted)' }}>
                     {pastedUrls.length} valid URL{pastedUrls.length !== 1 ? 's' : ''} detected{tooMany ? ` — max ${MAX_IMPORT_URLS}` : ''}
                     {duplicateUrls.size > 0 && <span style={{ color: '#fbbf24' }}> · {duplicateUrls.size} already saved</span>}
@@ -767,7 +796,7 @@ export function BulkImportModal({ onClose, onImported, collections }: Props) {
                       className="rounded-full px-8 py-3 text-[15px] font-bold text-white disabled:opacity-50"
                       style={{ background: 'linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-muted) 100%)' }}
                     >
-                      {loading ? 'Importing...' : urls.length > 0 ? `Import ${urls.length} link${urls.length !== 1 ? 's' : ''}` : 'Import'}
+                        {loading ? (importProgress ? `Importing ${importProgress.completed}/${importProgress.total}...` : 'Importing...') : urls.length > 0 ? `Import ${urls.length} link${urls.length !== 1 ? 's' : ''}` : 'Import'}
                     </motion.button>
                   </div>
                 </>

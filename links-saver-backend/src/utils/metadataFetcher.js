@@ -24,7 +24,15 @@ async function fetchMetadata(url) {
         }
 
         const origin = new URL(url).origin;
-        const resolve = (u) => u ? (u.startsWith('http') ? u : new URL(u, origin).href) : null;
+        const resolve = (u) => {
+            if (!u) return null;
+            try {
+                const resolved = new URL(u, origin);
+                return resolved.protocol === 'http:' || resolved.protocol === 'https:' ? resolved.href : null;
+            } catch {
+                return null;
+            }
+        };
         
         return {
             title: result.ogTitle || result.twitterTitle || result.dcTitle || extractDomainName(url),
