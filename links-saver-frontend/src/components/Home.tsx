@@ -7,6 +7,7 @@ import { CollectionManager } from './CollectionManager'
 import { AddLinkForm } from './AddLinkForm'
 import { BulkImportModal } from './BulkImportModal'
 import { Folder } from './Folder'
+import { ExportModal } from './ExportModal'
 
 interface Props {
   onOpenCollection: (collectionId: string) => void
@@ -22,6 +23,7 @@ export function Home({ onOpenCollection }: Props) {
   const [showCollectionManager, setShowCollectionManager] = useState(false)
   const [showAddLink, setShowAddLink] = useState(false)
   const [showBulkImport, setShowBulkImport] = useState(false)
+  const [showExport, setShowExport] = useState(false)
 
   const profileName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'User'
   const profileInitial = profileName.charAt(0).toUpperCase()
@@ -74,6 +76,9 @@ export function Home({ onOpenCollection }: Props) {
                   <div className="flex flex-col gap-1.5">
                     <button onClick={() => { setShowCollectionManager(true); setShowProfileMenu(false) }} className="rounded-xl px-3 py-2 text-sm text-left" style={{ background: 'var(--color-bg-tertiary)', color: 'var(--color-text-secondary)' }}>
                       Manage collections
+                    </button>
+                    <button onClick={() => { setShowExport(true); setShowProfileMenu(false) }} className="rounded-xl px-3 py-2 text-sm text-left" style={{ background: 'var(--color-bg-tertiary)', color: 'var(--color-text-secondary)' }}>
+                      Export links
                     </button>
                     <button onClick={() => { setShowProfileMenu(false); signOut() }} className="rounded-xl px-3 py-2 text-sm text-left" style={{ background: 'rgba(239,68,68,0.08)', color: 'var(--color-error)' }}>
                       Sign out
@@ -145,6 +150,7 @@ export function Home({ onOpenCollection }: Props) {
       <CollectionManager open={showCollectionManager} onClose={() => setShowCollectionManager(false)} collections={collections} onChanged={invalidateCollections} />
       <AddLinkForm open={showAddLink} onOpenChange={setShowAddLink} onLinkAdded={invalidateCollections} existingTags={[]} collections={collections} onCollectionCreated={invalidateCollections} />
       {showBulkImport && <BulkImportModal onClose={() => setShowBulkImport(false)} onImported={invalidateCollections} collections={collections} />}
+      {showExport && <ExportModal collections={collections} onClose={() => setShowExport(false)} />}
     </div>
   )
 }

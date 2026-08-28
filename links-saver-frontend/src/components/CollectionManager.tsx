@@ -4,6 +4,17 @@ import { api, type Collection } from '@/lib/api'
 import { Dialog } from '@/components/ui/Dialog'
 import { toast } from '@/lib/toast'
 
+const COLOR_PALETTE = [
+  '#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981',
+  '#ef4444', '#06b6d4', '#f97316', '#84cc16', '#6366f1',
+  '#14b8a6', '#a855f7', '#f43f5e', '#eab308', '#22c55e',
+]
+
+function pickUniqueColor(existing: string[]): string {
+  const used = new Set(existing.map(c => c.toLowerCase()))
+  return COLOR_PALETTE.find(c => !used.has(c.toLowerCase())) ?? COLOR_PALETTE[existing.length % COLOR_PALETTE.length]
+}
+
 export function CollectionManager({ open, onClose, collections, onChanged }: { open: boolean; onClose: () => void; collections: Collection[]; onChanged: () => void }) {
   const [draft, setDraft] = useState('')
   const [editing, setEditing] = useState<string | null>(null)
@@ -11,7 +22,8 @@ export function CollectionManager({ open, onClose, collections, onChanged }: { o
 
   const create = async () => {
     if (!draft.trim()) return
-    try { await api.createCollection({ name: draft.trim() }); setDraft(''); onChanged(); toast.success('Collection created') }
+    const color = pickUniqueColor(collections.map(c => c.color))
+    try { await api.createCollection({ name: draft.trim(), color }); setDraft(''); onChanged(); toast.success('Collection created') }
     catch { toast.error('Could not create collection') }
   }
   const save = async (collection: Collection) => {
