@@ -9,19 +9,23 @@ export function LoginPage({ onBack }: Props) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [isSignUp, setIsSignUp] = useState(false)
+  const [isForgotPassword, setIsForgotPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
-  const { signInWithEmail, signUp } = useAuth()
+  const { signInWithEmail, signUp, resetPassword } = useAuth()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!email.trim() || !password.trim()) return
+    if (!email.trim() || (!isForgotPassword && !password.trim())) return
 
     setLoading(true)
     setMessage(null)
 
     try {
-      if (isSignUp) {
+      if (isForgotPassword) {
+        await resetPassword(email.trim())
+        setMessage({ type: 'success', text: 'If an account exists for this email, you’ll receive a password reset link shortly.' })
+      } else if (isSignUp) {
         await signUp(email.trim(), password)
         setMessage({ type: 'success', text: 'Account created! Check your email to confirm, then sign in.' })
       } else {
@@ -70,7 +74,7 @@ export function LoginPage({ onBack }: Props) {
             LinkVault
           </h1>
           <p className="mt-2" style={{ color: 'var(--color-text-secondary)' }}>
-            {isSignUp ? 'Create your account' : 'Welcome back'}
+            {isForgotPassword ? 'We’ll help you get back in' : isSignUp ? 'Create your account' : 'Welcome back'}
           </p>
         </div>
 
@@ -97,7 +101,7 @@ export function LoginPage({ onBack }: Props) {
               />
             </div>
 
-            <div>
+            {!isForgotPassword && <div>
               <label htmlFor="password" className="block text-sm font-medium mb-2" style={{ color: 'var(--color-text-secondary)' }}>
                 Password
               </label>
@@ -113,11 +117,24 @@ export function LoginPage({ onBack }: Props) {
                 required
                 minLength={6}
               />
-            </div>
+            </div>}
+
+            {!isSignUp && !isForgotPassword && (
+              <div className="text-right -mt-1">
+                <button
+                  type="button"
+                  onClick={() => { setIsForgotPassword(true); setMessage(null) }}
+                  className="text-sm font-medium hover:underline"
+                  style={{ color: 'var(--color-accent)' }}
+                >
+                  Forgot password?
+                </button>
+              </div>
+            )}
 
             <button
               type="submit"
-              disabled={loading || !email.trim() || !password.trim()}
+              disabled={loading || !email.trim() || (!isForgotPassword && !password.trim())}
               className="w-full py-3 px-4 rounded-xl font-semibold text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               style={{
                 background: loading ? 'var(--color-border)' : 'linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-muted) 100%)',
@@ -130,10 +147,10 @@ export function LoginPage({ onBack }: Props) {
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                   </svg>
-                  {isSignUp ? 'Creating account...' : 'Signing in...'}
+                  {isForgotPassword ? 'Sending reset link...' : isSignUp ? 'Creating account...' : 'Signing in...'}
                 </span>
               ) : (
-                isSignUp ? 'Create Account' : 'Sign In'
+                isForgotPassword ? 'Send reset link' : isSignUp ? 'Create Account' : 'Sign In'
               )}
             </button>
           </form>
@@ -152,13 +169,14 @@ export function LoginPage({ onBack }: Props) {
           )}
 
           <p className="text-center mt-6 text-sm" style={{ color: 'var(--color-text-muted)' }}>
-            {isSignUp ? 'Already have an account?' : "Don't have an account?"}{' '}
+            {isForgotPassword ? 'Remember your password?' : isSignUp ? 'Already have an account?' : "Don't have an account?"}{' '}
             <button
-              onClick={() => { setIsSignUp(!isSignUp); setMessage(null) }}
+              type="button"
+              onClick={() => { setIsForgotPassword(false); setIsSignUp(isForgotPassword ? false : !isSignUp); setMessage(null) }}
               className="font-medium hover:underline"
               style={{ color: 'var(--color-accent)' }}
             >
-              {isSignUp ? 'Sign in' : 'Sign up'}
+              {isForgotPassword || isSignUp ? 'Sign in' : 'Sign up'}
             </button>
           </p>
         </div>
