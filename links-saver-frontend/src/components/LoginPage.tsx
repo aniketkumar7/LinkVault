@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useAuth } from '@/hooks/useAuth'
+import { toast } from '@/lib/toast'
 
 interface Props {
   onBack?: () => void
@@ -28,18 +29,23 @@ export function LoginPage({ onBack, isRecovery = false, onPasswordUpdated }: Pro
       if (isRecovery) {
         await updatePassword(password)
         setMessage({ type: 'success', text: 'Your password has been updated.' })
+        toast.success('Password updated')
         onPasswordUpdated?.()
       } else if (isForgotPassword) {
         await resetPassword(email.trim())
+        toast.success('Password reset email sent')
         setMessage({ type: 'success', text: 'If an account exists for this email, you’ll receive a password reset link shortly.' })
       } else if (isSignUp) {
         await signUp(email.trim(), password)
+        toast.success('Account created')
         setMessage({ type: 'success', text: 'Account created! Check your email to confirm, then sign in.' })
       } else {
         await signInWithEmail(email.trim(), password)
       }
     } catch (err) {
-      setMessage({ type: 'error', text: err instanceof Error ? err.message : 'Authentication failed' })
+      const errorMessage = err instanceof Error ? err.message : 'Authentication failed'
+      setMessage({ type: 'error', text: errorMessage })
+      toast.error(errorMessage)
     } finally {
       setLoading(false)
     }

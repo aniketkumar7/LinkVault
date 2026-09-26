@@ -2,13 +2,22 @@ import { useState } from 'react'
 
 const colors = [
   '#ef5350',
+  '#ed3f68',
+  '#d9368b',
+  '#b83fc2',
   '#ff754d',
+  '#ff8f3d',
   '#ffbd4d',
   '#f3df61',
+  '#e8e85d',
   '#a9d66f',
+  '#7fc95c',
   '#62cfaa',
+  '#42bfa0',
   '#5ab7dc',
+  '#4b9edb',
   '#6689df',
+  '#5369d7',
   '#9274d9',
   '#c363c6',
   '#e8669a',
@@ -56,7 +65,7 @@ export function ColorPicker({
 }) {
   const [selected, setSelected] = useState(value)
   const [opacity, setOpacity] = useState(1)
-  const size = 236
+  const size = 252
   const center = size / 2
   const choose = (event: React.PointerEvent<SVGSVGElement>) => {
     const box = event.currentTarget.getBoundingClientRect()
@@ -79,7 +88,7 @@ export function ColorPicker({
   }
   return (
     <div
-      className="relative rounded-[22px] px-3 text-white"
+      className="relative rounded-[22px] px-1 text-white"
       style={{ width: size + 24 }}>
       <svg
         width={size}
@@ -96,7 +105,7 @@ export function ColorPicker({
               key={color}
               cx={x}
               cy={y}
-              r="24"
+              r="22"
               fill={color}
               stroke="rgba(255,255,255,.16)"
               strokeWidth="1"
@@ -137,6 +146,9 @@ export function ColorPicker({
           max="1"
           step="0.01"
           value={opacity}
+          style={{
+            background: `linear-gradient(90deg, #f4f4f5 0%, #f4f4f5 ${opacity * 100}%, #27272a ${opacity * 100}%, #27272a 100%)`,
+          }}
           onChange={event => {
             const next = Number(event.target.value)
             setOpacity(next)

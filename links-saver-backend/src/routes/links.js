@@ -364,9 +364,22 @@ router.post('/:id/check-health', async (req, res) => {
 router.patch('/:id', async (req, res) => {
     try {
         const { id } = req.params;
-        const { note, tags, is_favorite, collection_id } = req.body;
+        const { url, note, tags, is_favorite, collection_id } = req.body;
 
         const updates = {};
+        if (url !== undefined) {
+            const normalizedUrl = normalizeUrl(url);
+            if (!normalizedUrl) return res.status(400).json({ error: 'Valid URL is required' });
+            const { data: duplicate } = await supabase
+                .from('useful_links')
+                .select('id')
+                .eq('user_id', req.user.id)
+                .neq('id', id)
+                .eq('url', normalizedUrl)
+                .maybeSingle();
+            if (duplicate) return res.status(409).json({ error: 'This link already exists in your saved links' });
+            updates.url = normalizedUrl;
+        }
         if (note !== undefined) updates.note = note.trim();
         if (tags !== undefined) updates.tags = Array.isArray(tags) ? tags.map(t => t.trim()).filter(Boolean) : [];
         if (is_favorite !== undefined) updates.is_favorite = is_favorite;

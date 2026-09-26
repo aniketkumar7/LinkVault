@@ -138,11 +138,20 @@ router.post('/', async (req, res) => {
             return res.status(400).json({ error: 'Name is required' });
         }
 
+        const normalizedName = name.trim();
+        const { data: duplicate } = await supabase
+            .from('collections')
+            .select('id')
+            .eq('user_id', req.user.id)
+            .ilike('name', normalizedName)
+            .maybeSingle();
+        if (duplicate) return res.status(409).json({ error: 'A collection with this name already exists' });
+
         const { data, error } = await supabase
             .from('collections')
             .insert([{
                 user_id: req.user.id,
-                name: name.trim(),
+                name: normalizedName,
                 description: description?.trim() || null,
                 color: color || '#f97316'
             }])
@@ -168,7 +177,19 @@ router.patch('/:id', async (req, res) => {
         const { name, description, color } = req.body;
 
         const updates = {};
-        if (name !== undefined) updates.name = name.trim();
+        if (name !== undefined) {
+            const normalizedName = name.trim();
+            if (!normalizedName) return res.status(400).json({ error: 'Name is required' });
+            const { data: duplicate } = await supabase
+                .from('collections')
+                .select('id')
+                .eq('user_id', req.user.id)
+                .neq('id', id)
+                .ilike('name', normalizedName)
+                .maybeSingle();
+            if (duplicate) return res.status(409).json({ error: 'A collection with this name already exists' });
+            updates.name = normalizedName;
+        }
         if (description !== undefined) updates.description = description?.trim() || null;
         if (color !== undefined) updates.color = color;
 
