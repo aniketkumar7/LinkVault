@@ -6,6 +6,7 @@ export function useAuth() {
   const [user, setUser] = useState<User | null>(null)
   const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true)
+  const [isRecoverySession, setIsRecoverySession] = useState(false)
 
   useEffect(() => {
     // Get initial session
@@ -16,9 +17,10 @@ export function useAuth() {
     })
 
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setSession(session)
       setUser(session?.user ?? null)
+      if (event === 'PASSWORD_RECOVERY') setIsRecoverySession(true)
       setLoading(false)
     })
 
@@ -42,6 +44,12 @@ export function useAuth() {
     if (error) throw error
   }
 
+  const updatePassword = async (password: string) => {
+    const { error } = await supabase.auth.updateUser({ password })
+    if (error) throw error
+    setIsRecoverySession(false)
+  }
+
   const signOut = async () => {
     const { error } = await supabase.auth.signOut()
     if (error) throw error
@@ -54,6 +62,8 @@ export function useAuth() {
     signInWithEmail,
     signUp,
     resetPassword,
+    updatePassword,
+    isRecoverySession,
     signOut,
   }
 }

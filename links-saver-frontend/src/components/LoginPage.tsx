@@ -3,26 +3,33 @@ import { useAuth } from '@/hooks/useAuth'
 
 interface Props {
   onBack?: () => void
+  isRecovery?: boolean
+  onPasswordUpdated?: () => void
 }
 
-export function LoginPage({ onBack }: Props) {
+export function LoginPage({ onBack, isRecovery = false, onPasswordUpdated }: Props) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
   const [isSignUp, setIsSignUp] = useState(false)
   const [isForgotPassword, setIsForgotPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
-  const { signInWithEmail, signUp, resetPassword } = useAuth()
+  const { signInWithEmail, signUp, resetPassword, updatePassword } = useAuth()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!email.trim() || (!isForgotPassword && !password.trim())) return
+    if (isRecovery ? (!password || password.length < 6 || password !== confirmPassword) : (!email.trim() || (!isForgotPassword && !password.trim()))) return
 
     setLoading(true)
     setMessage(null)
 
     try {
-      if (isForgotPassword) {
+      if (isRecovery) {
+        await updatePassword(password)
+        setMessage({ type: 'success', text: 'Your password has been updated.' })
+        onPasswordUpdated?.()
+      } else if (isForgotPassword) {
         await resetPassword(email.trim())
         setMessage({ type: 'success', text: 'If an account exists for this email, you’ll receive a password reset link shortly.' })
       } else if (isSignUp) {
@@ -85,10 +92,10 @@ export function LoginPage({ onBack }: Props) {
         }}>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label htmlFor="email" className="block text-sm font-medium mb-2" style={{ color: 'var(--color-text-secondary)' }}>
+              {!isRecovery && <label htmlFor="email" className="block text-sm font-medium mb-2" style={{ color: 'var(--color-text-secondary)' }}>
                 Email address
-              </label>
-              <input
+              </label>}
+              {!isRecovery && <input
                 id="email"
                 type="email"
                 value={email}
@@ -98,10 +105,10 @@ export function LoginPage({ onBack }: Props) {
                 style={{ background: 'var(--color-bg-tertiary)', border: '1px solid var(--color-border)', color: 'var(--color-text-primary)' }}
                 disabled={loading}
                 required
-              />
+              />}
             </div>
 
-            {!isForgotPassword && <div>
+            {(isRecovery || !isForgotPassword) && <div>
               <label htmlFor="password" className="block text-sm font-medium mb-2" style={{ color: 'var(--color-text-secondary)' }}>
                 Password
               </label>
@@ -119,7 +126,12 @@ export function LoginPage({ onBack }: Props) {
               />
             </div>}
 
-            {!isSignUp && !isForgotPassword && (
+            {isRecovery && <div>
+              <label htmlFor="confirm-password" className="block text-sm font-medium mb-2" style={{ color: 'var(--color-text-secondary)' }}>Confirm new password</label>
+              <input id="confirm-password" type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="••••••••" className="w-full px-4 py-3 rounded-xl text-base transition-all" style={{ background: 'var(--color-bg-tertiary)', border: '1px solid var(--color-border)', color: 'var(--color-text-primary)' }} disabled={loading} required minLength={6} />
+            </div>}
+
+            {!isRecovery && !isSignUp && !isForgotPassword && (
               <div className="text-right -mt-1">
                 <button
                   type="button"
@@ -134,7 +146,7 @@ export function LoginPage({ onBack }: Props) {
 
             <button
               type="submit"
-              disabled={loading || !email.trim() || (!isForgotPassword && !password.trim())}
+              disabled={loading || (isRecovery ? !password || password.length < 6 || password !== confirmPassword : !email.trim() || (!isForgotPassword && !password.trim()))}
               className="w-full py-3 px-4 rounded-xl font-semibold text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               style={{
                 background: loading ? 'var(--color-border)' : 'linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-muted) 100%)',
@@ -147,10 +159,10 @@ export function LoginPage({ onBack }: Props) {
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                   </svg>
-                  {isForgotPassword ? 'Sending reset link...' : isSignUp ? 'Creating account...' : 'Signing in...'}
+                  {isRecovery ? 'Updating password...' : isForgotPassword ? 'Sending reset link...' : isSignUp ? 'Creating account...' : 'Signing in...'}
                 </span>
               ) : (
-                isForgotPassword ? 'Send reset link' : isSignUp ? 'Create Account' : 'Sign In'
+                isRecovery ? 'Update password' : isForgotPassword ? 'Send reset link' : isSignUp ? 'Create Account' : 'Sign In'
               )}
             </button>
           </form>
@@ -168,7 +180,7 @@ export function LoginPage({ onBack }: Props) {
             </div>
           )}
 
-          <p className="text-center mt-6 text-sm" style={{ color: 'var(--color-text-muted)' }}>
+          {!isRecovery && <p className="text-center mt-6 text-sm" style={{ color: 'var(--color-text-muted)' }}>
             {isForgotPassword ? 'Remember your password?' : isSignUp ? 'Already have an account?' : "Don't have an account?"}{' '}
             <button
               type="button"
@@ -178,7 +190,7 @@ export function LoginPage({ onBack }: Props) {
             >
               {isForgotPassword || isSignUp ? 'Sign in' : 'Sign up'}
             </button>
-          </p>
+          </p>}
         </div>
       </div>
     </div>

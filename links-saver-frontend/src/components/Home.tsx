@@ -91,11 +91,11 @@ export function Home({ onOpenCollection }: Props) {
         </div>
       </header>
 
-      <main className="mx-auto px-4 pt-10 pb-32 sm:px-6 lg:px-8">
+      <main className="mx-auto px-5 pt-12 pb-32 sm:px-8 lg:px-12">
         {collections.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-24 text-center">
             <div className="mb-6 opacity-40">
-              <Folder color="#3b82f6" hasLinks={false} linkCount={0} width={80} desktopWidth={130} />
+              <Folder color="#3b82f6" hasLinks={false} linkCount={0} width={122} desktopWidth={178} />
             </div>
             <p className="text-lg font-semibold mb-2" style={{ color: 'var(--color-text-primary)' }}>No collections yet</p>
             <p className="text-sm mb-6" style={{ color: 'var(--color-text-muted)' }}>Create a collection to start organizing your links.</p>
@@ -104,7 +104,7 @@ export function Home({ onOpenCollection }: Props) {
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-x-4 gap-y-8 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+          <div className="grid grid-cols-2 justify-items-center gap-x-3 gap-y-10 sm:grid-cols-4 sm:gap-x-8 sm:gap-y-12 lg:grid-cols-5 lg:gap-x-12 xl:grid-cols-7">
             {collections.map((collection, index) => (
               <motion.button
                 key={collection.id}
@@ -113,36 +113,24 @@ export function Home({ onOpenCollection }: Props) {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.05, duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-                className="flex flex-col items-center text-center focus:outline-none group"
+                className="group flex w-[80px] flex-col items-center text-center focus:outline-none md:w-[158px]"
               >
-                <div className="transition-transform duration-200 group-hover:-translate-y-1">
-                  <Folder color={collection.color} hasLinks={(collection.link_count ?? 0) > 0} linkCount={collection.link_count ?? 0} width={80} desktopWidth={130} />
+                <div>
+                  <Folder color={collection.color} hasLinks={(collection.link_count ?? 0) > 0} linkCount={collection.link_count ?? 0} width={122} desktopWidth={178} />
                 </div>
-                <p className="mt-2 text-sm font-semibold truncate w-full" style={{ color: 'var(--color-text-primary)' }}>
+                <p className="mt-1.5 w-full truncate text-[13px] font-semibold tracking-[-0.01em]" style={{ color: 'var(--color-text-primary)' }}>
                   {collection.name}
+                  <span className="ml-1 font-normal" style={{ color: 'var(--color-text-muted)' }}>{collection.link_count ?? 0}</span>
                 </p>
               </motion.button>
             ))}
 
-            <motion.button
-              type="button"
-              onClick={() => setShowCollectionManager(true)}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: collections.length * 0.05, duration: 0.35 }}
-              className="justify-self-center self-start flex h-[80px] w-[95px] flex-col items-center justify-center gap-1 rounded-2xl border-2 border-dashed text-center text-sm font-semibold transition-colors hover:border-[var(--color-accent)] sm:h-[105px] sm:w-[160px]"
-              style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-muted)' }}
-            >
-              <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-              <span className="leading-tight">New collection</span>
-            </motion.button>
           </div>
         )}
       </main>
 
       <div className="capture-dock">
+        <button type="button" onClick={() => setShowCollectionManager(true)} className="capture-secondary">New collection</button>
         <button type="button" onClick={() => setShowAddLink(true)} className="capture-primary">+ Add link</button>
         <button type="button" onClick={() => setShowBulkImport(true)} className="capture-secondary">Bulk import</button>
       </div>

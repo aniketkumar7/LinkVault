@@ -8,7 +8,7 @@ import CircularThemeProvider from '@/components/CircularThemeProvider'
 import PixelPageTransition from '@/components/PixelPageTransition'
 
 function AppInner() {
-  const { user, loading } = useAuth()
+  const { user, loading, isRecoverySession } = useAuth()
   const [showLogin, setShowLogin] = useState(false)
   const [openCollectionId, setOpenCollectionId] = useState<string | null>(null)
 
@@ -44,6 +44,7 @@ function AppInner() {
   }
 
   const page = (() => {
+    if (isRecoverySession) return <LoginPage isRecovery onPasswordUpdated={() => navigate(() => undefined)} />
     if (user) {
       if (openCollectionId) return (
         <CollectionPage

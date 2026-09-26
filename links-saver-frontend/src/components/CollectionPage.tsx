@@ -102,7 +102,7 @@ export function CollectionPage({ collectionId, onBack }: Props) {
         </div>
       </header>
 
-      <main className="mx-auto px-4 pt-6 pb-32 sm:px-6 lg:px-8">
+      <main className="mx-auto px-2 pt-6 pb-32 sm:px-4 lg:px-6">
         <LinksView collections={collections} initialCollectionId={collectionId} onRefetchNeeded={invalidateCollections} />
       </main>
 

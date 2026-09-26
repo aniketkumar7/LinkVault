@@ -4,32 +4,25 @@ import { api, type Collection } from '@/lib/api'
 import { Dialog } from '@/components/ui/Dialog'
 import { toast } from '@/lib/toast'
 
-const COLOR_PALETTE = [
-  '#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981',
-  '#ef4444', '#06b6d4', '#f97316', '#84cc16', '#6366f1',
-  '#14b8a6', '#a855f7', '#f43f5e', '#eab308', '#22c55e',
-]
-
-function pickUniqueColor(existing: string[]): string {
-  const used = new Set(existing.map(c => c.toLowerCase()))
-  return COLOR_PALETTE.find(c => !used.has(c.toLowerCase())) ?? COLOR_PALETTE[existing.length % COLOR_PALETTE.length]
-}
-
 export function CollectionManager({ open, onClose, collections, onChanged }: { open: boolean; onClose: () => void; collections: Collection[]; onChanged: () => void }) {
   const [draft, setDraft] = useState('')
+  const [draftColor, setDraftColor] = useState('#3b82f6')
   const [editing, setEditing] = useState<string | null>(null)
   const [deleting, setDeleting] = useState<string | null>(null)
 
   const create = async () => {
     if (!draft.trim()) return
-    const color = pickUniqueColor(collections.map(c => c.color))
-    try { await api.createCollection({ name: draft.trim(), color }); setDraft(''); onChanged(); toast.success('Collection created') }
+    try { await api.createCollection({ name: draft.trim(), color: draftColor }); setDraft(''); onChanged(); toast.success('Collection created') }
     catch { toast.error('Could not create collection') }
   }
   const save = async (collection: Collection) => {
     if (!collection.name.trim()) return
     try { await api.updateCollection(collection.id, { name: collection.name }); setEditing(null); onChanged(); toast.success('Collection updated') }
     catch { toast.error('Could not update collection') }
+  }
+  const changeColor = async (collection: Collection, color: string) => {
+    try { await api.updateCollection(collection.id, { color }); onChanged() }
+    catch { toast.error('Could not update folder color') }
   }
   const remove = async () => {
     if (!deleting) return
@@ -41,10 +34,10 @@ export function CollectionManager({ open, onClose, collections, onChanged }: { o
     <div className="fixed inset-0 z-40 bg-black/65" onClick={onClose} />
     <section role="dialog" aria-modal="true" aria-label="Manage collections" className="fixed inset-0 z-50 m-auto h-fit max-h-[80vh] w-[calc(100%-2rem)] max-w-lg overflow-auto rounded-2xl border p-5" style={{ background: 'var(--color-bg-card)', borderColor: 'var(--color-border)' }}>
       <div className="mb-5 flex items-center justify-between"><h2 className="text-lg font-semibold">Manage collections</h2><button onClick={onClose} aria-label="Close">×</button></div>
-      <div className="mb-4 flex gap-2"><input value={draft} onChange={e => setDraft(e.target.value)} onKeyDown={e => e.key === 'Enter' && create()} placeholder="New collection name" className="min-w-0 flex-1 rounded-xl border px-3 py-2 text-sm" style={{ background: 'var(--color-bg-tertiary)', borderColor: 'var(--color-border)' }} /><button onClick={create} disabled={!draft.trim()} className="flex items-center gap-1 rounded-xl px-3 py-2 text-sm font-semibold text-white disabled:opacity-50" style={{ background: 'var(--color-accent)' }}><Plus size={15} /> Add</button></div>
+      <div className="mb-4 flex gap-2"><input type="color" value={draftColor} onChange={e => setDraftColor(e.target.value)} aria-label="New folder color" className="h-10 w-11 cursor-pointer rounded-xl border bg-transparent p-1" style={{ borderColor: 'var(--color-border)' }} /><input value={draft} onChange={e => setDraft(e.target.value)} onKeyDown={e => e.key === 'Enter' && create()} placeholder="New collection name" className="min-w-0 flex-1 rounded-xl border px-3 py-2 text-sm" style={{ background: 'var(--color-bg-tertiary)', borderColor: 'var(--color-border)' }} /><button onClick={create} disabled={!draft.trim()} className="flex items-center gap-1 rounded-xl px-3 py-2 text-sm font-semibold text-white disabled:opacity-50" style={{ background: 'var(--color-accent)' }}><Plus size={15} /> Add</button></div>
       <div className="space-y-2">
         {collections.map(collection => <div key={collection.id} className="flex items-center gap-3 rounded-xl px-3 py-2" style={{ background: 'var(--color-bg-tertiary)' }}>
-          <span className="size-2.5 rounded-full" style={{ background: collection.color }} />
+          <input type="color" value={collection.color} onChange={e => changeColor(collection, e.target.value)} aria-label={`Choose ${collection.name} folder color`} className="h-7 w-7 cursor-pointer rounded-lg border-0 bg-transparent p-0" />
           {editing === collection.id ? <input autoFocus defaultValue={collection.name} onBlur={e => save({ ...collection, name: e.target.value })} onKeyDown={e => { if (e.key === 'Enter') save({ ...collection, name: e.currentTarget.value }); if (e.key === 'Escape') setEditing(null) }} className="min-w-0 flex-1 rounded px-2 py-1 text-sm" style={{ background: 'var(--color-bg-card)' }} /> : <><span className="min-w-0 flex-1 truncate text-sm font-medium">{collection.name}</span><span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{collection.link_count ?? 0} links</span></>}
           <button onClick={() => setEditing(collection.id)} aria-label={`Edit ${collection.name}`} className="p-1.5"><PencilSimple size={16} /></button><button onClick={() => setDeleting(collection.id)} aria-label={`Delete ${collection.name}`} className="p-1.5" style={{ color: 'var(--color-error)' }}><Trash size={16} /></button>
         </div>)}
