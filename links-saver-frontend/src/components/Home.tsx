@@ -8,6 +8,7 @@ import { AddLinkForm } from './AddLinkForm'
 import { BulkImportModal } from './BulkImportModal'
 import { Folder } from './Folder'
 import { ExportModal } from './ExportModal'
+import { AddCollectionModal } from './AddCollectionModal'
 
 interface Props {
   onOpenCollection: (collectionId: string) => void
@@ -24,6 +25,7 @@ export function Home({ onOpenCollection }: Props) {
   const [showAddLink, setShowAddLink] = useState(false)
   const [showBulkImport, setShowBulkImport] = useState(false)
   const [showExport, setShowExport] = useState(false)
+  const [showAddCollection, setShowAddCollection] = useState(false)
 
   const profileName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'User'
   const profileInitial = profileName.charAt(0).toUpperCase()
@@ -91,11 +93,11 @@ export function Home({ onOpenCollection }: Props) {
         </div>
       </header>
 
-      <main className="mx-auto px-5 pt-12 pb-32 sm:px-8 lg:px-12">
+      <main className="mx-auto px-4 pt-8 pb-32 sm:px-6 lg:px-10">
         {collections.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-24 text-center">
             <div className="mb-6 opacity-40">
-              <Folder color="#3b82f6" hasLinks={false} linkCount={0} width={122} desktopWidth={178} />
+              <Folder color="#3b82f6" hasLinks={false} linkCount={0} width={148} desktopWidth={210} />
             </div>
             <p className="text-lg font-semibold mb-2" style={{ color: 'var(--color-text-primary)' }}>No collections yet</p>
             <p className="text-sm mb-6" style={{ color: 'var(--color-text-muted)' }}>Create a collection to start organizing your links.</p>
@@ -104,7 +106,7 @@ export function Home({ onOpenCollection }: Props) {
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-2 justify-items-center gap-x-3 gap-y-10 sm:grid-cols-4 sm:gap-x-8 sm:gap-y-12 lg:grid-cols-5 lg:gap-x-12 xl:grid-cols-7">
+          <div className="grid grid-cols-2 justify-items-center gap-x-3 gap-y-8 sm:grid-cols-4 sm:gap-x-8 sm:gap-y-10 lg:grid-cols-5 lg:gap-x-12 xl:grid-cols-7">
             {collections.map((collection, index) => (
               <motion.button
                 key={collection.id}
@@ -116,7 +118,7 @@ export function Home({ onOpenCollection }: Props) {
                 className="group flex w-[80px] flex-col items-center text-center focus:outline-none md:w-[158px]"
               >
                 <div>
-                  <Folder color={collection.color} hasLinks={(collection.link_count ?? 0) > 0} linkCount={collection.link_count ?? 0} width={122} desktopWidth={178} />
+                  <Folder color={collection.color} hasLinks={(collection.link_count ?? 0) > 0} linkCount={collection.link_count ?? 0} width={148} desktopWidth={210} />
                 </div>
                 <p className="mt-1.5 w-full truncate text-[13px] font-semibold tracking-[-0.01em]" style={{ color: 'var(--color-text-primary)' }}>
                   {collection.name}
@@ -130,12 +132,13 @@ export function Home({ onOpenCollection }: Props) {
       </main>
 
       <div className="capture-dock">
-        <button type="button" onClick={() => setShowCollectionManager(true)} className="capture-secondary">New collection</button>
+        <button type="button" onClick={() => setShowAddCollection(true)} className="capture-secondary">New collection</button>
         <button type="button" onClick={() => setShowAddLink(true)} className="capture-primary">+ Add link</button>
         <button type="button" onClick={() => setShowBulkImport(true)} className="capture-secondary">Bulk import</button>
       </div>
 
       <CollectionManager open={showCollectionManager} onClose={() => setShowCollectionManager(false)} collections={collections} onChanged={invalidateCollections} />
+      <AddCollectionModal key={showAddCollection ? 'new-open' : 'new-closed'} open={showAddCollection} onClose={() => setShowAddCollection(false)} onCreated={invalidateCollections} />
       <AddLinkForm open={showAddLink} onOpenChange={setShowAddLink} onLinkAdded={invalidateCollections} existingTags={[]} collections={collections} onCollectionCreated={invalidateCollections} />
       {showBulkImport && <BulkImportModal onClose={() => setShowBulkImport(false)} onImported={invalidateCollections} collections={collections} />}
       {showExport && <ExportModal collections={collections} onClose={() => setShowExport(false)} />}

@@ -419,6 +419,36 @@ select {
 .capture-primary { color: var(--color-bg-primary); background: var(--color-accent); }
 .capture-secondary { color: var(--color-text-secondary); background: var(--color-bg-tertiary); }
 
+.color-opacity-slider {
+  height: 6px;
+  appearance: none;
+  -webkit-appearance: none;
+  border-radius: 999px;
+  outline: none;
+  background: linear-gradient(90deg, rgba(255,255,255,.16), rgba(255,255,255,.92));
+}
+.color-opacity-slider::-webkit-slider-thumb {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 15px;
+  height: 15px;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  background: #18181b;
+  box-shadow: 0 2px 8px rgba(0,0,0,.35);
+}
+.color-opacity-slider::-moz-range-thumb {
+  width: 15px;
+  height: 15px;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  background: #18181b;
+  box-shadow: 0 2px 8px rgba(0,0,0,.35);
+}
+
+@keyframes delete-progress { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+.animate-delete-progress { animation: delete-progress 5s linear forwards; }
+
 @media (max-width: 640px) {
   .capture-dock { bottom: 14px; width: calc(100% - 28px); justify-content: center; }
   .capture-dock button { flex: 1; }

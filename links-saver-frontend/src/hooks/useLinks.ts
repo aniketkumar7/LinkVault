@@ -22,7 +22,7 @@ export function useLinks(filters: LinkFilters) {
 export function useCollections() {
   return useQuery({
     queryKey: queryKeys.collections,
-    queryFn: api.getCollections,
+    queryFn: () => api.getCollections(),
     staleTime: 60000,
   })
 }

@@ -15,11 +15,23 @@ const DEFAULT_COLLECTIONS = [
  */
 router.get('/', async (req, res) => {
     try {
+        const search = String(req.query.search || '').trim();
         let { data, error } = await supabase
             .from('collections')
             .select('*, useful_links(count)')
             .eq('user_id', req.user.id)
             .order('created_at', { ascending: false });
+
+        if (search) {
+            const result = await supabase
+                .from('collections')
+                .select('*, useful_links(count)')
+                .eq('user_id', req.user.id)
+                .ilike('name', `%${search}%`)
+                .order('created_at', { ascending: false });
+            data = result.data;
+            error = result.error;
+        }
 
         if (error) throw error;
 
@@ -246,6 +258,14 @@ router.delete('/:id/share', async (req, res) => {
 router.delete('/:id', async (req, res) => {
     try {
         const { id } = req.params;
+
+        const { error: linksError } = await supabase
+            .from('useful_links')
+            .delete()
+            .eq('collection_id', id)
+            .eq('user_id', req.user.id);
+
+        if (linksError) throw linksError;
 
         const { error } = await supabase
             .from('collections')

@@ -162,9 +162,10 @@ export const api = {
   },
 
   // Collections
-  async getCollections(): Promise<Collection[]> {
+  async getCollections(search = ''): Promise<Collection[]> {
     const headers = await getAuthHeaders()
-    const res = await fetch(`${API_URL}/api/collections`, { headers })
+    const query = search ? `?search=${encodeURIComponent(search)}` : ''
+    const res = await fetch(`${API_URL}/api/collections${query}`, { headers })
     if (!res.ok) throw new Error((await res.json()).error || 'Failed to fetch collections')
     return (await res.json()).collections
   },
