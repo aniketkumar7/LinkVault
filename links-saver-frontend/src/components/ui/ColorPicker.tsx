@@ -57,7 +57,7 @@ function hslToHex(h: number, s = 78, l = 55) {
 }
 
 export function ColorPicker({
-  value = '#3b82f6',
+  value = '#f68330',
   onChange,
 }: {
   value?: string

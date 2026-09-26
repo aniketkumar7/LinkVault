@@ -1,6 +1,8 @@
 import React, { useState, useEffect, createContext, useContext } from 'react'
 import { flushSync } from 'react-dom'
 
+const BRAND_TRANSITION_COLOR = '#f68330'
+
 interface DocumentWithViewTransition {
   startViewTransition?: (callback: () => void) => {
     ready: Promise<void>
@@ -148,6 +150,7 @@ export default function CircularThemeProvider({
       }
       ::view-transition-new(root) {
         animation: great-ui-circular-wipe ${duration}ms ${easing} both !important;
+        background-color: ${BRAND_TRANSITION_COLOR} !important;
       }
     `
 

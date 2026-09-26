@@ -26,7 +26,7 @@ export async function generatePDF({ links, collections, collectionId, collection
   const contentWidth = pageWidth - margin * 2
   
   // Colors
-  const accent: [number, number, number] = [42, 187, 247]
+  const accent: [number, number, number] = [246, 131, 48]
   const accentDark: [number, number, number] = [28, 159, 216]
   const dark: [number, number, number] = [15, 23, 42]
   const muted: [number, number, number] = [100, 116, 139]

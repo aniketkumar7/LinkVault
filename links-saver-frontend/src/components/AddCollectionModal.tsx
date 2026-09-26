@@ -16,7 +16,7 @@ export function AddCollectionModal({
   collection?: { id: string; name: string; color: string }
 }) {
   const [name, setName] = useState(collection?.name ?? '')
-  const [color, setColor] = useState(collection?.color ?? '#3b82f6')
+  const [color, setColor] = useState(collection?.color ?? '#f68330')
   const [saving, setSaving] = useState(false)
   if (!open) return null
   const create = async () => {

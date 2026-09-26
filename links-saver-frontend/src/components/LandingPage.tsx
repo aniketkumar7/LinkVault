@@ -78,7 +78,7 @@ export function LandingPage({ onGetStarted }: Props) {
         <div 
           className="absolute -bottom-1/2 -left-1/2 w-full h-full rounded-full opacity-20 blur-3xl animate-pulse"
           style={{ 
-            background: 'radial-gradient(circle, #3b82f6 0%, transparent 50%)',
+            background: 'radial-gradient(circle, #f68330 0%, transparent 50%)',
             animationDuration: '6s',
             animationDelay: '2s',
           }} 
@@ -101,7 +101,7 @@ export function LandingPage({ onGetStarted }: Props) {
                 className="w-10 h-10 rounded-xl flex items-center justify-center shadow-lg"
                 style={{ 
                   background: 'linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-muted) 100%)',
-                  boxShadow: '0 0 30px rgba(42, 187, 247, 0.3)',
+                  boxShadow: '0 0 30px rgba(246, 131, 48, 0.3)',
                 }}
               >
                 <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -133,8 +133,8 @@ export function LandingPage({ onGetStarted }: Props) {
           <div 
             className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm mb-8"
             style={{ 
-              background: 'rgba(42, 187, 247, 0.1)',
-              border: '1px solid rgba(42, 187, 247, 0.2)',
+                background: 'rgba(246, 131, 48, 0.1)',
+                border: '1px solid rgba(246, 131, 48, 0.2)',
               color: 'var(--color-accent)',
             }}
           >
@@ -174,7 +174,7 @@ export function LandingPage({ onGetStarted }: Props) {
               className="group px-8 py-4 rounded-2xl font-semibold text-lg text-white transition-all hover:scale-105 active:scale-95 flex items-center gap-3"
               style={{
                 background: 'linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-muted) 100%)',
-                boxShadow: '0 0 40px rgba(42, 187, 247, 0.3)',
+                boxShadow: '0 0 40px rgba(246, 131, 48, 0.3)',
               }}
             >
               Get Started Free
@@ -258,7 +258,7 @@ export function LandingPage({ onGetStarted }: Props) {
             className="px-8 py-4 rounded-2xl font-semibold text-lg text-white transition-all hover:scale-105 active:scale-95"
             style={{
               background: 'linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-muted) 100%)',
-              boxShadow: '0 0 40px rgba(42, 187, 247, 0.3)',
+                boxShadow: '0 0 40px rgba(246, 131, 48, 0.3)',
             }}
           >
             Get Started — It's Free

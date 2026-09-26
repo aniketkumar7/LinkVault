@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { PencilSimple, Trash, X, MagnifyingGlass } from '@phosphor-icons/react'
+import { X, MagnifyingGlass } from '@phosphor-icons/react'
 import { api, type Collection } from '@/lib/api'
 import { Dialog } from '@/components/ui/Dialog'
 import { toast } from '@/lib/toast'
@@ -42,8 +42,8 @@ export function CollectionManager({ open, onClose, collections, onChanged }: { o
           <span className="h-3 w-3 shrink-0 rounded-full" style={{ background: collection.color }} />
           <span className="min-w-0 flex-1 truncate text-sm font-medium">{collection.name}</span>
           <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{collection.link_count ?? 0}</span>
-          <button onClick={() => setEditing(collection.id)} aria-label={`Edit ${collection.name}`} className="rounded-lg p-2"><PencilSimple size={17} /></button>
-          <button onClick={() => setDeleting(collection.id)} aria-label={`Delete ${collection.name}`} className="rounded-lg p-2" style={{ color: 'var(--color-error)' }}><Trash size={17} /></button>
+          <button onClick={() => setEditing(collection.id)} aria-label={`Edit ${collection.name}`} className="rounded-lg p-2"><img src="/icons/edit-pencil-2.svg" alt="" aria-hidden="true" className="h-[17px] w-[17px]" /></button>
+          <button onClick={() => setDeleting(collection.id)} aria-label={`Delete ${collection.name}`} className="rounded-lg p-2" style={{ color: 'var(--color-error)' }}><img src="/icons/delete.svg" alt="" aria-hidden="true" className="h-[17px] w-[17px]" /></button>
         </div>)}
       </div>
     </section>

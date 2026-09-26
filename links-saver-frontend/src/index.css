@@ -20,9 +20,9 @@
   --color-text-muted: #504D49;
 
   /* Accent */
-  --color-accent: #2ABBF7;
-  --color-accent-hover: #5bcfff;
-  --color-accent-muted: #1C9FD8;
+  --color-accent: #D97945;
+  --color-accent-hover: #E18D5D;
+  --color-accent-muted: #B9653A;
 
   /* Success/Error */
   --color-success: #22c55e;
@@ -30,7 +30,7 @@
 
   /* Shadows */
   --shadow-card: inset 0 1px rgba(255,255,255,0.06), 0 2px 4px rgba(0,0,0,0.4), 0 8px 32px rgba(0,0,0,0.25);
-  --shadow-glow: 0 0 40px -12px rgba(42,187,247,0.5);
+  --shadow-glow: 0 0 40px -12px rgba(217,121,69,0.28);
 
   /* Font */
   --font-sans: "Plus Jakarta Sans", "Inter", system-ui, sans-serif;
@@ -96,7 +96,10 @@ body {
   --color-text-muted: #9E9B97;
 
   --shadow-card: 0 1px 0 0 rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.06);
-  --shadow-glow: 0 0 40px -12px rgba(42,187,247,0.2);
+  --color-accent: #C96F3D;
+  --color-accent-hover: #D98252;
+  --color-accent-muted: #A95C32;
+  --shadow-glow: 0 0 40px -12px rgba(201,111,61,0.18);
 }
 
 [data-theme="light"] html,
@@ -173,7 +176,7 @@ body {
 input:focus,
 textarea:focus {
   outline: none;
-  box-shadow: 0 0 0 3px rgba(42, 187, 247, 0.15);
+  box-shadow: 0 0 0 3px rgba(217, 121, 69, 0.13);
   border-color: var(--color-accent) !important;
 }
 
@@ -265,7 +268,7 @@ select {
 
 .card-lift:hover {
   transform: translateY(-6px);
-  box-shadow: 0 12px 40px -12px rgba(42, 187, 247, 0.15), 
+  box-shadow: 0 12px 40px -12px rgba(217, 121, 69, 0.12), 
               0 4px 20px -4px rgba(0, 0, 0, 0.4);
 }
 

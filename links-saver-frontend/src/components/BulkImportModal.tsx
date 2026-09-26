@@ -446,7 +446,7 @@ export function BulkImportModal({ onClose, onImported, collections }: Props) {
               <div className="grid grid-cols-3 gap-3">
                 {[
                   { label: 'Imported', value: result.success.length, color: 'var(--color-success)', bg: 'rgba(34,197,94,0.08)' },
-                  { label: 'Duplicates', value: result.duplicates.length, color: 'var(--color-accent)', bg: 'rgba(42,187,247,0.08)' },
+                  { label: 'Duplicates', value: result.duplicates.length, color: 'var(--color-accent)', bg: 'rgba(246,131,48,0.08)' },
                   { label: 'Failed', value: result.failed.length, color: 'var(--color-error)', bg: 'rgba(239,68,68,0.08)' },
                 ].map(s => (
                   <div key={s.label} className="rounded-2xl p-4 text-center" style={{ background: s.bg }}>

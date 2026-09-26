@@ -114,7 +114,7 @@ export function AddLinkForm({ onLinkAdded, existingTags, collections, onCollecti
     if (!newCollectionName.trim()) return
     setCreatingCollection(true)
     try {
-      const col = await api.createCollection({ name: newCollectionName.trim(), color: '#3b82f6' })
+      const col = await api.createCollection({ name: newCollectionName.trim(), color: '#f68330' })
       setCollectionId(col.id)
       setCollectionError(false)
       setAddingCollection(false)

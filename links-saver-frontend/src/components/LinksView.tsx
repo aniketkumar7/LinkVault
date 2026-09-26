@@ -199,7 +199,7 @@ export function LinksView({ collections, initialCollectionId = '', onRefetchNeed
             onClick={e => { e.stopPropagation(); setShowMobileFilters(v => !v) }}
             className="flex items-center gap-1.5 rounded-2xl border px-3.5 py-2.5 text-sm font-medium"
             style={{
-              background: hasFilters ? 'rgba(42,187,247,0.08)' : 'var(--color-bg-tertiary)',
+              background: hasFilters ? 'rgba(246,131,48,0.08)' : 'var(--color-bg-tertiary)',
               borderColor: hasFilters ? 'var(--color-accent)' : 'var(--color-border)',
               color: hasFilters ? 'var(--color-accent)' : 'var(--color-text-secondary)',
             }}
@@ -264,11 +264,11 @@ export function LinksView({ collections, initialCollectionId = '', onRefetchNeed
                 <div className="flex gap-2">
                   <button type="button" onClick={() => { setViewMode('grid'); localStorage.setItem('view-mode', 'grid') }}
                     className="flex-1 rounded-xl border py-2.5 text-xs font-medium"
-                    style={{ background: viewMode === 'grid' ? 'rgba(42,187,247,0.1)' : 'var(--color-bg-card)', borderColor: viewMode === 'grid' ? 'var(--color-accent)' : 'var(--color-border)', color: viewMode === 'grid' ? 'var(--color-accent)' : 'var(--color-text-muted)' }}
+                    style={{ background: viewMode === 'grid' ? 'rgba(246,131,48,0.1)' : 'var(--color-bg-card)', borderColor: viewMode === 'grid' ? 'var(--color-accent)' : 'var(--color-border)', color: viewMode === 'grid' ? 'var(--color-accent)' : 'var(--color-text-muted)' }}
                   >▦ Grid</button>
                   <button type="button" onClick={() => { setViewMode('list'); localStorage.setItem('view-mode', 'list') }}
                     className="flex-1 rounded-xl border py-2.5 text-xs font-medium"
-                    style={{ background: viewMode === 'list' ? 'rgba(42,187,247,0.1)' : 'var(--color-bg-card)', borderColor: viewMode === 'list' ? 'var(--color-accent)' : 'var(--color-border)', color: viewMode === 'list' ? 'var(--color-accent)' : 'var(--color-text-muted)' }}
+                    style={{ background: viewMode === 'list' ? 'rgba(246,131,48,0.1)' : 'var(--color-bg-card)', borderColor: viewMode === 'list' ? 'var(--color-accent)' : 'var(--color-border)', color: viewMode === 'list' ? 'var(--color-accent)' : 'var(--color-text-muted)' }}
                   >☰ List</button>
                 </div>
               </div>

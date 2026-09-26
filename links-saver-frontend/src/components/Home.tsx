@@ -48,22 +48,14 @@ export function Home({ onOpenCollection }: Props) {
               style={{ background: 'var(--color-bg-card)', borderColor: 'var(--color-border)' }}
               title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
             >
-              {theme === 'dark' ? (
-                <svg className="h-5 w-5" style={{ color: 'var(--color-text-secondary)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
-                </svg>
-              ) : (
-                <svg className="h-5 w-5" style={{ color: 'var(--color-text-secondary)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
-                </svg>
-              )}
+              <img src={theme === 'dark' ? '/icons/sun-smile.svg' : '/icons/moon-craters.svg'} alt="" aria-hidden="true" className="h-5 w-5" style={{ color: 'var(--color-text-secondary)' }} />
             </button>
 
             <div className="relative">
               <button
                 type="button"
                 onClick={e => { e.stopPropagation(); setShowProfileMenu(v => !v) }}
-                className="flex h-10 w-10 items-center justify-center rounded-full border text-sm font-semibold"
+                className="flex h-10 w-10 items-center justify-center rounded-2xl border text-sm font-semibold"
                 style={{ background: 'var(--color-bg-card)', borderColor: 'var(--color-border)', color: 'var(--color-text-primary)' }}
               >
                 {profileInitial}
@@ -97,7 +89,7 @@ export function Home({ onOpenCollection }: Props) {
         {collections.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-24 text-center">
             <div className="mb-6 opacity-40">
-              <Folder color="#3b82f6" hasLinks={false} linkCount={0} width={148} desktopWidth={210} />
+              <Folder color="#f68330" hasLinks={false} linkCount={0} width={148} desktopWidth={210} />
             </div>
             <p className="text-lg font-semibold mb-2" style={{ color: 'var(--color-text-primary)' }}>No collections yet</p>
             <p className="text-sm mb-6" style={{ color: 'var(--color-text-muted)' }}>Create a collection to start organizing your links.</p>
@@ -122,7 +114,6 @@ export function Home({ onOpenCollection }: Props) {
                 </div>
                 <p className="mt-1.5 w-full truncate text-[13px] font-semibold tracking-[-0.01em]" style={{ color: 'var(--color-text-primary)' }}>
                   {collection.name}
-                  <span className="ml-1 font-normal" style={{ color: 'var(--color-text-muted)' }}>{collection.link_count ?? 0}</span>
                 </p>
               </motion.button>
             ))}

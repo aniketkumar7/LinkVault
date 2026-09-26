@@ -174,7 +174,7 @@ export function ExportModal({ collections, onClose }: Props) {
 
   const selectedCol = collections.find(c => c.id === collectionId)
   const label = selectedCol?.name ?? 'All links'
-  const accentHex = selectedCol?.color ?? '#2ABBF7'
+  const accentHex = selectedCol?.color ?? '#f68330'
 
   const doPdf = async () => {
     setLoading(true)

@@ -11,7 +11,7 @@ interface Props {
 }
 
 const COLORS = [
-    '#2ABBF7', '#ef4444', '#22c55e', '#3b82f6', '#8b5cf6',
+    '#f68330', '#ef4444', '#22c55e', '#e8752b', '#8b5cf6',
     '#ec4899', '#14b8a6', '#f59e0b', '#6366f1', '#84cc16'
 ]
 
@@ -22,7 +22,7 @@ export function CollectionsPanel({ onClose, onCollectionChange }: Props) {
     const [saving, setSaving] = useState(false)
     const [newName, setNewName] = useState('')
     const [newDescription, setNewDescription] = useState('')
-    const [newColor, setNewColor] = useState('#2ABBF7')
+    const [newColor, setNewColor] = useState('#f68330')
     const [editingId, setEditingId] = useState<string | null>(null)
     const [editName, setEditName] = useState('')
     const [editDescription, setEditDescription] = useState('')

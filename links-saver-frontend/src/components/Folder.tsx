@@ -41,11 +41,11 @@ interface FolderProps {
   desktopWidth?: number
 }
 
-export function Folder({ color = '#3b82f6', hasLinks = false, linkCount = 0, placeholder = false, scale = 1, width, desktopWidth }: FolderProps) {
+export function Folder({ color = '#f68330', hasLinks = false, linkCount = 0, placeholder = false, scale = 1, width, desktopWidth }: FolderProps) {
   const theme = buildTheme(color)
   const mobileScale = width ? width / BASE_WIDTH : scale
   const desktopScale = desktopWidth ? desktopWidth / BASE_WIDTH : mobileScale
-  const getScale = useCallback(() => typeof window !== 'undefined' && window.innerWidth >= 768 ? desktopScale : Math.min(mobileScale, 0.43), [mobileScale, desktopScale])
+  const getScale = useCallback(() => typeof window !== 'undefined' && window.innerWidth >= 768 ? desktopScale : Math.min(mobileScale, 0.47), [mobileScale, desktopScale])
   const [responsiveScale, setResponsiveScale] = useState(getScale)
   const [isHovered, setIsHovered] = useState(false)
 
@@ -112,10 +112,9 @@ export function Folder({ color = '#3b82f6', hasLinks = false, linkCount = 0, pla
                 strokeWidth={placeholder ? 2.5 : undefined}
               />
               {!placeholder && <>
-                <circle cx="205" cy="158" r="28" fill={theme.flapFill} stroke="rgba(255,255,255,0.92)" strokeWidth="3" />
-                <circle cx="205" cy="158" r="20" fill={theme.backFill} />
-                <path d="M195 158C195 153 199 149 204 149H210C214 149 217 152 217 156C217 160 214 163 210 163H205" fill="none" stroke="#FFFFFF" strokeWidth="3.5" strokeLinecap="round" />
-                <path d="M215 158C215 163 211 167 206 167H200C196 167 193 164 193 160C193 156 196 153 200 153H205" fill="none" stroke="#FFFFFF" strokeWidth="3.5" strokeLinecap="round" />
+                <image href="/icons/netbird-dark.svg" x="60" y="30" width="60" height="60" />
+                <circle cx="238" cy="184" r="24" fill={theme.flapFill} stroke="rgba(255,255,255,0.92)" strokeWidth="3" />
+                <text x="238" y="190" textAnchor="middle" fill="white" fontSize="18" fontWeight="700" fontFamily="Arial, sans-serif">{linkCount}</text>
               </>}
             </g>
             <defs>
