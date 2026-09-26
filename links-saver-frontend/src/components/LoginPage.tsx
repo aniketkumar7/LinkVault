@@ -46,9 +46,14 @@ export function LoginPage({ onBack, isRecovery = false, onPasswordUpdated, initi
         toast.success('Password reset email sent')
         setMessage({ type: 'success', text: 'If an account exists for this email, you’ll receive a password reset link shortly.' })
       } else if (isSignUp) {
-        await signUp(email.trim(), password)
-        toast.success('Account created')
-        setMessage({ type: 'success', text: 'Account created! Check your email to confirm, then sign in.' })
+        const result = await signUp(email.trim(), password)
+        if (result.needsConfirmation) {
+          toast.success('Confirmation email sent')
+          setMessage({ type: 'success', text: 'Account created. Check your inbox and spam folder for the confirmation email, then return here to sign in.' })
+        } else {
+          toast.success('Account created')
+          setMessage({ type: 'success', text: 'Account created and signed in.' })
+        }
       } else {
         await signInWithEmail(email.trim(), password)
       }
