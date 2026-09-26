@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import { motion } from 'framer-motion'
+import { ArrowLeft, ArrowUpRight, LinkSimple, Sparkle } from '@phosphor-icons/react'
 import { useAuth } from '@/hooks/useAuth'
 import { toast } from '@/lib/toast'
 
@@ -6,17 +8,25 @@ interface Props {
   onBack?: () => void
   isRecovery?: boolean
   onPasswordUpdated?: () => void
+  initialSignUp?: boolean
 }
 
-export function LoginPage({ onBack, isRecovery = false, onPasswordUpdated }: Props) {
+export function LoginPage({ onBack, isRecovery = false, onPasswordUpdated, initialSignUp = false }: Props) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
-  const [isSignUp, setIsSignUp] = useState(false)
+  const [isSignUp, setIsSignUp] = useState(initialSignUp)
   const [isForgotPassword, setIsForgotPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
   const { signInWithEmail, signUp, resetPassword, updatePassword } = useAuth()
+
+  const changeMode = (nextSignUp: boolean) => {
+    setIsForgotPassword(false)
+    setIsSignUp(nextSignUp)
+    setMessage(null)
+    if (!isRecovery) window.history.replaceState({}, '', nextSignUp ? '/auth?mode=signup' : '/auth')
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -52,7 +62,7 @@ export function LoginPage({ onBack, isRecovery = false, onPasswordUpdated }: Pro
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4"
+    <div className="min-h-screen flex items-center justify-center p-4 sm:p-8"
          style={{ background: 'linear-gradient(135deg, var(--color-bg-primary) 0%, var(--color-bg-secondary) 50%, var(--color-bg-primary) 100%)' }}>
 
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
@@ -62,22 +72,27 @@ export function LoginPage({ onBack, isRecovery = false, onPasswordUpdated }: Pro
              style={{ background: 'radial-gradient(circle, var(--color-accent) 0%, transparent 70%)' }} />
       </div>
 
-      <div className="w-full max-w-md relative">
+      <div className="relative grid w-full max-w-6xl overflow-hidden rounded-[30px] border shadow-2xl lg:grid-cols-[.9fr_1.1fr]" style={{ borderColor: 'var(--color-border)', background: 'var(--color-bg-card)' }}>
+        <motion.aside initial={{ opacity: 0, x: -24 }} animate={{ opacity: 1, x: 0 }} className="relative hidden overflow-hidden p-10 lg:flex lg:min-h-[680px] lg:flex-col lg:justify-between" style={{ background: 'linear-gradient(145deg, color-mix(in srgb, var(--color-accent) 18%, var(--color-bg-secondary)), var(--color-bg-secondary))' }}>
+          <div className="relative z-10"><img src="/Logo.svg" alt="LinkVault" className="h-16 w-16" /><h2 className="mt-8 max-w-sm text-5xl font-semibold leading-[.98] tracking-[-.05em]">Keep the links that keep you moving.</h2><p className="mt-6 max-w-sm text-base leading-7" style={{ color: 'var(--color-text-secondary)' }}>One calm place for articles, videos, tools, screenshots, and the ideas hiding inside your documents.</p></div>
+          <div className="relative z-10 space-y-3"><div className="flex items-center gap-3 rounded-2xl border p-3" style={{ borderColor: 'var(--color-border)', background: 'rgba(0,0,0,.12)' }}><span className="grid h-9 w-9 place-items-center rounded-xl" style={{ background: 'var(--color-accent)', color: 'var(--color-bg-primary)' }}><LinkSimple size={18} weight="bold" /></span><div><p className="text-sm font-semibold">Capture the thought</p><p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Save the link and why it mattered.</p></div><ArrowUpRight size={17} className="ml-auto" /></div><div className="flex items-center gap-2 text-xs" style={{ color: 'var(--color-text-muted)' }}><Sparkle size={14} style={{ color: 'var(--color-accent)' }} /> Built for curious people with too many tabs.</div></div>
+          <svg className="pointer-events-none absolute -bottom-20 -right-24 h-96 w-96 opacity-30" viewBox="0 0 400 400" fill="none"><circle cx="200" cy="200" r="140" stroke="var(--color-accent)" strokeOpacity=".35" strokeDasharray="4 10"><animateTransform attributeName="transform" type="rotate" from="0 200 200" to="360 200 200" dur="24s" repeatCount="indefinite" /></circle><circle cx="200" cy="200" r="92" stroke="var(--color-accent)" strokeOpacity=".25" strokeDasharray="2 8" /></svg>
+        </motion.aside>
+
+      <div className="relative p-5 sm:p-10 lg:p-14">
         {onBack && (
           <button
             onClick={onBack}
             className="flex items-center gap-2 mb-8 px-4 py-2 rounded-xl transition-all hover:-translate-x-1"
             style={{ color: 'var(--color-text-muted)' }}
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
+            <ArrowLeft size={18} />
             Back
           </button>
         )}
 
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-4"
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-4 lg:hidden"
                style={{ background: 'linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-muted) 100%)', boxShadow: 'var(--shadow-glow)' }}>
             <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
@@ -91,11 +106,7 @@ export function LoginPage({ onBack, isRecovery = false, onPasswordUpdated }: Pro
           </p>
         </div>
 
-        <div className="rounded-2xl p-8" style={{
-          background: 'var(--color-bg-card)',
-          border: '1px solid var(--color-border)',
-          boxShadow: 'var(--shadow-card)'
-        }}>
+        <div className="rounded-2xl" style={{ background: 'var(--color-bg-card)' }}>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               {!isRecovery && <label htmlFor="email" className="block text-sm font-medium mb-2" style={{ color: 'var(--color-text-secondary)' }}>
@@ -190,7 +201,7 @@ export function LoginPage({ onBack, isRecovery = false, onPasswordUpdated }: Pro
             {isForgotPassword ? 'Remember your password?' : isSignUp ? 'Already have an account?' : "Don't have an account?"}{' '}
             <button
               type="button"
-              onClick={() => { setIsForgotPassword(false); setIsSignUp(isForgotPassword ? false : !isSignUp); setMessage(null) }}
+              onClick={() => changeMode(isForgotPassword ? false : !isSignUp)}
               className="font-medium hover:underline"
               style={{ color: 'var(--color-accent)' }}
             >
@@ -198,6 +209,7 @@ export function LoginPage({ onBack, isRecovery = false, onPasswordUpdated }: Pro
             </button>
           </p>}
         </div>
+      </div>
       </div>
     </div>
   )

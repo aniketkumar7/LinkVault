@@ -9,7 +9,8 @@ import PixelPageTransition from '@/components/PixelPageTransition'
 
 function AppInner() {
   const { user, loading, isRecoverySession } = useAuth()
-  const [showLogin, setShowLogin] = useState(false)
+  const [showLogin, setShowLogin] = useState(() => window.location.pathname === '/auth')
+  const [authSignUp, setAuthSignUp] = useState(() => new URLSearchParams(window.location.search).get('mode') === 'signup')
   const [openCollectionId, setOpenCollectionId] = useState<string | null>(() => {
     const match = window.location.pathname.match(/^\/collections\/([^/]+)/)
     return match ? decodeURIComponent(match[1]) : null
@@ -19,6 +20,8 @@ function AppInner() {
     const onPopState = () => {
       const match = window.location.pathname.match(/^\/collections\/([^/]+)/)
       setOpenCollectionId(match ? decodeURIComponent(match[1]) : null)
+      setShowLogin(window.location.pathname === '/auth')
+      setAuthSignUp(new URLSearchParams(window.location.search).get('mode') === 'signup')
     }
     window.addEventListener('popstate', onPopState)
     return () => window.removeEventListener('popstate', onPopState)
@@ -36,6 +39,12 @@ function AppInner() {
   const openCollection = (id: string, name?: string) => {
     window.history.pushState({}, '', `/collections/${encodeURIComponent(name || id)}`)
     navigate(() => setOpenCollectionId(id))
+  }
+
+  const openAuth = (signUp = false) => {
+    window.history.pushState({}, '', signUp ? '/auth?mode=signup' : '/auth')
+    setAuthSignUp(signUp)
+    navigate(() => setShowLogin(true))
   }
 
   const handleViewSwap = () => {
@@ -71,8 +80,8 @@ function AppInner() {
       )
       return <Home onOpenCollection={openCollection} />
     }
-    if (showLogin) return <LoginPage onBack={() => navigate(() => setShowLogin(false))} />
-    return <LandingPage onGetStarted={() => navigate(() => setShowLogin(true))} />
+    if (showLogin) return <LoginPage initialSignUp={authSignUp} onBack={() => { window.history.pushState({}, '', '/'); navigate(() => setShowLogin(false)) }} />
+    return <LandingPage onGetStarted={openAuth} />
   })()
 
   return (

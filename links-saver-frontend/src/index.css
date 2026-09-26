@@ -470,6 +470,50 @@ button:disabled {
 @keyframes delete-progress { from { transform: scaleX(0); } to { transform: scaleX(1); } }
 .animate-delete-progress { animation: delete-progress 5s linear forwards; }
 
+.landing-workspace {
+  border: 1px solid var(--color-border);
+  border-radius: 28px;
+  background: color-mix(in srgb, var(--color-bg-card) 92%, transparent);
+  box-shadow: 0 30px 80px -42px rgba(0,0,0,.75), inset 0 1px rgba(255,255,255,.08);
+  backdrop-filter: blur(18px);
+}
+
+.landing-demo-card {
+  overflow: hidden;
+  min-width: 0;
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  background: var(--color-bg-secondary);
+  box-shadow: inset 0 1px rgba(255,255,255,.05);
+}
+
+.landing-demo-image {
+  display: grid;
+  height: 74px;
+  place-items: center;
+  background-size: cover;
+  background-position: center;
+}
+
+.landing-demo-image span {
+  font-size: 2rem;
+  font-weight: 700;
+  opacity: .7;
+}
+
+.landing-folder-preview {
+  display: flex;
+  height: 92px;
+  align-items: flex-end;
+  justify-content: center;
+  overflow: hidden;
+}
+
+@media (max-width: 640px) {
+  .landing-workspace { border-radius: 22px; }
+  .landing-demo-image { height: 58px; }
+}
+
 @media (max-width: 640px) {
   .capture-dock { bottom: 14px; width: calc(100% - 28px); justify-content: center; }
   .capture-dock button { flex: 1; }
