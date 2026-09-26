@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useAuth } from '@/hooks/useAuth'
 import { LandingPage } from '@/components/LandingPage'
 import { LoginPage } from '@/components/LoginPage'
@@ -10,7 +10,19 @@ import PixelPageTransition from '@/components/PixelPageTransition'
 function AppInner() {
   const { user, loading, isRecoverySession } = useAuth()
   const [showLogin, setShowLogin] = useState(false)
-  const [openCollectionId, setOpenCollectionId] = useState<string | null>(null)
+  const [openCollectionId, setOpenCollectionId] = useState<string | null>(() => {
+    const match = window.location.pathname.match(/^\/collections\/([^/]+)/)
+    return match ? decodeURIComponent(match[1]) : null
+  })
+
+  useEffect(() => {
+    const onPopState = () => {
+      const match = window.location.pathname.match(/^\/collections\/([^/]+)/)
+      setOpenCollectionId(match ? decodeURIComponent(match[1]) : null)
+    }
+    window.addEventListener('popstate', onPopState)
+    return () => window.removeEventListener('popstate', onPopState)
+  }, [])
 
   // Pixel transition plumbing
   const [trigger, setTrigger] = useState(0)
@@ -19,6 +31,11 @@ function AppInner() {
   const navigate = (action: () => void) => {
     pendingNav.current = action
     setTrigger(t => t + 1)
+  }
+
+  const openCollection = (id: string, name?: string) => {
+    window.history.pushState({}, '', `/collections/${encodeURIComponent(name || id)}`)
+    navigate(() => setOpenCollectionId(id))
   }
 
   const handleViewSwap = () => {
@@ -49,10 +66,10 @@ function AppInner() {
       if (openCollectionId) return (
         <CollectionPage
           collectionId={openCollectionId}
-          onBack={() => navigate(() => setOpenCollectionId(null))}
+          onBack={() => { window.history.pushState({}, '', '/'); navigate(() => setOpenCollectionId(null)) }}
         />
       )
-      return <Home onOpenCollection={id => navigate(() => setOpenCollectionId(id))} />
+      return <Home onOpenCollection={openCollection} />
     }
     if (showLogin) return <LoginPage onBack={() => navigate(() => setShowLogin(false))} />
     return <LandingPage onGetStarted={() => navigate(() => setShowLogin(true))} />

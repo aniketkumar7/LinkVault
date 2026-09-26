@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { motion } from 'framer-motion'
 import { useAuth } from '@/hooks/useAuth'
 import { useCollections, useInvalidateCollections, useStats } from '@/hooks/useLinks'
 import { useCircularTheme } from './CircularThemeProvider'
@@ -22,9 +23,19 @@ export function CollectionPage({ collectionId, onBack }: Props) {
   const [showAddLink, setShowAddLink] = useState(false)
   const [showBulkImport, setShowBulkImport] = useState(false)
 
-  const collection = collections.find(c => c.id === collectionId)
+  const collection = collections.find(c => c.id === collectionId || c.name.toLowerCase() === decodeURIComponent(collectionId).toLowerCase())
   const profileName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'User'
   const profileInitial = profileName.charAt(0).toUpperCase()
+
+  useEffect(() => {
+    if (!showProfileMenu) return
+    const closeOnOutsideClick = (event: PointerEvent) => {
+      const target = event.target as Element
+      if (!target.closest('[data-profile-menu]')) setShowProfileMenu(false)
+    }
+    document.addEventListener('pointerdown', closeOnOutsideClick)
+    return () => document.removeEventListener('pointerdown', closeOnOutsideClick)
+  }, [showProfileMenu])
 
   return (
     <div className="min-h-screen" style={{ background: 'var(--color-bg-primary)' }}>
@@ -67,27 +78,32 @@ export function CollectionPage({ collectionId, onBack }: Props) {
               <img src={theme === 'dark' ? '/icons/sun-smile.svg' : '/icons/moon-craters.svg'} alt="" aria-hidden="true" className="h-5 w-5" style={{ color: 'var(--color-text-secondary)' }} />
             </button>
 
-            <div className="relative">
+            <div className="relative" data-profile-menu>
               <button
                 type="button"
                 onClick={e => { e.stopPropagation(); setShowProfileMenu(v => !v) }}
                 className="flex h-10 w-10 items-center justify-center rounded-2xl border text-sm font-semibold"
-                style={{ background: 'var(--color-bg-card)', borderColor: 'var(--color-border)', color: 'var(--color-text-primary)' }}
+                style={{ background: 'var(--color-accent)', borderColor: 'var(--color-accent)', color: 'var(--color-bg-primary)' }}
               >
                 {profileInitial}
               </button>
 
               {showProfileMenu && (
-                <div className="absolute right-0 mt-2 w-52 rounded-2xl border p-3 shadow-xl" style={{ background: 'var(--color-bg-card)', borderColor: 'var(--color-border)' }} onClick={e => e.stopPropagation()}>
-                  <div className="mb-3 rounded-xl border px-3 py-2" style={{ background: 'var(--color-bg-tertiary)', borderColor: 'var(--color-border)' }}>
-                    <p className="text-[11px] uppercase tracking-widest" style={{ color: 'var(--color-text-muted)' }}>Account</p>
-                    <p className="mt-0.5 text-sm font-semibold truncate" style={{ color: 'var(--color-text-primary)' }}>{profileName}</p>
-                    <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>{stats?.total ?? 0} links saved</p>
+                <motion.div initial={{ opacity: 0, y: -8, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ type: 'spring', stiffness: 420, damping: 26 }} className="absolute right-0 mt-2 w-60 origin-top-right rounded-2xl border p-3 shadow-2xl" style={{ background: 'color-mix(in srgb, var(--color-bg-card) 94%, transparent)', borderColor: 'var(--color-border)', backdropFilter: 'blur(18px)' }} onClick={e => e.stopPropagation()}>
+                  <div className="mb-3 px-3 py-2">
+                    <div className="flex items-center gap-2.5">
+                      <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl text-xs font-bold" style={{ background: 'var(--color-accent)', color: 'var(--color-bg-primary)' }}>{profileInitial}</div>
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>{profileName}</p>
+                        <p className="mt-1 truncate text-[11px]" style={{ color: 'var(--color-text-muted)' }}>{user?.email}</p>
+                      </div>
+                    </div>
+                    <p className="mt-2 text-xs" style={{ color: 'var(--color-text-muted)' }}>{stats?.total ?? 0} links saved</p>
                   </div>
-                  <button onClick={() => { setShowProfileMenu(false); signOut() }} className="w-full rounded-xl px-3 py-2 text-sm text-left" style={{ background: 'rgba(239,68,68,0.08)', color: 'var(--color-error)' }}>
+                  <motion.button whileHover={{ x: 3 }} whileTap={{ scale: 0.98 }} onClick={() => { setShowProfileMenu(false); signOut() }} className="w-full rounded-xl px-3 py-2.5 text-sm text-left" style={{ background: 'rgba(239,68,68,0.08)', color: 'var(--color-error)' }}>
                     Sign out
-                  </button>
-                </div>
+                  </motion.button>
+                </motion.div>
               )}
             </div>
           </div>
@@ -95,7 +111,7 @@ export function CollectionPage({ collectionId, onBack }: Props) {
       </header>
 
       <main className="mx-auto px-2 pt-6 pb-32 sm:px-4 lg:px-6">
-        <LinksView collections={collections} initialCollectionId={collectionId} onRefetchNeeded={invalidateCollections} />
+        <LinksView collections={collections} initialCollectionId={collection?.id || collectionId} onRefetchNeeded={invalidateCollections} />
       </main>
 
       <div className="capture-dock">

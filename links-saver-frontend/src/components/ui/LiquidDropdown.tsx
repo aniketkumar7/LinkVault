@@ -337,7 +337,8 @@ export function LiquidDropdown({
             width: tw, height: PH_MAX,
             zIndex: 3,
             pointerEvents: isOpen ? 'auto' : 'none',
-            overflow: 'hidden',
+            overflowY: 'auto',
+            overflowX: 'hidden',
           }}>
             <div ref={menuRef} style={{ padding: '4px 0' }}>
               {children}

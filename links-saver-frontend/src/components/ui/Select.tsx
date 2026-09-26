@@ -19,6 +19,7 @@ interface Props {
   disabled?: boolean
   width?: number
   fullWidth?: boolean
+  searchable?: boolean
 }
 
 export function Select({
@@ -29,15 +30,20 @@ export function Select({
   disabled = false,
   width,
   fullWidth = false,
+  searchable = false,
 }: Props) {
   const [highlighted, setHighlighted] = useState(0)
   const [isOpen, setIsOpen] = useState(false)
+  const [search, setSearch] = useState('')
 
   const selectedOption = options.find(o => o.value === value)
   const selectedIndex  = Math.max(0, options.findIndex(o => o.value === value))
+  const visibleOptions = searchable && search.trim()
+    ? options.filter(option => option.label.toLowerCase().includes(search.trim().toLowerCase()))
+    : options
 
   // Compute panel height: 36px per item + 8px padding, capped at 146px
-  const panelH = Math.min(146, options.length * 36 + 8)
+  const panelH = searchable ? Math.min(240, visibleOptions.length * 36 + 52) : Math.min(146, options.length * 36 + 8)
 
   // Width: explicit prop → size default → undefined (ResizeObserver) when fullWidth
   const tw = fullWidth ? undefined : (width ?? (size === 'sm' ? 160 : 200))
@@ -70,7 +76,7 @@ export function Select({
       panelHeight={panelH}
       className={className}
       disabled={disabled}
-      onOpen={() => { setIsOpen(true); setHighlighted(selectedIndex) }}
+      onOpen={() => { setIsOpen(true); setSearch(''); setHighlighted(selectedIndex) }}
       onClose={() => setIsOpen(false)}
       onKeyDown={e => {
         if (e.key === 'ArrowDown') {
@@ -86,7 +92,10 @@ export function Select({
         }
       }}
     >
-      {options.map((opt, i) => (
+      {searchable && <div className="sticky top-0 z-10 p-2" style={{ background: 'var(--color-bg-card)' }}>
+        <input autoFocus value={search} onChange={event => { setSearch(event.target.value); setHighlighted(0) }} onKeyDown={event => event.stopPropagation()} placeholder="Search collections..." className="w-full rounded-lg border px-2.5 py-2 text-xs outline-none" style={{ background: 'var(--color-bg-tertiary)', borderColor: 'var(--color-border)', color: 'var(--color-text-primary)' }} />
+      </div>}
+      {visibleOptions.map((opt, i) => (
         <LiquidDropdownItem
           key={opt.value}
           selected={value === opt.value}

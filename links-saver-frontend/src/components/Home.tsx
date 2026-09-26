@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { useAuth } from '@/hooks/useAuth'
 import { useCollections, useInvalidateCollections } from '@/hooks/useLinks'
@@ -11,7 +11,7 @@ import { ExportModal } from './ExportModal'
 import { AddCollectionModal } from './AddCollectionModal'
 
 interface Props {
-  onOpenCollection: (collectionId: string) => void
+  onOpenCollection: (collectionId: string, collectionName?: string) => void
 }
 
 export function Home({ onOpenCollection }: Props) {
@@ -30,6 +30,16 @@ export function Home({ onOpenCollection }: Props) {
   const profileName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'User'
   const profileInitial = profileName.charAt(0).toUpperCase()
 
+  useEffect(() => {
+    if (!showProfileMenu) return
+    const closeOnOutsideClick = (event: PointerEvent) => {
+      const target = event.target as Element
+      if (!target.closest('[data-profile-menu]')) setShowProfileMenu(false)
+    }
+    document.addEventListener('pointerdown', closeOnOutsideClick)
+    return () => document.removeEventListener('pointerdown', closeOnOutsideClick)
+  }, [showProfileMenu])
+
   return (
     <div className="min-h-screen" style={{ background: 'var(--color-bg-primary)' }}>
       <header className="sticky top-0 z-30 backdrop-blur-xl" style={{ background: 'var(--color-bg-primary)' }}>
@@ -38,7 +48,7 @@ export function Home({ onOpenCollection }: Props) {
             <div className="flex h-11 w-11 items-center justify-center rounded-2xl border" style={{ background: 'var(--color-bg-card)', borderColor: 'var(--color-border)' }}>
               <img src="/Logo.svg" alt="LinkVault" className="h-8 w-8" />
             </div>
-            <h1 className="hidden sm:block text-lg font-semibold" style={{ color: 'var(--color-text-primary)' }}>LinkVault</h1>
+            <h1 className="font-brand text-lg sm:text-xl" style={{ color: 'var(--color-text-primary)' }}>LinkVault</h1>
           </div>
 
           <div className="flex items-center gap-2">
@@ -51,34 +61,39 @@ export function Home({ onOpenCollection }: Props) {
               <img src={theme === 'dark' ? '/icons/sun-smile.svg' : '/icons/moon-craters.svg'} alt="" aria-hidden="true" className="h-5 w-5" style={{ color: 'var(--color-text-secondary)' }} />
             </button>
 
-            <div className="relative">
+            <div className="relative" data-profile-menu>
               <button
                 type="button"
                 onClick={e => { e.stopPropagation(); setShowProfileMenu(v => !v) }}
                 className="flex h-10 w-10 items-center justify-center rounded-2xl border text-sm font-semibold"
-                style={{ background: 'var(--color-bg-card)', borderColor: 'var(--color-border)', color: 'var(--color-text-primary)' }}
+                style={{ background: 'var(--color-accent)', borderColor: 'var(--color-accent)', color: 'var(--color-bg-primary)' }}
               >
                 {profileInitial}
               </button>
 
               {showProfileMenu && (
-                <div className="absolute right-0 mt-2 w-52 rounded-2xl border p-3 shadow-xl" style={{ background: 'var(--color-bg-card)', borderColor: 'var(--color-border)' }} onClick={e => e.stopPropagation()}>
-                  <div className="mb-3 rounded-xl border px-3 py-2" style={{ background: 'var(--color-bg-tertiary)', borderColor: 'var(--color-border)' }}>
-                    <p className="text-[11px] uppercase tracking-widest" style={{ color: 'var(--color-text-muted)' }}>Account</p>
-                    <p className="mt-0.5 text-sm font-semibold truncate" style={{ color: 'var(--color-text-primary)' }}>{profileName}</p>
+                <motion.div initial={{ opacity: 0, y: -8, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ type: 'spring', stiffness: 420, damping: 26 }} className="absolute right-0 mt-2 w-60 origin-top-right rounded-2xl border p-3 shadow-2xl" style={{ background: 'color-mix(in srgb, var(--color-bg-card) 94%, transparent)', borderColor: 'var(--color-border)', backdropFilter: 'blur(18px)' }} onClick={e => e.stopPropagation()}>
+                  <div className="mb-3 px-3 py-2">
+                    <div className="flex items-center gap-2.5">
+                      <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl text-xs font-bold" style={{ background: 'var(--color-accent)', color: 'var(--color-bg-primary)' }}>{profileInitial}</div>
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>{profileName}</p>
+                        <p className="mt-1 truncate text-[11px]" style={{ color: 'var(--color-text-muted)' }}>{user?.email}</p>
+                      </div>
+                    </div>
                   </div>
                   <div className="flex flex-col gap-1.5">
-                    <button onClick={() => { setShowCollectionManager(true); setShowProfileMenu(false) }} className="rounded-xl px-3 py-2 text-sm text-left" style={{ background: 'var(--color-bg-tertiary)', color: 'var(--color-text-secondary)' }}>
+                    <motion.button whileHover={{ x: 3 }} whileTap={{ scale: 0.98 }} onClick={() => { setShowCollectionManager(true); setShowProfileMenu(false) }} className="rounded-xl px-3 py-2.5 text-left text-sm transition-colors hover:bg-[var(--color-bg-tertiary)]" style={{ color: 'var(--color-text-secondary)' }}>
                       Manage collections
-                    </button>
-                    <button onClick={() => { setShowExport(true); setShowProfileMenu(false) }} className="rounded-xl px-3 py-2 text-sm text-left" style={{ background: 'var(--color-bg-tertiary)', color: 'var(--color-text-secondary)' }}>
+                    </motion.button>
+                    <motion.button whileHover={{ x: 3 }} whileTap={{ scale: 0.98 }} onClick={() => { setShowExport(true); setShowProfileMenu(false) }} className="rounded-xl px-3 py-2.5 text-left text-sm transition-colors hover:bg-[var(--color-bg-tertiary)]" style={{ color: 'var(--color-text-secondary)' }}>
                       Export links
-                    </button>
-                    <button onClick={() => { setShowProfileMenu(false); signOut() }} className="rounded-xl px-3 py-2 text-sm text-left" style={{ background: 'rgba(239,68,68,0.08)', color: 'var(--color-error)' }}>
+                    </motion.button>
+                    <motion.button whileHover={{ x: 3 }} whileTap={{ scale: 0.98 }} onClick={() => { setShowProfileMenu(false); signOut() }} className="rounded-xl px-3 py-2.5 text-sm text-left" style={{ background: 'rgba(239,68,68,0.08)', color: 'var(--color-error)' }}>
                       Sign out
-                    </button>
+                    </motion.button>
                   </div>
-                </div>
+                </motion.div>
               )}
             </div>
           </div>
@@ -98,16 +113,16 @@ export function Home({ onOpenCollection }: Props) {
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-2 justify-items-center gap-x-3 gap-y-8 sm:grid-cols-4 sm:gap-x-8 sm:gap-y-10 lg:grid-cols-5 lg:gap-x-12 xl:grid-cols-7">
+          <div className="grid grid-cols-2 justify-items-center gap-x-1 gap-y-5 sm:grid-cols-4 sm:gap-x-8 sm:gap-y-10 lg:grid-cols-5 lg:gap-x-12 xl:grid-cols-7">
             {collections.map((collection, index) => (
               <motion.button
                 key={collection.id}
                 type="button"
-                onClick={() => onOpenCollection(collection.id)}
+                onClick={() => onOpenCollection(collection.id, collection.name)}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.05, duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-                className="group flex w-[80px] flex-col items-center text-center focus:outline-none md:w-[158px]"
+                className="group flex w-full max-w-[160px] flex-col items-center text-center focus:outline-none md:w-[158px]"
               >
                 <div>
                   <Folder color={collection.color} hasLinks={(collection.link_count ?? 0) > 0} linkCount={collection.link_count ?? 0} width={148} desktopWidth={210} />

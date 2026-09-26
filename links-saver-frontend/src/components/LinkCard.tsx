@@ -214,13 +214,13 @@ export function LinkCard({
         </motion.button>
         <motion.a href={link.url} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} whileTap={{ scale: 0.82 }}
           className="flex h-7 w-7 items-center justify-center rounded-xl"
-          style={{ background: 'var(--color-bg-tertiary)', color: 'var(--color-text-muted)' }}
+          style={{ background: 'var(--color-accent)', color: 'var(--color-bg-primary)' }}
         >
           <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={OPEN} /></svg>
         </motion.a>
         <motion.button type="button" onClick={e => { e.stopPropagation(); openEdit() }} whileTap={{ scale: 0.82 }}
           className="flex h-7 w-7 items-center justify-center rounded-xl"
-          style={{ background: 'var(--color-bg-tertiary)', color: 'var(--color-text-muted)' }}
+          style={{ background: 'rgba(59,130,246,0.12)', color: '#3b82f6' }}
         >
           <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={EDIT} /></svg>
         </motion.button>
@@ -237,7 +237,7 @@ export function LinkCard({
   // ── Grid card ────────────────────────────────────────────────────────────────
   const gridCard = (
     <motion.article
-      className="relative w-full overflow-hidden rounded-[20px]"
+      className="relative flex w-full flex-col overflow-hidden rounded-[20px]"
       // 3D perspective via transformTemplate
       transformTemplate={(_vals, t) => `perspective(900px) ${t}`}
       style={{
@@ -267,10 +267,10 @@ export function LinkCard({
       {/* Image */}
       <div className="relative overflow-hidden">
         {link.image_url ? (
-          <LazyImage src={link.image_url} alt={title} className="aspect-[16/10] w-full" />
+          <LazyImage src={link.image_url} alt={title} className="h-24 w-full sm:h-[170px]" />
         ) : (
           <div
-            className="aspect-[16/10] w-full flex items-center justify-center"
+            className="flex h-24 w-full items-center justify-center sm:h-[170px]"
             style={{ background: 'linear-gradient(135deg, var(--color-bg-tertiary) 0%, var(--color-bg-hover) 100%)' }}
           >
             {link.favicon_url
@@ -321,28 +321,33 @@ export function LinkCard({
             }
           </button>
         )}
+        <motion.button type="button" onClick={e => { e.stopPropagation(); handleFav() }} whileTap={{ scale: 0.78 }}
+          className="absolute left-2.5 top-2.5 flex h-8 w-8 items-center justify-center rounded-xl"
+          style={{ background: link.is_favorite ? 'rgba(251,191,36,0.92)' : 'rgba(0,0,0,0.48)', color: link.is_favorite ? '#422006' : 'rgba(255,255,255,0.9)', backdropFilter: 'blur(6px)' }}
+          title={link.is_favorite ? 'Unfavorite' : 'Favorite'}
+        >
+          <svg className="h-4 w-4" fill={link.is_favorite ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={STAR} /></svg>
+        </motion.button>
       </div>
 
       {/* Card body */}
-      <div className="px-2.5 pt-2 pb-1.5 sm:px-3.5 sm:pt-3 sm:pb-2 space-y-1">
+      <div className="flex flex-1 flex-col px-2.5 pb-1.5 pt-2 sm:px-3.5 sm:pb-2 sm:pt-3">
         <h3
-          className="text-[12px] sm:text-[13.5px] font-semibold leading-[1.4]"
-          style={{ color: 'var(--color-text-primary)', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}
+          className="line-clamp-1 min-h-[17px] text-[12px] font-semibold leading-[1.4] sm:line-clamp-2 sm:min-h-[38px] sm:text-[13.5px]"
+          style={{ color: 'var(--color-text-primary)' }}
         >
           {title}
         </h3>
 
-        {desc && (
-          <p
-            className="hidden sm:block text-[12px] leading-[1.6]"
-            style={{ color: 'var(--color-text-secondary)', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}
-          >
-            {desc}
-          </p>
-        )}
+        <p
+          className="mt-1 min-h-[34px] line-clamp-2 text-[11px] leading-[1.6] sm:min-h-[58px] sm:line-clamp-3 sm:text-[12px]"
+          style={{ color: 'var(--color-text-secondary)' }}
+        >
+          {desc || '\u00a0'}
+        </p>
 
         {(tags.length > 0 || collectionObj) && (
-          <div className="flex flex-wrap gap-1 pt-0.5">
+          <div className="flex min-h-[20px] flex-wrap gap-1 pt-0.5">
             {collectionObj && (
               <span className="flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[9px] sm:text-[10px] font-medium" style={{ background: 'var(--color-bg-tertiary)', color: 'var(--color-text-muted)' }}>
                 <span className="h-1.5 w-1.5 rounded-full" style={{ background: collectionObj.color }} />
@@ -359,19 +364,10 @@ export function LinkCard({
       {/* Action strip — always visible */}
       <div className="flex items-center justify-between px-2 pb-2 pt-0.5 sm:px-3 sm:pb-3 sm:pt-1">
         <div className="flex items-center gap-0.5 sm:gap-1">
-          <motion.button type="button" onClick={e => { e.stopPropagation(); handleFav() }}
-            whileTap={{ scale: 0.76 }} transition={{ type: 'spring', stiffness: 500, damping: 26 }}
-            className="flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-xl"
-            style={{ background: link.is_favorite ? 'rgba(251,191,36,0.14)' : 'var(--color-bg-tertiary)', color: link.is_favorite ? '#fbbf24' : 'var(--color-text-muted)' }}
-            title={link.is_favorite ? 'Unfavorite' : 'Favorite'}
-          >
-            <svg className="h-3.5 w-3.5 sm:h-4 sm:w-4" fill={link.is_favorite ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={STAR} /></svg>
-          </motion.button>
-
           <motion.button type="button" onClick={e => { e.stopPropagation(); handleCopy() }}
             whileTap={{ scale: 0.76 }} transition={{ type: 'spring', stiffness: 500, damping: 26 }}
-            className="hidden sm:flex h-8 w-8 items-center justify-center rounded-xl"
-            style={{ background: copied ? 'rgba(34,197,94,0.14)' : 'var(--color-bg-tertiary)', color: copied ? 'var(--color-success)' : 'var(--color-text-muted)' }}
+            className="flex h-8 w-8 items-center justify-center rounded-xl"
+            style={{ background: 'var(--color-bg-tertiary)', color: 'var(--color-text-muted)' }}
             title="Copy URL"
           >
             <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -381,8 +377,8 @@ export function LinkCard({
 
           <motion.a href={link.url} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}
             whileTap={{ scale: 0.76 }} transition={{ type: 'spring', stiffness: 500, damping: 26 }}
-            className="flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-xl"
-            style={{ background: 'var(--color-bg-tertiary)', color: 'var(--color-text-muted)' }}
+            className="flex h-8 w-8 items-center justify-center rounded-xl transition-transform hover:scale-105"
+            style={{ background: 'var(--color-accent)', color: 'var(--color-bg-primary)', boxShadow: '0 6px 18px -8px var(--color-accent)' }}
             title="Open link"
           >
             <svg className="h-3.5 w-3.5 sm:h-4 sm:w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={OPEN} /></svg>
@@ -393,7 +389,7 @@ export function LinkCard({
           <motion.button type="button" onClick={e => { e.stopPropagation(); openEdit() }}
             whileTap={{ scale: 0.76 }} transition={{ type: 'spring', stiffness: 500, damping: 26 }}
             className="flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-xl"
-            style={{ background: 'var(--color-bg-tertiary)', color: 'var(--color-text-muted)' }}
+            style={{ background: 'rgba(59,130,246,0.12)', color: '#3b82f6' }}
             title="Edit"
           >
             <svg className="h-3.5 w-3.5 sm:h-4 sm:w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={EDIT} /></svg>

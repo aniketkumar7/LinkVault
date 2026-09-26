@@ -99,6 +99,7 @@ export function BulkImportModal({ onClose, onImported, collections }: Props) {
   const [tags, setTags] = useState('')
   const [collectionId, setCollectionId] = useState('')
   const [collectionOpen, setCollectionOpen] = useState(false)
+  const [collectionSearch, setCollectionSearch] = useState('')
   const [newCollectionName, setNewCollectionName] = useState('')
   const [loading, setLoading] = useState(false)
   const [importProgress, setImportProgress] = useState<{ completed: number; total: number } | null>(null)
@@ -738,13 +739,13 @@ export function BulkImportModal({ onClose, onImported, collections }: Props) {
                   <div className="relative" ref={collectionRef}>
                     <button
                       type="button"
-                      onClick={() => setCollectionOpen(!collectionOpen)}
+                      onClick={() => { setCollectionOpen(!collectionOpen); setCollectionSearch('') }}
                       className={`h-[52px] w-full rounded-full border-2 px-5 text-[15px] font-medium outline-none flex items-center justify-between transition-[border-color] ${collectionOpen ? 'border-[var(--color-accent)]' : 'border-transparent'}`}
                       style={{ ...inputStyle, color: selectedCollection ? 'var(--color-text-primary)' : 'var(--color-text-muted)' }}
                     >
                       <span className="flex items-center gap-2">
                         {selectedCollection && <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: selectedCollection.color }} />}
-                        {selectedCollection ? selectedCollection.name : 'Collection (optional)'}
+                        {selectedCollection ? selectedCollection.name : 'Collection'}
                       </span>
                       <CaretDown size={14} weight="bold" style={{ color: 'var(--color-text-muted)', transform: collectionOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
                     </button>
@@ -753,11 +754,23 @@ export function BulkImportModal({ onClose, onImported, collections }: Props) {
                         <motion.div
                           initial={{ opacity: 0, y: -8, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -8, scale: 0.97 }}
                           transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-                          className="absolute top-[56px] left-0 right-0 z-10 rounded-2xl py-1"
+                          className="absolute left-0 right-0 top-[56px] z-[90] rounded-2xl py-1"
                           style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)', boxShadow: '0 8px 24px rgba(0,0,0,0.2)' }}
                         >
-                          <div style={{ maxHeight: 224, overflowY: 'auto' }}>
-                            {[{ id: '', name: 'No collection', color: 'var(--color-border)' }, ...localCollections].map(col => (
+                          <div className="border-b p-2" style={{ borderColor: 'var(--color-border)' }}>
+                            <input
+                              value={collectionSearch}
+                              onChange={event => setCollectionSearch(event.target.value)}
+                              onClick={event => event.stopPropagation()}
+                              placeholder="Search collections..."
+                              className="w-full rounded-xl border px-3 py-2 text-xs outline-none"
+                              style={{ background: 'var(--color-bg-tertiary)', borderColor: 'var(--color-border)', color: 'var(--color-text-primary)' }}
+                            />
+                          </div>
+                          <div className="max-h-56 overflow-y-auto">
+                            {[{ id: '', name: 'No collection', color: 'var(--color-border)' }, ...localCollections]
+                              .filter(col => !collectionSearch.trim() || col.name.toLowerCase().includes(collectionSearch.trim().toLowerCase()))
+                              .map(col => (
                               <button key={col.id} type="button"
                                 onClick={() => { setCollectionId(col.id); setCollectionOpen(false) }}
                                 className="w-full flex items-center gap-3 px-4 py-3 text-[14px] font-medium text-left transition-colors hover:bg-[var(--color-bg-tertiary)]"

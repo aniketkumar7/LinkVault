@@ -241,6 +241,7 @@ export function LinksView({ collections, initialCollectionId = '', onRefetchNeed
                 {collections.length > 0 && (
                   <Select value={collectionFilter} onChange={setCollectionFilter}
                     options={[{ value: '', label: 'All collections' }, ...collections.map(col => ({ value: col.id, label: col.name, color: col.color }))]}
+                    searchable
                     fullWidth
                     className="z-10"
                   />
@@ -309,7 +310,7 @@ export function LinksView({ collections, initialCollectionId = '', onRefetchNeed
       ) : links.length === 0 ? (
         hasFilters ? <NoResultsEmpty onClearFilters={clearFilters} /> : <NoLinksEmpty />
       ) : viewMode === 'grid' ? (
-        <div className="grid gap-3 grid-cols-2 md:grid-cols-3 xl:grid-cols-4">
+        <div className="grid gap-3 grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
           {links.map((link, index) => (
             <div key={link.id} className="w-full min-w-0 animate-fade-in" style={{ animationDelay: `${index * 40}ms` }}>
               <LinkCard

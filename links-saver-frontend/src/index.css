@@ -33,7 +33,8 @@
   --shadow-glow: 0 0 40px -12px rgba(217,121,69,0.28);
 
   /* Font */
-  --font-sans: "Plus Jakarta Sans", "Inter", system-ui, sans-serif;
+  --font-sans: "Gudea", "Inter", system-ui, sans-serif;
+  --font-brand: "Kaushan Script", cursive;
 }
 
 /* Base styles */
@@ -435,6 +436,17 @@ select {
   outline: none;
   background: linear-gradient(90deg, #f4f4f5 0%, #f4f4f5 50%, #27272a 50%, #27272a 100%);
   box-shadow: inset 0 0 0 1px rgba(255,255,255,.12);
+}
+
+button:not(:disabled),
+a,
+[role="button"],
+label[for] {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
 }
 .color-opacity-slider::-webkit-slider-thumb {
   appearance: none;

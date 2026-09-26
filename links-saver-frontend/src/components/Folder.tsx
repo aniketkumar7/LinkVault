@@ -45,7 +45,7 @@ export function Folder({ color = '#f68330', hasLinks = false, linkCount = 0, pla
   const theme = buildTheme(color)
   const mobileScale = width ? width / BASE_WIDTH : scale
   const desktopScale = desktopWidth ? desktopWidth / BASE_WIDTH : mobileScale
-  const getScale = useCallback(() => typeof window !== 'undefined' && window.innerWidth >= 768 ? desktopScale : Math.min(mobileScale, 0.47), [mobileScale, desktopScale])
+  const getScale = useCallback(() => typeof window !== 'undefined' && window.innerWidth >= 768 ? desktopScale : Math.min(mobileScale, 0.50), [mobileScale, desktopScale])
   const [responsiveScale, setResponsiveScale] = useState(getScale)
   const [isHovered, setIsHovered] = useState(false)
 
