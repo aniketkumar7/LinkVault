@@ -28,19 +28,6 @@ const colors = [
   '#79d3a2',
 ]
 
-function blendWithWhite(hex: string, opacity: number) {
-  const value = hex.replace('#', '')
-  if (value.length !== 6) return hex
-  const channels = [0, 2, 4].map(index => parseInt(value.slice(index, index + 2), 16))
-  return `#${channels
-    .map(channel =>
-      Math.round(255 - (255 - channel) * opacity)
-        .toString(16)
-        .padStart(2, '0')
-    )
-    .join('')}`
-}
-
 function hslToHex(h: number, s = 78, l = 55) {
   s /= 100
   l /= 100
@@ -64,7 +51,6 @@ export function ColorPicker({
   onChange?: (color: string) => void
 }) {
   const [selected, setSelected] = useState(value)
-  const [opacity, setOpacity] = useState(1)
   const size = 252
   const center = size / 2
   const choose = (event: React.PointerEvent<SVGSVGElement>) => {
@@ -78,7 +64,6 @@ export function ColorPicker({
       const index = Math.round(angle / ((Math.PI * 2) / colors.length)) % colors.length
       const nextColor = colors[index]
       setSelected(nextColor)
-      setOpacity(1)
       onChange?.(nextColor)
       return
     }
@@ -116,7 +101,7 @@ export function ColorPicker({
           cx={center}
           cy={center}
           r="30"
-          fill={blendWithWhite(value, opacity)}
+          fill={value}
           stroke="white"
           strokeWidth="3"
         />
@@ -138,25 +123,6 @@ export function ColorPicker({
         aria-label="Choose custom folder color"
         className="absolute left-1/2 top-[43%] h-12 w-12 -translate-x-1/2 -translate-y-1/2 cursor-pointer opacity-0"
       />
-      <div className="-mt-1">
-        <input
-          aria-label="Folder color opacity"
-          type="range"
-          min="0.2"
-          max="1"
-          step="0.01"
-          value={opacity}
-          style={{
-            background: `linear-gradient(90deg, #f4f4f5 0%, #f4f4f5 ${opacity * 100}%, #27272a ${opacity * 100}%, #27272a 100%)`,
-          }}
-          onChange={event => {
-            const next = Number(event.target.value)
-            setOpacity(next)
-            onChange?.(blendWithWhite(selected, next))
-          }}
-          className="color-opacity-slider w-full"
-        />
-      </div>
     </div>
   )
 }

@@ -41,8 +41,8 @@ export function Home({ onOpenCollection }: Props) {
   }, [showProfileMenu])
 
   return (
-    <div className="min-h-screen" style={{ background: 'var(--color-bg-primary)' }}>
-      <header className="sticky top-0 z-30 backdrop-blur-xl" style={{ background: 'var(--color-bg-primary)' }}>
+    <div className="min-h-screen">
+      <header className="sticky top-0 z-30 backdrop-blur-xl" style={{ background: 'color-mix(in srgb, var(--color-bg-primary) 80%, transparent)' }}>
         <div className="mx-auto flex w-full items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8">
           <div className="flex items-center gap-3">
             <div className="flex h-11 w-11 items-center justify-center rounded-2xl border" style={{ background: 'var(--color-bg-card)', borderColor: 'var(--color-border)' }}>

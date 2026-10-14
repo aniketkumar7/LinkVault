@@ -26,7 +26,7 @@ function DemoCard({ title, domain, color, image }: { title: string; domain: stri
 export function LandingPage({ onGetStarted }: Props) {
   const [activeStep, setActiveStep] = useState(1)
 
-  return <main className="landing-page min-h-screen overflow-hidden" style={{ background: 'var(--color-bg-primary)', color: 'var(--color-text-primary)' }}>
+  return <main className="landing-page min-h-screen overflow-hidden" style={{ color: 'var(--color-text-primary)' }}>
     <header className="relative z-20 mx-auto flex max-w-7xl items-center justify-between px-5 py-5 sm:px-8 lg:px-10">
       <a href="#top" className="flex items-center gap-2.5">
         <img src="/Logo.svg" alt="LinkVault" className="h-9 w-9" />

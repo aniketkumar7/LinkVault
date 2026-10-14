@@ -6,6 +6,7 @@ import { Home } from '@/components/Home'
 import { CollectionPage } from '@/components/CollectionPage'
 import CircularThemeProvider from '@/components/CircularThemeProvider'
 import PixelPageTransition from '@/components/PixelPageTransition'
+import { DotBackground } from '@/components/ui/DotBackground'
 
 function AppInner() {
   const { user, loading, isRecoverySession } = useAuth()
@@ -87,7 +88,8 @@ function AppInner() {
   return (
     <>
       <PixelPageTransition trigger={trigger} onViewSwap={handleViewSwap} />
-      {page}
+      <DotBackground />
+      <div className="relative z-[1]">{page}</div>
     </>
   )
 }

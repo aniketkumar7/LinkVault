@@ -301,7 +301,7 @@ export function LinksView({ collections, initialCollectionId = '', onRefetchNeed
 
       {/* ── Content ── */}
       {isLoading ? (
-        <SkeletonGrid count={6} />
+        <SkeletonGrid count={10} viewMode={viewMode} />
       ) : error ? (
         <div className="text-center py-16">
           <p className="text-lg mb-4" style={{ color: 'var(--color-error)' }}>Failed to load links</p>

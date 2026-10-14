@@ -428,16 +428,6 @@ select {
 .toast-enter { animation: toast-enter .35s cubic-bezier(.16,1,.3,1); }
 .toast-progress { transform-origin: left; animation: toast-progress 4s linear forwards; opacity: .35; }
 
-.color-opacity-slider {
-  height: 20px;
-  appearance: none;
-  -webkit-appearance: none;
-  border-radius: 999px;
-  outline: none;
-  background: linear-gradient(90deg, #f4f4f5 0%, #f4f4f5 50%, #27272a 50%, #27272a 100%);
-  box-shadow: inset 0 0 0 1px rgba(255,255,255,.12);
-}
-
 button:not(:disabled),
 a,
 [role="button"],
@@ -448,23 +438,17 @@ label[for] {
 button:disabled {
   cursor: not-allowed;
 }
-.color-opacity-slider::-webkit-slider-thumb {
-  appearance: none;
-  -webkit-appearance: none;
-  width: 30px;
-  height: 18px;
-  border: 2px solid #f4f4f5;
-  border-radius: 999px;
-  background: #18181b;
-  box-shadow: 0 2px 8px rgba(0,0,0,.35);
+
+/* Global dot grid background */
+.dot-bg { position: fixed; inset: 0; z-index: 0; pointer-events: none; --mx: -999px; --my: -999px; }
+.dot-bg > div { position: absolute; inset: 0; background-size: 22px 22px; background-position: center; }
+.dot-bg-base {
+  background-image: radial-gradient(circle, color-mix(in srgb, var(--color-text-primary) 16%, transparent) 1px, transparent 1.6px);
+  mask-image: radial-gradient(ellipse 90% 80% at 50% 20%, #000 35%, transparent 100%);
 }
-.color-opacity-slider::-moz-range-thumb {
-  width: 26px;
-  height: 14px;
-  border: 2px solid #f4f4f5;
-  border-radius: 999px;
-  background: #18181b;
-  box-shadow: 0 2px 8px rgba(0,0,0,.35);
+.dot-bg-glow {
+  background-image: radial-gradient(circle, var(--color-accent) 1.5px, transparent 2.2px);
+  mask-image: radial-gradient(200px circle at var(--mx) var(--my), #000 0%, transparent 100%);
 }
 
 @keyframes delete-progress { from { transform: scaleX(0); } to { transform: scaleX(1); } }

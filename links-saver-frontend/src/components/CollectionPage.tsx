@@ -38,8 +38,8 @@ export function CollectionPage({ collectionId, onBack }: Props) {
   }, [showProfileMenu])
 
   return (
-    <div className="min-h-screen" style={{ background: 'var(--color-bg-primary)' }}>
-      <header className="sticky top-0 z-30 backdrop-blur-xl" style={{ background: 'var(--color-bg-primary)' }}>
+    <div className="min-h-screen">
+      <header className="sticky top-0 z-30 backdrop-blur-xl" style={{ background: 'color-mix(in srgb, var(--color-bg-primary) 80%, transparent)' }}>
         <div className="mx-auto flex items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8">
           {/* Left: back + collection name */}
           <div className="flex items-center gap-3 min-w-0">
