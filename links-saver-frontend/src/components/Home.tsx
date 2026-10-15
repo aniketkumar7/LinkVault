@@ -141,7 +141,7 @@ export function Home({ onOpenCollection }: Props) {
   return (
     <div className="min-h-screen">
       <header className="dot-surface sticky top-0 z-30">
-        <div className="mx-auto flex w-full items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8">
+        <div className="page-gutter mx-auto flex w-full items-center justify-between gap-4 py-4">
           <div className="flex shrink-0 items-center gap-3">
             <div className="flex h-11 w-11 items-center justify-center rounded-2xl border" style={{ background: 'var(--color-bg-card)', borderColor: 'var(--color-border)' }}>
               <img src="/Logo.svg" alt="LinkVault" className="h-8 w-8" />
@@ -224,7 +224,7 @@ export function Home({ onOpenCollection }: Props) {
         </div>
       </header>
 
-      <main className="mx-auto px-4 pt-8 pb-32 sm:px-6 lg:px-10">
+      <main className="page-gutter mx-auto pt-8 pb-32">
         {query ? (
           <SearchResults query={query} collections={collections} onChanged={invalidateCollections} />
         ) : (
@@ -252,7 +252,8 @@ export function Home({ onOpenCollection }: Props) {
               <Select value={folderSort} onChange={v => { setFolderSort(v as FolderSort); localStorage.setItem('folder-sort', v) }} options={FOLDER_SORTS} size="sm" width={130} />
             )}>Collections</SectionTitle>
 
-            <div className="grid grid-cols-2 justify-items-center gap-x-1 gap-y-5 pt-4 sm:grid-cols-4 sm:gap-x-8 sm:gap-y-10 lg:grid-cols-5 lg:gap-x-12 xl:grid-cols-7">
+            {/* Fixed columns = visible folder width (126px mobile, 179px md+), spread edge to edge */}
+            <div className="grid grid-cols-[repeat(auto-fill,126px)] justify-between gap-x-3 gap-y-5 pt-4 md:grid-cols-[repeat(auto-fill,179px)] md:gap-y-10">
               {smartFolders.map((folder, index) => (
                 <FolderTile
                   key={folder.key}
@@ -312,7 +313,7 @@ function FolderTile({ index, name, color, count, onOpen }: { index: number; name
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.05, duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-      className="group flex w-full max-w-[160px] flex-col items-center text-center focus:outline-none md:w-[158px]"
+      className="group flex w-full flex-col items-center text-center focus:outline-none"
     >
       <div>
         <Folder color={color} hasLinks={count > 0} linkCount={count} width={148} desktopWidth={210} />

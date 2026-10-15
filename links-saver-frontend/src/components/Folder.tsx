@@ -50,6 +50,8 @@ function buildLook(style: FolderStyle, color: string, ids: { grad: string; edge:
 const TAB_PATH = 'M28 50Q28 0 78 0H134C151 0 163 7 172 19C179 28 185 30 196 30'
 
 const BASE_WIDTH = 311
+// Empty space each side of the flap art inside BASE_WIDTH; trimmed from the layout box so folders align with page edges
+const ART_INSET = 23
 const BASE_HEIGHT = 280
 
 interface FolderProps {
@@ -88,7 +90,7 @@ export function Folder({ color = '#f5cb5c', hasLinks = false, linkCount = 0, pla
   return (
     <div
       className="folder-root relative cursor-pointer select-none"
-      style={{ width: BASE_WIDTH * responsiveScale, height: BASE_HEIGHT * responsiveScale }}
+      style={{ width: (BASE_WIDTH - ART_INSET * 2) * responsiveScale, height: BASE_HEIGHT * responsiveScale }}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >

@@ -471,6 +471,15 @@ button:disabled {
   cursor: not-allowed;
 }
 
+/* One horizontal gutter for every page header and main area */
+.page-gutter { padding-inline: 1rem; }
+@media (min-width: 640px) { .page-gutter { padding-inline: 1.5rem; } }
+@media (min-width: 1024px) { .page-gutter { padding-inline: 2rem; } }
+
+/* Scrollable rows that hide the scrollbar (paged with buttons/swipe instead) */
+.no-scrollbar { scrollbar-width: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
+
 /* Global dot grid background */
 .dot-bg { position: fixed; inset: 0; z-index: 0; pointer-events: none; --mx: -999px; --my: -999px; }
 .dot-bg > div { position: absolute; inset: 0; background-size: 22px 22px; background-position: center; }
