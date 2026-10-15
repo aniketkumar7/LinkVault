@@ -15,6 +15,33 @@ const COLORS = [
     '#ec4899', '#14b8a6', '#f59e0b', '#6366f1', '#84cc16'
 ]
 
+function CollectionSkeleton() {
+    return (
+        <div className="space-y-3" aria-label="Loading collections" role="status">
+            {[0, 1, 2, 3].map((item) => (
+                <div
+                    key={item}
+                    className="p-4 rounded-xl"
+                    style={{
+                        background: 'var(--color-bg-tertiary)',
+                        border: '1px solid var(--color-border)',
+                    }}
+                >
+                    <div className="flex items-start gap-3">
+                        <div className="shimmer h-10 w-10 shrink-0 rounded-lg" />
+                        <div className="min-w-0 flex-1 space-y-2 pt-1">
+                            <div className="shimmer h-4 w-2/3 rounded" />
+                            <div className="shimmer h-3 w-1/2 rounded" />
+                        </div>
+                        <div className="shimmer h-7 w-7 shrink-0 rounded-lg" />
+                    </div>
+                </div>
+            ))}
+            <span className="sr-only">Loading collections…</span>
+        </div>
+    )
+}
+
 export function CollectionsPanel({ onClose, onCollectionChange }: Props) {
     const [collections, setCollections] = useState<Collection[]>([])
     const [loading, setLoading] = useState(true)
@@ -234,12 +261,7 @@ export function CollectionsPanel({ onClose, onCollectionChange }: Props) {
                     {/* Collections list */}
                     <div className="space-y-3">
                         {loading ? (
-                            <div className="flex items-center justify-center py-12">
-                                <svg className="animate-spin h-8 w-8" style={{ color: 'var(--color-accent)' }} viewBox="0 0 24 24">
-                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                                </svg>
-                            </div>
+                            <CollectionSkeleton />
                         ) : collections.length === 0 ? (
                             <NoCollectionsEmpty onCreateCollection={() => setCreating(true)} />
                         ) : (
