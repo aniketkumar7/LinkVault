@@ -14,14 +14,15 @@ type ViewMode = 'grid' | 'list'
 interface Props {
   collections: Collection[]
   initialCollectionId?: string
+  initialFavorite?: boolean
   onRefetchNeeded?: () => void
 }
 
 
-export function LinksView({ collections, initialCollectionId = '', onRefetchNeeded }: Props) {
+export function LinksView({ collections, initialCollectionId = '', initialFavorite = false, onRefetchNeeded }: Props) {
   const [searchInput, setSearchInput] = useState('')
   const [search, setSearch] = useState('')
-  const [favoriteFilter, setFavoriteFilter] = useState(false)
+  const [favoriteFilter, setFavoriteFilter] = useState(initialFavorite)
   const [collectionFilter, setCollectionFilter] = useState(initialCollectionId)
   const [sortField, setSortField] = useState<SortField>('created_at')
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc')
@@ -123,6 +124,7 @@ export function LinksView({ collections, initialCollectionId = '', onRefetchNeed
                 onChange={setCollectionFilter}
                 options={[
                   { value: '', label: 'All collections' },
+                  { value: 'none', label: 'Unsorted' },
                   ...collections.map(col => ({ value: col.id, label: col.name, color: col.color }))
                 ]}
                 size="sm"
@@ -133,7 +135,7 @@ export function LinksView({ collections, initialCollectionId = '', onRefetchNeed
                   type="button"
                   onClick={() => setCollectionFilter('')}
                   className="absolute -right-1.5 -top-1.5 flex h-4 w-4 items-center justify-center rounded-full text-[9px] font-bold leading-none z-10"
-                  style={{ background: 'var(--color-accent)', color: 'var(--color-bg-primary)' }}
+                  style={{ background: 'var(--color-accent-fill)', color: 'var(--color-on-accent)' }}
                 >✕</button>
               )}
             </div>
@@ -161,7 +163,7 @@ export function LinksView({ collections, initialCollectionId = '', onRefetchNeed
                 type="button"
                 onClick={() => { setSortField('created_at'); setSortOrder('desc') }}
                 className="absolute -right-1.5 -top-1.5 flex h-4 w-4 items-center justify-center rounded-full text-[9px] font-bold leading-none z-10"
-                style={{ background: 'var(--color-accent)', color: 'var(--color-bg-primary)' }}
+                style={{ background: 'var(--color-accent-fill)', color: 'var(--color-on-accent)' }}
               >✕</button>
             )}
           </div>
@@ -199,7 +201,7 @@ export function LinksView({ collections, initialCollectionId = '', onRefetchNeed
             onClick={e => { e.stopPropagation(); setShowMobileFilters(v => !v) }}
             className="flex items-center gap-1.5 rounded-2xl border px-3.5 py-2.5 text-sm font-medium"
             style={{
-              background: hasFilters ? 'rgba(246,131,48,0.08)' : 'var(--color-bg-tertiary)',
+              background: hasFilters ? 'color-mix(in srgb, var(--color-accent) 8%, transparent)' : 'var(--color-bg-tertiary)',
               borderColor: hasFilters ? 'var(--color-accent)' : 'var(--color-border)',
               color: hasFilters ? 'var(--color-accent)' : 'var(--color-text-secondary)',
             }}
@@ -212,7 +214,7 @@ export function LinksView({ collections, initialCollectionId = '', onRefetchNeed
               type="button"
               onClick={e => { e.stopPropagation(); clearFilters() }}
               className="absolute -right-1.5 -top-1.5 flex h-4 w-4 items-center justify-center rounded-full text-[9px] font-bold leading-none z-10"
-              style={{ background: 'var(--color-accent)', color: 'var(--color-bg-primary)' }}
+              style={{ background: 'var(--color-accent-fill)', color: 'var(--color-on-accent)' }}
             >✕</button>
           )}
           <AnimatePresence>
@@ -240,7 +242,8 @@ export function LinksView({ collections, initialCollectionId = '', onRefetchNeed
                 {/* Collection — z-10 so its panel renders above sort */}
                 {collections.length > 0 && (
                   <Select value={collectionFilter} onChange={setCollectionFilter}
-                    options={[{ value: '', label: 'All collections' }, ...collections.map(col => ({ value: col.id, label: col.name, color: col.color }))]}
+                    options={[{ value: '', label: 'All collections' },
+                  { value: 'none', label: 'Unsorted' }, ...collections.map(col => ({ value: col.id, label: col.name, color: col.color }))]}
                     searchable
                     fullWidth
                     className="z-10"
@@ -265,11 +268,11 @@ export function LinksView({ collections, initialCollectionId = '', onRefetchNeed
                 <div className="flex gap-2">
                   <button type="button" onClick={() => { setViewMode('grid'); localStorage.setItem('view-mode', 'grid') }}
                     className="flex-1 rounded-xl border py-2.5 text-xs font-medium"
-                    style={{ background: viewMode === 'grid' ? 'rgba(246,131,48,0.1)' : 'var(--color-bg-card)', borderColor: viewMode === 'grid' ? 'var(--color-accent)' : 'var(--color-border)', color: viewMode === 'grid' ? 'var(--color-accent)' : 'var(--color-text-muted)' }}
+                    style={{ background: viewMode === 'grid' ? 'color-mix(in srgb, var(--color-accent) 10%, transparent)' : 'var(--color-bg-card)', borderColor: viewMode === 'grid' ? 'var(--color-accent)' : 'var(--color-border)', color: viewMode === 'grid' ? 'var(--color-accent)' : 'var(--color-text-muted)' }}
                   >▦ Grid</button>
                   <button type="button" onClick={() => { setViewMode('list'); localStorage.setItem('view-mode', 'list') }}
                     className="flex-1 rounded-xl border py-2.5 text-xs font-medium"
-                    style={{ background: viewMode === 'list' ? 'rgba(246,131,48,0.1)' : 'var(--color-bg-card)', borderColor: viewMode === 'list' ? 'var(--color-accent)' : 'var(--color-border)', color: viewMode === 'list' ? 'var(--color-accent)' : 'var(--color-text-muted)' }}
+                    style={{ background: viewMode === 'list' ? 'color-mix(in srgb, var(--color-accent) 10%, transparent)' : 'var(--color-bg-card)', borderColor: viewMode === 'list' ? 'var(--color-accent)' : 'var(--color-border)', color: viewMode === 'list' ? 'var(--color-accent)' : 'var(--color-text-muted)' }}
                   >☰ List</button>
                 </div>
               </div>
@@ -305,7 +308,7 @@ export function LinksView({ collections, initialCollectionId = '', onRefetchNeed
       ) : error ? (
         <div className="text-center py-16">
           <p className="text-lg mb-4" style={{ color: 'var(--color-error)' }}>Failed to load links</p>
-          <button onClick={() => refetch()} className="px-4 py-2 rounded-lg text-sm font-medium" style={{ background: 'var(--color-accent)', color: 'white' }}>Retry</button>
+          <button onClick={() => refetch()} className="px-4 py-2 rounded-lg text-sm font-medium" style={{ background: 'var(--color-accent-fill)', color: 'var(--color-on-accent)' }}>Retry</button>
         </div>
       ) : links.length === 0 ? (
         hasFilters ? <NoResultsEmpty onClearFilters={clearFilters} /> : <NoLinksEmpty />

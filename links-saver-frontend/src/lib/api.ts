@@ -38,6 +38,7 @@ export interface Collection {
   is_public: boolean
   share_slug: string | null
   link_count?: number
+  last_link_at?: string | null
 }
 
 export interface CreateLinkInput {
@@ -51,16 +52,19 @@ export interface CreateLinkInput {
 
 export interface LinkFilters {
   favorite?: boolean
+  /** 'none' = links without a collection */
   collection_id?: string
   tag?: string
   search?: string
   sort?: 'created_at' | 'updated_at' | 'title'
   order?: 'asc' | 'desc'
+  limit?: number
 }
 
 export interface Stats {
   total: number
   favorites: number
+  unsorted: number
   tags: string[]
 }
 

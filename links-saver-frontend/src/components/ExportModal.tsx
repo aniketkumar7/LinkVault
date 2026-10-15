@@ -174,7 +174,7 @@ export function ExportModal({ collections, onClose }: Props) {
 
   const selectedCol = collections.find(c => c.id === collectionId)
   const label = selectedCol?.name ?? 'All links'
-  const accentHex = selectedCol?.color ?? '#f68330'
+  const accentHex = selectedCol?.color ?? '#f5cb5c'
 
   const doPdf = async () => {
     setLoading(true)
@@ -228,7 +228,7 @@ export function ExportModal({ collections, onClose }: Props) {
             onClick={doPdf}
             disabled={loading}
             className="w-full rounded-2xl py-3 text-sm font-bold disabled:opacity-60"
-            style={{ background: 'var(--color-accent)', color: 'var(--color-bg-primary)' }}
+            style={{ background: 'var(--color-accent-fill)', color: 'var(--color-on-accent)' }}
           >
             {loading ? 'Generating…' : 'Export'}
           </button>

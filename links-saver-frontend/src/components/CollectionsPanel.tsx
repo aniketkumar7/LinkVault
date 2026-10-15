@@ -11,7 +11,7 @@ interface Props {
 }
 
 const COLORS = [
-    '#f68330', '#ef4444', '#22c55e', '#e8752b', '#8b5cf6',
+    '#f5cb5c', '#ef4444', '#22c55e', '#e8752b', '#8b5cf6',
     '#ec4899', '#14b8a6', '#f59e0b', '#6366f1', '#84cc16'
 ]
 
@@ -22,7 +22,7 @@ export function CollectionsPanel({ onClose, onCollectionChange }: Props) {
     const [saving, setSaving] = useState(false)
     const [newName, setNewName] = useState('')
     const [newDescription, setNewDescription] = useState('')
-    const [newColor, setNewColor] = useState('#f68330')
+    const [newColor, setNewColor] = useState('#f5cb5c')
     const [editingId, setEditingId] = useState<string | null>(null)
     const [editName, setEditName] = useState('')
     const [editDescription, setEditDescription] = useState('')
@@ -201,8 +201,8 @@ export function CollectionsPanel({ onClose, onCollectionChange }: Props) {
                                 <button
                                     onClick={handleCreate}
                                     disabled={saving || !newName.trim()}
-                                    className="flex-1 py-2 rounded-lg text-sm font-medium text-white disabled:opacity-50 flex items-center justify-center gap-2"
-                                    style={{ background: 'var(--color-accent)' }}
+                                    className="flex-1 py-2 rounded-lg text-sm font-medium text-on-accent disabled:opacity-50 flex items-center justify-center gap-2"
+                                    style={{ background: 'var(--color-accent-fill)' }}
                                 >
                                     {saving && (
                                         <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
@@ -303,8 +303,8 @@ export function CollectionsPanel({ onClose, onCollectionChange }: Props) {
                                                 <button
                                                     onClick={() => handleUpdate(col.id)}
                                                     disabled={saving}
-                                                    className="flex-1 py-1.5 rounded-lg text-sm font-medium text-white disabled:opacity-50 flex items-center justify-center gap-2"
-                                                    style={{ background: 'var(--color-accent)' }}
+                                                    className="flex-1 py-1.5 rounded-lg text-sm font-medium text-on-accent disabled:opacity-50 flex items-center justify-center gap-2"
+                                                    style={{ background: 'var(--color-accent-fill)' }}
                                                 >
                                                     {saving && (
                                                         <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">

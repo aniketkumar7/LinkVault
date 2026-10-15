@@ -100,9 +100,10 @@ export function Dialog({
           <button
             onClick={onConfirm}
             disabled={loading}
-            className="px-4 py-2 rounded-lg text-sm font-medium text-white transition-colors disabled:opacity-50 flex items-center gap-2"
+            className="px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 flex items-center gap-2"
             style={{ 
-              background: variant === 'danger' ? 'var(--color-error)' : 'var(--color-accent)'
+              background: variant === 'danger' ? 'var(--color-error)' : 'var(--color-accent-fill)',
+              color: variant === 'danger' ? 'white' : 'var(--color-on-accent)'
             }}
           >
             {loading && (

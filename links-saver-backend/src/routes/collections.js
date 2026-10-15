@@ -44,9 +44,21 @@ router.get('/', async (req, res) => {
             if (!seedError) data = seeded;
         }
 
+        // Latest link per collection, for "recent activity" sorting
+        const { data: recent } = await supabase
+            .from('useful_links')
+            .select('collection_id, created_at')
+            .eq('user_id', req.user.id)
+            .not('collection_id', 'is', null);
+        const lastLinkAt = {};
+        (recent || []).forEach(l => {
+            if (!lastLinkAt[l.collection_id] || l.created_at > lastLinkAt[l.collection_id]) lastLinkAt[l.collection_id] = l.created_at;
+        });
+
         const collections = data.map(c => ({
             ...c,
             link_count: c.useful_links?.[0]?.count || 0,
+            last_link_at: lastLinkAt[c.id] || null,
             useful_links: undefined
         }));
 

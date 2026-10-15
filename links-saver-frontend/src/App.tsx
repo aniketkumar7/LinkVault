@@ -7,20 +7,17 @@ import { CollectionPage } from '@/components/CollectionPage'
 import CircularThemeProvider from '@/components/CircularThemeProvider'
 import PixelPageTransition from '@/components/PixelPageTransition'
 import { DotBackground } from '@/components/ui/DotBackground'
+import { collectionPath, routeToCollectionId } from '@/lib/smartFolders'
 
 function AppInner() {
   const { user, loading, isRecoverySession } = useAuth()
   const [showLogin, setShowLogin] = useState(() => window.location.pathname === '/auth')
   const [authSignUp, setAuthSignUp] = useState(() => new URLSearchParams(window.location.search).get('mode') === 'signup')
-  const [openCollectionId, setOpenCollectionId] = useState<string | null>(() => {
-    const match = window.location.pathname.match(/^\/collections\/([^/]+)/)
-    return match ? decodeURIComponent(match[1]) : null
-  })
+  const [openCollectionId, setOpenCollectionId] = useState<string | null>(() => routeToCollectionId(window.location.pathname))
 
   useEffect(() => {
     const onPopState = () => {
-      const match = window.location.pathname.match(/^\/collections\/([^/]+)/)
-      setOpenCollectionId(match ? decodeURIComponent(match[1]) : null)
+      setOpenCollectionId(routeToCollectionId(window.location.pathname))
       setShowLogin(window.location.pathname === '/auth')
       setAuthSignUp(new URLSearchParams(window.location.search).get('mode') === 'signup')
     }
@@ -38,7 +35,7 @@ function AppInner() {
   }
 
   const openCollection = (id: string, name?: string) => {
-    window.history.pushState({}, '', `/collections/${encodeURIComponent(name || id)}`)
+    window.history.pushState({}, '', collectionPath(id, name))
     navigate(() => setOpenCollectionId(id))
   }
 
@@ -58,9 +55,9 @@ function AppInner() {
       <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--color-bg-primary)' }}>
         <div className="text-center">
           <div className="relative w-16 h-16 mx-auto mb-4">
-            <div className="absolute inset-0 rounded-full animate-ping opacity-20" style={{ background: 'var(--color-accent)' }} />
-            <div className="absolute inset-2 rounded-full animate-pulse" style={{ background: 'linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-muted) 100%)' }} />
-            <svg className="absolute inset-0 w-full h-full p-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="absolute inset-0 rounded-full animate-ping opacity-20" style={{ background: 'var(--color-accent-fill)' }} />
+            <div className="absolute inset-2 rounded-full animate-pulse" style={{ background: 'var(--color-accent-fill)' }} />
+            <svg className="absolute inset-0 w-full h-full p-4 text-on-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
             </svg>
           </div>

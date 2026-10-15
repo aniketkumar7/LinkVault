@@ -5,6 +5,11 @@ import { ToastProvider } from '@/components/ui/Toast'
 import './index.css'
 import App from './App.tsx'
 
+// Apply saved theme + accent before first paint
+const root = document.documentElement
+root.setAttribute('data-theme', localStorage.getItem('theme') === 'light' ? 'light' : 'dark')
+root.setAttribute('data-accent', localStorage.getItem('accent') || 'sun')
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {

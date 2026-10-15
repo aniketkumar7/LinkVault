@@ -142,11 +142,11 @@ export function LinkCard({
   // ── List row ────────────────────────────────────────────────────────────────
   const listRow = (
     <motion.div
-      className={`flex items-center gap-3 rounded-2xl px-3 py-2 ${selected ? 'ring-1 ring-[rgba(42,187,247,0.35)]' : ''}`}
+      className={`flex items-center gap-3 rounded-2xl px-3 py-2 ${selected ? 'ring-1 ring-[color-mix(in_srgb,var(--color-accent)_35%,transparent)]' : ''}`}
       whileTap={{ scale: 0.992 }}
       transition={{ type: 'spring', stiffness: 400, damping: 32 }}
       style={{
-        background: selected ? 'rgba(42,187,247,0.06)' : 'var(--color-bg-card)',
+        background: selected ? 'color-mix(in srgb, var(--color-accent) 6%, transparent)' : 'var(--color-bg-card)',
         boxShadow: 'inset 0 1px rgba(255,255,255,0.04)',
       }}
     >
@@ -157,7 +157,7 @@ export function LinkCard({
           className="shrink-0 flex h-5 w-5 items-center justify-center rounded-full border transition-all"
           style={{
             borderColor: selected ? 'var(--color-accent)' : 'var(--color-border)',
-            background: selected ? 'rgba(42,187,247,0.18)' : 'transparent',
+            background: selected ? 'color-mix(in srgb, var(--color-accent) 18%, transparent)' : 'transparent',
             color: selected ? 'var(--color-accent)' : 'var(--color-text-muted)',
           }}
         >
@@ -197,7 +197,7 @@ export function LinkCard({
             </>
           )}
           {tags.map(tag => (
-            <span key={tag} className="text-[10px] shrink-0 px-1.5 py-0.5 rounded-full" style={{ background: 'rgba(42,187,247,0.08)', color: 'var(--color-accent)' }}>#{tag}</span>
+            <span key={tag} className="text-[10px] shrink-0 px-1.5 py-0.5 rounded-full" style={{ background: 'color-mix(in srgb, var(--color-accent) 8%, transparent)', color: 'var(--color-accent)' }}>#{tag}</span>
           ))}
         </div>
       </div>
@@ -214,7 +214,7 @@ export function LinkCard({
         </motion.button>
         <motion.a href={link.url} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} whileTap={{ scale: 0.82 }}
           className="flex h-7 w-7 items-center justify-center rounded-xl"
-          style={{ background: 'var(--color-accent)', color: 'var(--color-bg-primary)' }}
+          style={{ background: 'var(--color-accent-fill)', color: 'var(--color-on-accent)' }}
         >
           <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={OPEN} /></svg>
         </motion.a>
@@ -245,10 +245,10 @@ export function LinkCard({
         rotateY: rotY,
         background: 'var(--color-bg-card)',
         border: selected
-          ? '1px solid rgba(42,187,247,0.4)'
+          ? '1px solid color-mix(in srgb, var(--color-accent) 40%, transparent)'
           : '1px solid var(--color-border)',
         boxShadow: selected
-          ? 'inset 0 1px rgba(255,255,255,0.06), 0 0 0 1px rgba(42,187,247,0.15)'
+          ? 'inset 0 1px rgba(255,255,255,0.06), 0 0 0 1px color-mix(in srgb, var(--color-accent) 15%, transparent)'
           : 'inset 0 1px rgba(255,255,255,0.06)',
       }}
       whileHover={{ y: -5 }}
@@ -309,7 +309,7 @@ export function LinkCard({
             onClick={e => { e.stopPropagation(); onSelect?.() }}
             className="absolute right-2.5 top-2.5 flex h-7 w-7 items-center justify-center rounded-full border transition-all"
             style={{
-              background: selected ? 'rgba(42,187,247,0.28)' : 'rgba(0,0,0,0.45)',
+              background: selected ? 'color-mix(in srgb, var(--color-accent) 28%, transparent)' : 'rgba(0,0,0,0.45)',
               borderColor: selected ? 'var(--color-accent)' : 'rgba(255,255,255,0.2)',
               color: selected ? 'var(--color-accent)' : 'rgba(255,255,255,0.85)',
               backdropFilter: 'blur(6px)',
@@ -355,7 +355,7 @@ export function LinkCard({
               </span>
             )}
             {tags.map(tag => (
-              <span key={tag} className="rounded-full px-1.5 py-0.5 text-[9px] sm:text-[10px] font-medium" style={{ background: 'rgba(42,187,247,0.08)', color: 'var(--color-accent)' }}>#{tag}</span>
+              <span key={tag} className="rounded-full px-1.5 py-0.5 text-[9px] sm:text-[10px] font-medium" style={{ background: 'color-mix(in srgb, var(--color-accent) 8%, transparent)', color: 'var(--color-accent)' }}>#{tag}</span>
             ))}
           </div>
         )}
@@ -378,7 +378,7 @@ export function LinkCard({
           <motion.a href={link.url} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}
             whileTap={{ scale: 0.76 }} transition={{ type: 'spring', stiffness: 500, damping: 26 }}
             className="flex h-8 w-8 items-center justify-center rounded-xl transition-transform hover:scale-105"
-            style={{ background: 'var(--color-accent)', color: 'var(--color-bg-primary)', boxShadow: '0 6px 18px -8px var(--color-accent)' }}
+            style={{ background: 'var(--color-accent-fill)', color: 'var(--color-on-accent)', boxShadow: '0 6px 18px -8px var(--color-accent)' }}
             title="Open link"
           >
             <svg className="h-3.5 w-3.5 sm:h-4 sm:w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={OPEN} /></svg>
@@ -526,7 +526,7 @@ export function LinkCard({
                         whileHover={saving ? {} : { scale: 1.04 }} whileTap={saving ? {} : { scale: 0.96 }}
                         transition={{ type: 'spring', stiffness: 500, damping: 40 }}
                         className="rounded-full px-8 py-3 text-[15px] font-bold text-white disabled:opacity-60"
-                        style={{ background: 'linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-muted) 100%)' }}
+                        style={{ background: 'var(--color-accent-fill)' }}
                       >
                         {saving ? 'Saving…' : 'Save'}
                       </motion.button>

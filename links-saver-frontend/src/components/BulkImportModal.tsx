@@ -447,7 +447,7 @@ export function BulkImportModal({ onClose, onImported, collections }: Props) {
               <div className="grid grid-cols-3 gap-3">
                 {[
                   { label: 'Imported', value: result.success.length, color: 'var(--color-success)', bg: 'rgba(34,197,94,0.08)' },
-                  { label: 'Duplicates', value: result.duplicates.length, color: 'var(--color-accent)', bg: 'rgba(246,131,48,0.08)' },
+                  { label: 'Duplicates', value: result.duplicates.length, color: 'var(--color-accent)', bg: 'color-mix(in srgb, var(--color-accent) 8%, transparent)' },
                   { label: 'Failed', value: result.failed.length, color: 'var(--color-error)', bg: 'rgba(239,68,68,0.08)' },
                 ].map(s => (
                   <div key={s.label} className="rounded-2xl p-4 text-center" style={{ background: s.bg }}>
@@ -467,8 +467,8 @@ export function BulkImportModal({ onClose, onImported, collections }: Props) {
               <motion.button
                 onClick={onClose}
                 whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
-                className="w-full rounded-full py-3 text-[15px] font-bold text-white"
-                style={{ background: 'linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-muted) 100%)' }}
+                className="w-full rounded-full py-3 text-[15px] font-bold text-on-accent"
+                style={{ background: 'var(--color-accent-fill)' }}
               >
                 Done
               </motion.button>
@@ -576,8 +576,8 @@ export function BulkImportModal({ onClose, onImported, collections }: Props) {
                       whileHover={extracting ? {} : { scale: 1.04 }}
                       whileTap={extracting ? {} : { scale: 0.96 }}
                       transition={{ type: 'spring', stiffness: 500, damping: 40 }}
-                      className="rounded-full px-8 py-3 text-[15px] font-bold text-white disabled:opacity-50"
-                      style={{ background: 'linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-muted) 100%)' }}
+                      className="rounded-full px-8 py-3 text-[15px] font-bold text-on-accent disabled:opacity-50"
+                      style={{ background: 'var(--color-accent-fill)' }}
                     >
                       {extracting ? 'Extracting...' : 'Extract Links'}
                     </motion.button>
@@ -691,8 +691,8 @@ export function BulkImportModal({ onClose, onImported, collections }: Props) {
                       whileHover={loading ? {} : { scale: 1.04 }}
                       whileTap={loading ? {} : { scale: 0.96 }}
                       transition={{ type: 'spring', stiffness: 500, damping: 40 }}
-                      className="rounded-full px-8 py-3 text-[15px] font-bold text-white disabled:opacity-50"
-                      style={{ background: 'linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-muted) 100%)' }}
+                      className="rounded-full px-8 py-3 text-[15px] font-bold text-on-accent disabled:opacity-50"
+                      style={{ background: 'var(--color-accent-fill)' }}
                     >
                       {loading ? 'Saving...' : `Save ${extracted!.length} link${extracted!.length !== 1 ? 's' : ''}`}
                     </motion.button>
@@ -724,7 +724,7 @@ export function BulkImportModal({ onClose, onImported, collections }: Props) {
                   )}
                   {fileUrls.length > 0 && (
                     <div className="flex flex-col items-end gap-1 pt-2">
-                      <motion.button onClick={handleFileExtract} disabled={extracting || tooMany} whileHover={extracting ? {} : { scale: 1.04 }} whileTap={extracting ? {} : { scale: 0.96 }} className="rounded-full px-6 py-3 text-[14px] font-bold text-white disabled:opacity-50" style={{ background: 'linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-muted) 100%)' }}>
+                      <motion.button onClick={handleFileExtract} disabled={extracting || tooMany} whileHover={extracting ? {} : { scale: 1.04 }} whileTap={extracting ? {} : { scale: 0.96 }} className="rounded-full px-6 py-3 text-[14px] font-bold text-on-accent disabled:opacity-50" style={{ background: 'var(--color-accent-fill)' }}>
                         {extracting ? 'Extracting...' : `Extract & review ${Math.min(REVIEW_BATCH_SIZE, fileUrls.filter(url => !processedFileUrls.has(url)).length)} links`}
                       </motion.button>
                       {fileUrls.filter(url => !processedFileUrls.has(url)).length > REVIEW_BATCH_SIZE && <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Review the next 20 after re-uploading this file.</p>}
@@ -806,8 +806,8 @@ export function BulkImportModal({ onClose, onImported, collections }: Props) {
                       whileHover={loading ? {} : { scale: 1.04 }}
                       whileTap={loading ? {} : { scale: 0.96 }}
                       transition={{ type: 'spring', stiffness: 500, damping: 40 }}
-                      className="rounded-full px-8 py-3 text-[15px] font-bold text-white disabled:opacity-50"
-                      style={{ background: 'linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-muted) 100%)' }}
+                      className="rounded-full px-8 py-3 text-[15px] font-bold text-on-accent disabled:opacity-50"
+                      style={{ background: 'var(--color-accent-fill)' }}
                     >
                         {loading ? (importProgress ? `Importing ${importProgress.completed}/${importProgress.total}...` : 'Importing...') : urls.length > 0 ? `Import ${urls.length} link${urls.length !== 1 ? 's' : ''}` : 'Import'}
                     </motion.button>

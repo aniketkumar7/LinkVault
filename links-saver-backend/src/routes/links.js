@@ -16,7 +16,8 @@ router.get('/', async (req, res) => {
             tag,
             search,
             sort = 'created_at',
-            order = 'desc'
+            order = 'desc',
+            limit
         } = req.query;
 
         let query = supabase
@@ -26,16 +27,23 @@ router.get('/', async (req, res) => {
 
         // Apply filters
         if (favorite === 'true') query = query.eq('is_favorite', true);
-        if (collection_id) query = query.eq('collection_id', collection_id);
+        // collection_id=none -> links without a collection ("Unsorted")
+        if (collection_id === 'none') query = query.is('collection_id', null);
+        else if (collection_id) query = query.eq('collection_id', collection_id);
         if (tag) query = query.contains('tags', [tag]);
-        if (search) {
-            query = query.or(`title.ilike.%${search}%,note.ilike.%${search}%,url.ilike.%${search}%,description.ilike.%${search}%`);
+        // Strip PostgREST filter syntax chars so user input can't break the .or() expression
+        const term = String(search || '').replace(/[,()*%\\]/g, ' ').trim().slice(0, 200);
+        if (term) {
+            query = query.or(`title.ilike.%${term}%,note.ilike.%${term}%,url.ilike.%${term}%,description.ilike.%${term}%`);
         }
 
         // Apply sorting
         const validSorts = ['created_at', 'updated_at', 'title'];
         const sortField = validSorts.includes(sort) ? sort : 'created_at';
         query = query.order(sortField, { ascending: order === 'asc' });
+
+        const max = parseInt(limit, 10);
+        if (max > 0) query = query.limit(Math.min(max, 200));
 
         const { data, error } = await query;
 
@@ -88,7 +96,7 @@ router.get('/stats', async (req, res) => {
     try {
         const { data, error } = await supabase
             .from('useful_links')
-            .select('is_favorite, tags')
+            .select('is_favorite, tags, collection_id')
             .eq('user_id', req.user.id);
 
         if (error) throw error;
@@ -96,6 +104,7 @@ router.get('/stats', async (req, res) => {
         const stats = {
             total: data.length,
             favorites: 0,
+            unsorted: 0,
             tags: []
         };
 
@@ -103,6 +112,7 @@ router.get('/stats', async (req, res) => {
 
         data.forEach(link => {
             if (link.is_favorite) stats.favorites++;
+            if (!link.collection_id) stats.unsorted++;
             if (link.tags) link.tags.forEach(t => tagSet.add(t));
         });
 
@@ -295,7 +305,7 @@ router.post('/bulk', async (req, res) => {
                 if (error) throw error;
                 results.success.push(data);
             } catch (err) {
-                results.failed.push({ url, error: err.message });
+                results.failed.push({ url: rawUrl, error: err.message });
             }
         }
 

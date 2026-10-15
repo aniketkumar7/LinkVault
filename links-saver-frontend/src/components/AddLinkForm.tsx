@@ -13,12 +13,14 @@ interface Props {
   onCollectionCreated?: () => void
   open?: boolean
   onOpenChange?: (open: boolean) => void
+  /** Prefills the URL (e.g. paste-to-save); remount with a new key to apply */
+  initialUrl?: string
 }
 
 const MORPH = { type: 'spring' as const, stiffness: 320, damping: 30, mass: 1 }
 type ButtonRect = { x: number; y: number; w: number; h: number } | null
 
-export function AddLinkForm({ onLinkAdded, existingTags, collections, onCollectionCreated, open, onOpenChange }: Props) {
+export function AddLinkForm({ onLinkAdded, existingTags, collections, onCollectionCreated, open, onOpenChange, initialUrl = '' }: Props) {
   const [internalOpen, setInternalOpen] = useState(false)
   const isOpen = open ?? internalOpen
   const setOpenState = (next: boolean) => {
@@ -31,7 +33,7 @@ export function AddLinkForm({ onLinkAdded, existingTags, collections, onCollecti
   const [origin] = useState<ButtonRect>(null)
   const urlRef = useRef<HTMLInputElement>(null)
 
-  const [url, setUrl] = useState('')
+  const [url, setUrl] = useState(initialUrl)
   const [tags, setTags] = useState('')
   const [collectionId, setCollectionId] = useState('')
   const [loading, setLoading] = useState(false)
@@ -114,7 +116,7 @@ export function AddLinkForm({ onLinkAdded, existingTags, collections, onCollecti
     if (!newCollectionName.trim()) return
     setCreatingCollection(true)
     try {
-      const col = await api.createCollection({ name: newCollectionName.trim(), color: '#f68330' })
+      const col = await api.createCollection({ name: newCollectionName.trim(), color: '#f5cb5c' })
       setCollectionId(col.id)
       setCollectionError(false)
       setAddingCollection(false)
@@ -343,8 +345,8 @@ export function AddLinkForm({ onLinkAdded, existingTags, collections, onCollecti
                                   type="button"
                                   onClick={handleCreateCollection}
                                   disabled={creatingCollection || !newCollectionName.trim()}
-                                  className="h-9 px-3 rounded-full text-[13px] font-semibold text-white disabled:opacity-50"
-                                  style={{ background: 'var(--color-accent)' }}
+                                  className="h-9 px-3 rounded-full text-[13px] font-semibold text-on-accent disabled:opacity-50"
+                                  style={{ background: 'var(--color-accent-fill)' }}
                                 >
                                   {creatingCollection ? '...' : 'Add'}
                                 </button>
@@ -409,8 +411,8 @@ export function AddLinkForm({ onLinkAdded, existingTags, collections, onCollecti
                       whileHover={loading ? {} : { scale: 1.04 }}
                       whileTap={loading ? {} : { scale: 0.96 }}
                       transition={{ type: 'spring', stiffness: 500, damping: 40 }}
-                      className="rounded-full px-8 py-3 text-[15px] font-bold text-white disabled:opacity-60"
-                      style={{ background: 'linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-muted) 100%)' }}
+                      className="rounded-full px-8 py-3 text-[15px] font-bold text-on-accent disabled:opacity-60"
+                      style={{ background: 'var(--color-accent-fill)' }}
                     >
                       {loading ? 'Saving...' : 'Save'}
                     </motion.button>

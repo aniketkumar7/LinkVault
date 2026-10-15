@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import type { User, Session } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
+import { profileMetadata } from '@/lib/profile'
 
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null)
@@ -32,11 +33,11 @@ export function useAuth() {
     if (error) throw error
   }
 
-  const signUp = async (email: string, password: string) => {
+  const signUp = async (email: string, password: string, name: { first: string; last: string }) => {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      options: { emailRedirectTo: `${window.location.origin}/auth` },
+      options: { emailRedirectTo: `${window.location.origin}/auth`, data: profileMetadata(name.first, name.last) },
     })
     if (error) throw error
     return { needsConfirmation: !data.session }

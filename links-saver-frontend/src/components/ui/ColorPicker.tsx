@@ -1,128 +1,76 @@
 import { useState } from 'react'
 
-const colors = [
-  '#ef5350',
-  '#ed3f68',
-  '#d9368b',
-  '#b83fc2',
-  '#ff754d',
-  '#ff8f3d',
-  '#ffbd4d',
-  '#f3df61',
-  '#e8e85d',
-  '#a9d66f',
-  '#7fc95c',
-  '#62cfaa',
-  '#42bfa0',
-  '#5ab7dc',
-  '#4b9edb',
-  '#6689df',
-  '#5369d7',
-  '#9274d9',
-  '#c363c6',
-  '#e8669a',
-  '#ed7890',
-  '#f08a72',
-  '#f5a85f',
-  '#c9dc68',
-  '#79d3a2',
+// Flower picker: 18 hues x 3 tones = 54 one-tap colors.
+// Lightness is kept mid-range on purpose, so no pick is near black/white and every
+// folder stays visible in both themes.
+const HUES = Array.from({ length: 18 }, (_, i) => i * 20)
+const RINGS = [
+  { radius: 116, petal: 17, s: 72, l: 74 }, // outer: light
+  { radius: 84, petal: 13.5, s: 76, l: 58 }, // middle: vivid
+  { radius: 56, petal: 9, s: 64, l: 42 }, // inner: deep
 ]
+const SIZE = 272
+const CENTER = SIZE / 2
 
-function hslToHex(h: number, s = 78, l = 55) {
-  s /= 100
-  l /= 100
-  const k = (n: number) => (n + h / 30) % 12
-  const a = s * Math.min(l, 1 - l)
-  const f = (n: number) => l - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)))
-  return `#${[f(0), f(8), f(4)]
-    .map(v =>
-      Math.round(v * 255)
-        .toString(16)
-        .padStart(2, '0')
-    )
-    .join('')}`
+function hslToHex(h: number, s: number, l: number) {
+  const sat = s / 100
+  const light = l / 100
+  const a = sat * Math.min(light, 1 - light)
+  const f = (n: number) => {
+    const k = (n + h / 30) % 12
+    return light - a * Math.max(-1, Math.min(k - 3, 9 - k, 1))
+  }
+  return `#${[f(0), f(8), f(4)].map(c => Math.round(c * 255).toString(16).padStart(2, '0')).join('')}`
 }
 
-export function ColorPicker({
-  value = '#f68330',
-  onChange,
-}: {
-  value?: string
-  onChange?: (color: string) => void
-}) {
-  const [selected, setSelected] = useState(value)
-  const size = 252
-  const center = size / 2
-  const choose = (event: React.PointerEvent<SVGSVGElement>) => {
-    const box = event.currentTarget.getBoundingClientRect()
-    const x = event.clientX - box.left - center
-    const y = event.clientY - box.top - center
-    const distance = Math.hypot(x, y)
-    if (distance > 102) return
-    if (distance > 38 && distance < 102) {
-      const angle = (Math.atan2(y, x) + Math.PI / 2 + Math.PI * 2) % (Math.PI * 2)
-      const index = Math.round(angle / ((Math.PI * 2) / colors.length)) % colors.length
-      const nextColor = colors[index]
-      setSelected(nextColor)
-      onChange?.(nextColor)
-      return
+const PETALS = RINGS.flatMap((ring, ringIndex) =>
+  HUES.map(hue => {
+    // Offset alternate rings by half a step so petals interlock like a flower
+    const angle = ((hue + (ringIndex % 2 ? 10 : 0)) * Math.PI) / 180 - Math.PI / 2
+    return {
+      color: hslToHex(hue + (ringIndex % 2 ? 10 : 0), ring.s, ring.l),
+      x: CENTER + Math.cos(angle) * ring.radius,
+      y: CENTER + Math.sin(angle) * ring.radius,
+      r: ring.petal,
     }
-    const next = ((Math.atan2(y, x) * 180) / Math.PI + 360) % 360
-    setSelected(hslToHex(next))
-    onChange?.(hslToHex(next))
+  }),
+)
+
+export function ColorPicker({ value = '#f5cb5c', onChange }: { value?: string; onChange?: (color: string) => void }) {
+  const [selected, setSelected] = useState(value.toLowerCase())
+  const choose = (color: string) => {
+    setSelected(color)
+    onChange?.(color)
   }
+
   return (
-    <div
-      className="relative rounded-[22px] px-1 text-white"
-      style={{ width: size + 24 }}>
-      <svg
-        width={size}
-        height={size}
-        viewBox={`0 0 ${size} ${size}`}
-        onPointerDown={choose}
-        className="block touch-none cursor-crosshair">
-        {colors.map((color, index) => {
-          const angle = (index / colors.length) * Math.PI * 2 - Math.PI / 2
-          const x = center + Math.cos(angle) * 73
-          const y = center + Math.sin(angle) * 73
+    <div className="mt-3 flex justify-center">
+      <svg width={SIZE} height={SIZE} viewBox={`0 0 ${SIZE} ${SIZE}`} role="radiogroup" aria-label="Folder color" className="max-w-full">
+        {PETALS.map(petal => {
+          const isSelected = petal.color === selected
           return (
             <circle
-              key={color}
-              cx={x}
-              cy={y}
-              r="22"
-              fill={color}
-              stroke="rgba(255,255,255,.16)"
-              strokeWidth="1"
+              key={petal.color}
+              cx={petal.x}
+              cy={petal.y}
+              r={petal.r}
+              fill={petal.color}
+              role="radio"
+              aria-checked={isSelected}
+              aria-label={petal.color}
+              tabIndex={0}
+              onClick={() => choose(petal.color)}
+              onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); choose(petal.color) } }}
+              stroke={isSelected ? 'var(--color-text-primary)' : 'rgba(255,255,255,0.18)'}
+              strokeWidth={isSelected ? 3 : 1}
+              className="cursor-pointer outline-none transition-transform duration-150 hover:scale-[1.18] focus-visible:scale-[1.18]"
+              style={{ transformBox: 'fill-box', transformOrigin: 'center' }}
             />
           )
         })}
-        <circle
-          cx={center}
-          cy={center}
-          r="30"
-          fill={value}
-          stroke="white"
-          strokeWidth="3"
-        />
-        <path
-          d={`M${center - 8} ${center + 5}l14 -14M${center - 4} ${center - 5}l5 5M${center + 2} ${center - 10}l5 5`}
-          fill="none"
-          stroke="white"
-          strokeWidth="2"
-          strokeLinecap="round"
-        />
+        {/* Current color */}
+        <circle cx={CENTER} cy={CENTER} r={34} fill={selected} stroke="var(--color-bg-card)" strokeWidth={4} />
       </svg>
-      <input
-        type="color"
-        value={selected}
-        onChange={event => {
-          setSelected(event.target.value)
-          onChange?.(event.target.value)
-        }}
-        aria-label="Choose custom folder color"
-        className="absolute left-1/2 top-[43%] h-12 w-12 -translate-x-1/2 -translate-y-1/2 cursor-pointer opacity-0"
-      />
     </div>
   )
 }

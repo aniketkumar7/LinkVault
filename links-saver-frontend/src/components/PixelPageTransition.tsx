@@ -77,7 +77,7 @@ export default function PixelPageTransition({
           initial={{ opacity: 0 }}
           animate={state === 'entering' || state === 'covered' ? { opacity: 1 } : { opacity: 0 }}
           transition={{ duration, ease, delay: (order[i] / grid.total) * staggerDuration }}
-          style={{ background: 'var(--color-accent)' }}
+          style={{ background: 'var(--color-accent-fill)' }}
           className="pointer-events-none h-full w-full"
         />
       ))}

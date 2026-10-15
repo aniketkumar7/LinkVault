@@ -43,7 +43,7 @@ export function LandingPage({ onGetStarted }: Props) {
         <h1 className="max-w-[11ch] text-5xl font-semibold leading-[.98] tracking-[-.055em] sm:text-7xl">Save the link. Keep the idea.</h1>
         <p className="mt-7 max-w-lg text-lg leading-8" style={{ color: 'var(--color-text-secondary)' }}>A quieter place for the articles, tools, videos, and inspiration you know you’ll want later.</p>
         <div className="mt-9 flex flex-wrap items-center gap-4">
-          <button onClick={onGetStarted} className="group flex items-center gap-3 rounded-full px-6 py-3.5 text-sm font-bold text-white transition-transform hover:-translate-y-1" style={{ background: 'var(--color-accent)', boxShadow: '0 14px 35px -18px var(--color-accent)' }}>Start saving for free <ArrowUpRight size={18} weight="bold" className="transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" /></button>
+          <button onClick={onGetStarted} className="group flex items-center gap-3 rounded-full px-6 py-3.5 text-sm font-bold text-on-accent transition-transform hover:-translate-y-1" style={{ background: 'var(--color-accent-fill)', boxShadow: '0 14px 35px -18px var(--color-accent)' }}>Start saving for free <ArrowUpRight size={18} weight="bold" className="transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" /></button>
           <span className="text-sm" style={{ color: 'var(--color-text-muted)' }}>No credit card. No clutter.</span>
         </div>
         <div className="mt-12 flex items-center gap-6 border-t pt-5 text-sm" style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-muted)' }}>
@@ -53,7 +53,7 @@ export function LandingPage({ onGetStarted }: Props) {
       </div>
 
       <div className="relative min-h-[430px] sm:min-h-[500px]">
-        <div className="absolute -right-20 top-0 h-72 w-72 rounded-full opacity-20 blur-3xl" style={{ background: 'var(--color-accent)' }} />
+        <div className="absolute -right-20 top-0 h-72 w-72 rounded-full opacity-20 blur-3xl" style={{ background: 'var(--color-accent-fill)' }} />
         <div className="landing-workspace absolute left-1/2 top-1/2 w-full max-w-[620px] -translate-x-1/2 -translate-y-1/2 rotate-[2deg] p-3 sm:p-5">
           <div className="flex items-center justify-between border-b px-2 pb-4" style={{ borderColor: 'var(--color-border)' }}>
             <div className="flex items-center gap-2"><img src="/Logo.svg" className="h-5 w-5" alt="" /><span className="font-brand text-lg">LinkVault</span></div>
@@ -88,7 +88,7 @@ export function LandingPage({ onGetStarted }: Props) {
           ].map((item, index) => <motion.div key={item.number} initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: .35 }} transition={{ delay: index * .1, duration: .55, ease: [.16, 1, .3, 1] }} className="group relative min-h-[220px] overflow-hidden rounded-[22px] border p-5 transition-colors hover:border-[var(--color-accent)]" style={{ borderColor: 'var(--color-border)', background: 'var(--color-bg-card)' }}>
             <div className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-500 group-hover:opacity-100"><svg className="h-full w-full" viewBox="0 0 400 260" preserveAspectRatio="none" fill="none"><path d="M-20 210C100 130 130 260 240 160S370 70 430 20" stroke="var(--color-accent)" strokeOpacity=".12" strokeWidth="1" strokeDasharray="5 8"><animate attributeName="stroke-dashoffset" from="0" to="-52" dur="2.5s" repeatCount="indefinite" /></path><circle cx="76" cy="172" r="3" fill="var(--color-accent)" opacity=".5"><animate attributeName="cy" values="172;150;172" dur="2s" repeatCount="indefinite" /></circle></svg></div>
             <div className="relative flex items-start justify-between"><span className="font-mono text-xs" style={{ color: 'var(--color-accent)' }}>{item.number}</span><motion.span animate={item.motion} transition={{ duration: 3.2, repeat: Infinity, ease: 'easeInOut' }} className="grid h-10 w-10 place-items-center rounded-xl" style={{ background: 'color-mix(in srgb, var(--color-accent) 12%, transparent)', color: 'var(--color-accent)' }}>{item.icon}</motion.span></div>
-            <div className="absolute -bottom-8 -right-5 h-28 w-28 rounded-full opacity-10 blur-2xl transition-opacity group-hover:opacity-30" style={{ background: 'var(--color-accent)' }} />
+            <div className="absolute -bottom-8 -right-5 h-28 w-28 rounded-full opacity-10 blur-2xl transition-opacity group-hover:opacity-30" style={{ background: 'var(--color-accent-fill)' }} />
             <div className="absolute bottom-5 left-5 right-5"><h3 className="text-xl font-semibold">{item.title}</h3><p className="mt-2 max-w-[18ch] text-sm leading-6" style={{ color: 'var(--color-text-secondary)' }}>{item.text}</p></div>
           </motion.div>)}
         </div>
@@ -97,7 +97,7 @@ export function LandingPage({ onGetStarted }: Props) {
 
     <section className="border-y" style={{ borderColor: 'var(--color-border)', background: 'var(--color-bg-secondary)' }}>
       <div className="mx-auto grid max-w-7xl gap-8 px-5 py-7 sm:grid-cols-3 sm:px-8 lg:px-10">
-        {[['Capture', 'Paste a URL and keep the context.'], ['Organize', 'Collections, tags, and notes that stay human.'], ['Return', 'Search it when the moment comes back.']].map(([title, text]) => <div key={title} className="flex items-start gap-3"><span className="mt-1 h-2 w-2 rounded-full" style={{ background: 'var(--color-accent)' }} /><div><p className="text-sm font-bold">{title}</p><p className="mt-1 text-sm" style={{ color: 'var(--color-text-muted)' }}>{text}</p></div></div>)}
+        {[['Capture', 'Paste a URL and keep the context.'], ['Organize', 'Collections, tags, and notes that stay human.'], ['Return', 'Search it when the moment comes back.']].map(([title, text]) => <div key={title} className="flex items-start gap-3"><span className="mt-1 h-2 w-2 rounded-full" style={{ background: 'var(--color-accent-fill)' }} /><div><p className="text-sm font-bold">{title}</p><p className="mt-1 text-sm" style={{ color: 'var(--color-text-muted)' }}>{text}</p></div></div>)}
       </div>
     </section>
 
@@ -109,7 +109,7 @@ export function LandingPage({ onGetStarted }: Props) {
     </section>
 
     <section className="mx-5 mb-8 overflow-hidden rounded-[28px] sm:mx-8 lg:mx-auto lg:max-w-7xl">
-      <div className="relative px-6 py-16 sm:px-12 lg:px-20"><div className="absolute inset-0" style={{ background: 'linear-gradient(120deg, var(--color-bg-card), color-mix(in srgb, var(--color-accent) 12%, var(--color-bg-card)))' }} /><div className="relative max-w-xl"><Stack size={28} weight="duotone" style={{ color: 'var(--color-accent)' }} /><h2 className="mt-5 text-4xl font-semibold tracking-[-.04em]">Make room for the next good idea.</h2><p className="mt-4 max-w-md leading-7" style={{ color: 'var(--color-text-secondary)' }}>Start with one collection. Add the links you keep reopening. Let the rest become easy.</p><button onClick={onGetStarted} className="mt-8 rounded-full px-6 py-3.5 text-sm font-bold text-white" style={{ background: 'var(--color-accent)' }}>Open your vault <ArrowUpRight size={17} className="ml-2 inline" /></button></div></div>
+      <div className="relative px-6 py-16 sm:px-12 lg:px-20"><div className="absolute inset-0" style={{ background: 'linear-gradient(120deg, var(--color-bg-card), color-mix(in srgb, var(--color-accent) 12%, var(--color-bg-card)))' }} /><div className="relative max-w-xl"><Stack size={28} weight="duotone" style={{ color: 'var(--color-accent)' }} /><h2 className="mt-5 text-4xl font-semibold tracking-[-.04em]">Make room for the next good idea.</h2><p className="mt-4 max-w-md leading-7" style={{ color: 'var(--color-text-secondary)' }}>Start with one collection. Add the links you keep reopening. Let the rest become easy.</p><button onClick={onGetStarted} className="mt-8 rounded-full px-6 py-3.5 text-sm font-bold text-on-accent" style={{ background: 'var(--color-accent-fill)' }}>Open your vault <ArrowUpRight size={17} className="ml-2 inline" /></button></div></div>
     </section>
 
     <footer className="mx-auto flex max-w-7xl flex-col gap-3 px-5 py-8 text-sm sm:flex-row sm:items-center sm:justify-between sm:px-8 lg:px-10" style={{ color: 'var(--color-text-muted)' }}><span className="font-brand text-xl" style={{ color: 'var(--color-text-secondary)' }}>LinkVault</span><span>Save links. Remember why. Find them later.</span></footer>

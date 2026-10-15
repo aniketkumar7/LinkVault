@@ -28,9 +28,9 @@ export function EmptyState({ icon, title, description, action }: Props) {
             {action && (
                 <button
                     onClick={action.onClick}
-                    className="px-6 py-3 rounded-xl font-medium text-white transition-all hover:scale-105"
+                    className="px-6 py-3 rounded-xl font-medium text-on-accent transition-all hover:scale-105"
                     style={{
-                        background: 'linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-muted) 100%)',
+                        background: 'var(--color-accent-fill)',
                         boxShadow: 'var(--shadow-glow)',
                     }}
                 >

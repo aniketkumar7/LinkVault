@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { NAME_MAX } from '@/lib/profile'
 import { motion } from 'framer-motion'
 import { ArrowLeft, ArrowUpRight, LinkSimple, Sparkle } from '@phosphor-icons/react'
 import { useAuth } from '@/hooks/useAuth'
@@ -13,6 +14,8 @@ interface Props {
 
 export function LoginPage({ onBack, isRecovery = false, onPasswordUpdated, initialSignUp = false }: Props) {
   const [email, setEmail] = useState('')
+  const [firstName, setFirstName] = useState('')
+  const [lastName, setLastName] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [isSignUp, setIsSignUp] = useState(initialSignUp)
@@ -30,7 +33,7 @@ export function LoginPage({ onBack, isRecovery = false, onPasswordUpdated, initi
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (isRecovery ? (!password || password.length < 6 || password !== confirmPassword) : (!email.trim() || (!isForgotPassword && !password.trim()))) return
+    if (isRecovery ? (!password || password.length < 6 || password !== confirmPassword) : (!email.trim() || (!isForgotPassword && !password.trim()) || (isSignUp && !isForgotPassword && !firstName.trim()))) return
 
     setLoading(true)
     setMessage(null)
@@ -46,7 +49,7 @@ export function LoginPage({ onBack, isRecovery = false, onPasswordUpdated, initi
         toast.success('Password reset email sent')
         setMessage({ type: 'success', text: 'If an account exists for this email, you’ll receive a password reset link shortly.' })
       } else if (isSignUp) {
-        const result = await signUp(email.trim(), password)
+        const result = await signUp(email.trim(), password, { first: firstName, last: lastName })
         if (result.needsConfirmation) {
           toast.success('Confirmation email sent')
           setMessage({ type: 'success', text: 'Account created. Check your inbox and spam folder for the confirmation email, then return here to sign in.' })
@@ -80,7 +83,7 @@ export function LoginPage({ onBack, isRecovery = false, onPasswordUpdated, initi
       <div className="relative grid w-full max-w-6xl overflow-hidden rounded-[30px] border shadow-2xl lg:grid-cols-[.9fr_1.1fr]" style={{ borderColor: 'var(--color-border)', background: 'var(--color-bg-card)' }}>
         <motion.aside initial={{ opacity: 0, x: -24 }} animate={{ opacity: 1, x: 0 }} className="relative hidden overflow-hidden p-10 lg:flex lg:min-h-[680px] lg:flex-col lg:justify-between" style={{ background: 'linear-gradient(145deg, color-mix(in srgb, var(--color-accent) 18%, var(--color-bg-secondary)), var(--color-bg-secondary))' }}>
           <div className="relative z-10"><img src="/Logo.svg" alt="LinkVault" className="h-16 w-16" /><h2 className="mt-8 max-w-sm text-5xl font-semibold leading-[.98] tracking-[-.05em]">Keep the links that keep you moving.</h2><p className="mt-6 max-w-sm text-base leading-7" style={{ color: 'var(--color-text-secondary)' }}>One calm place for articles, videos, tools, screenshots, and the ideas hiding inside your documents.</p></div>
-          <div className="relative z-10 space-y-3"><div className="flex items-center gap-3 rounded-2xl border p-3" style={{ borderColor: 'var(--color-border)', background: 'rgba(0,0,0,.12)' }}><span className="grid h-9 w-9 place-items-center rounded-xl" style={{ background: 'var(--color-accent)', color: 'var(--color-bg-primary)' }}><LinkSimple size={18} weight="bold" /></span><div><p className="text-sm font-semibold">Capture the thought</p><p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Save the link and why it mattered.</p></div><ArrowUpRight size={17} className="ml-auto" /></div><div className="flex items-center gap-2 text-xs" style={{ color: 'var(--color-text-muted)' }}><Sparkle size={14} style={{ color: 'var(--color-accent)' }} /> Built for curious people with too many tabs.</div></div>
+          <div className="relative z-10 space-y-3"><div className="flex items-center gap-3 rounded-2xl border p-3" style={{ borderColor: 'var(--color-border)', background: 'rgba(0,0,0,.12)' }}><span className="grid h-9 w-9 place-items-center rounded-xl" style={{ background: 'var(--color-accent-fill)', color: 'var(--color-on-accent)' }}><LinkSimple size={18} weight="bold" /></span><div><p className="text-sm font-semibold">Capture the thought</p><p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Save the link and why it mattered.</p></div><ArrowUpRight size={17} className="ml-auto" /></div><div className="flex items-center gap-2 text-xs" style={{ color: 'var(--color-text-muted)' }}><Sparkle size={14} style={{ color: 'var(--color-accent)' }} /> Built for curious people with too many tabs.</div></div>
           <svg className="pointer-events-none absolute -bottom-20 -right-24 h-96 w-96 opacity-30" viewBox="0 0 400 400" fill="none"><circle cx="200" cy="200" r="140" stroke="var(--color-accent)" strokeOpacity=".35" strokeDasharray="4 10"><animateTransform attributeName="transform" type="rotate" from="0 200 200" to="360 200 200" dur="24s" repeatCount="indefinite" /></circle><circle cx="200" cy="200" r="92" stroke="var(--color-accent)" strokeOpacity=".25" strokeDasharray="2 8" /></svg>
         </motion.aside>
 
@@ -98,8 +101,8 @@ export function LoginPage({ onBack, isRecovery = false, onPasswordUpdated, initi
 
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-4 lg:hidden"
-               style={{ background: 'linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-muted) 100%)', boxShadow: 'var(--shadow-glow)' }}>
-            <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+               style={{ background: 'var(--color-accent-fill)', boxShadow: 'var(--shadow-glow)' }}>
+            <svg className="w-8 h-8 text-on-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
             </svg>
           </div>
@@ -113,6 +116,20 @@ export function LoginPage({ onBack, isRecovery = false, onPasswordUpdated, initi
 
         <div className="rounded-2xl" style={{ background: 'var(--color-bg-card)' }}>
           <form onSubmit={handleSubmit} className="space-y-4">
+            {isSignUp && !isForgotPassword && !isRecovery && (
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label htmlFor="first-name" className="block text-sm font-medium mb-2" style={{ color: 'var(--color-text-secondary)' }}>First name</label>
+                  <input id="first-name" value={firstName} onChange={e => setFirstName(e.target.value)} placeholder="Ada" autoComplete="given-name" maxLength={NAME_MAX} required disabled={loading}
+                    className="w-full px-4 py-3 rounded-xl text-base transition-all" style={{ background: 'var(--color-bg-tertiary)', border: '1px solid var(--color-border)', color: 'var(--color-text-primary)' }} />
+                </div>
+                <div>
+                  <label htmlFor="last-name" className="block text-sm font-medium mb-2" style={{ color: 'var(--color-text-secondary)' }}>Last name</label>
+                  <input id="last-name" value={lastName} onChange={e => setLastName(e.target.value)} placeholder="Lovelace" autoComplete="family-name" maxLength={NAME_MAX} disabled={loading}
+                    className="w-full px-4 py-3 rounded-xl text-base transition-all" style={{ background: 'var(--color-bg-tertiary)', border: '1px solid var(--color-border)', color: 'var(--color-text-primary)' }} />
+                </div>
+              </div>
+            )}
             <div>
               {!isRecovery && <label htmlFor="email" className="block text-sm font-medium mb-2" style={{ color: 'var(--color-text-secondary)' }}>
                 Email address
@@ -168,10 +185,10 @@ export function LoginPage({ onBack, isRecovery = false, onPasswordUpdated, initi
 
             <button
               type="submit"
-              disabled={loading || (isRecovery ? !password || password.length < 6 || password !== confirmPassword : !email.trim() || (!isForgotPassword && !password.trim()))}
-              className="w-full py-3 px-4 rounded-xl font-semibold text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={loading || (isRecovery ? !password || password.length < 6 || password !== confirmPassword : !email.trim() || (!isForgotPassword && !password.trim()) || (isSignUp && !isForgotPassword && !firstName.trim()))}
+              className="w-full py-3 px-4 rounded-xl font-semibold text-on-accent transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               style={{
-                background: loading ? 'var(--color-border)' : 'linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-muted) 100%)',
+                background: loading ? 'var(--color-border)' : 'var(--color-accent-fill)',
                 boxShadow: loading ? 'none' : 'var(--shadow-glow)',
               }}
             >

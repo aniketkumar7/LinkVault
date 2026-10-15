@@ -3,20 +3,24 @@ import { api } from '@/lib/api'
 import { toast } from '@/lib/toast'
 import { Folder } from './Folder'
 import { ColorPicker } from './ui/ColorPicker'
+import { readableText } from '@/lib/color'
 
 export function AddCollectionModal({
   open,
   onClose,
   onCreated,
   collection,
+  bare = false,
 }: {
   open: boolean
   onClose: () => void
   onCreated: () => void
   collection?: { id: string; name: string; color: string }
+  /** Render only the form (no overlay/header), e.g. inside a drawer */
+  bare?: boolean
 }) {
   const [name, setName] = useState(collection?.name ?? '')
-  const [color, setColor] = useState(collection?.color ?? '#f68330')
+  const [color, setColor] = useState(collection?.color ?? '#f5cb5c')
   const [saving, setSaving] = useState(false)
   if (!open) return null
   const create = async () => {
@@ -35,6 +39,45 @@ export function AddCollectionModal({
       setSaving(false)
     }
   }
+
+  const form = (
+    <>
+      <div className="flex justify-center py-2">
+        <Folder color={color} width={150} desktopWidth={150} />
+      </div>
+      <label
+        className="mt-1 block text-xs font-semibold"
+        style={{ color: 'var(--color-text-secondary)' }}>
+        Collection name
+      </label>
+      <input
+        autoFocus
+        value={name}
+        onChange={event => setName(event.target.value)}
+        onKeyDown={event => event.key === 'Enter' && create()}
+        placeholder="e.g. Design inspiration"
+        className="mt-2 w-full rounded-xl border px-3 py-2.5 text-sm"
+        style={{
+          background: 'var(--color-bg-tertiary)',
+          borderColor: 'var(--color-border)',
+          color: 'var(--color-text-primary)',
+        }}
+      />
+      <div className="flex justify-center">
+        <ColorPicker value={color} onChange={setColor} />
+      </div>
+      <button
+        onClick={create}
+        disabled={!name.trim() || saving}
+        className="mt-4 w-full rounded-xl py-3 text-sm font-semibold disabled:opacity-40"
+        style={{ background: color, color: readableText(color) }}>
+        {saving ? 'Saving…' : collection ? 'Save changes' : 'Create collection'}
+      </button>
+    </>
+  )
+
+  if (bare) return form
+
   return (
     <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
       <div
@@ -66,37 +109,7 @@ export function AddCollectionModal({
             ×
           </button>
         </div>
-        <div className="flex justify-center py-2">
-          <Folder color={color} width={150} desktopWidth={150} />
-        </div>
-        <label
-          className="mt-1 block text-xs font-semibold"
-          style={{ color: 'var(--color-text-secondary)' }}>
-          Collection name
-        </label>
-        <input
-          autoFocus
-          value={name}
-          onChange={event => setName(event.target.value)}
-          onKeyDown={event => event.key === 'Enter' && create()}
-          placeholder="e.g. Design inspiration"
-          className="mt-2 w-full rounded-xl border px-3 py-2.5 text-sm"
-          style={{
-            background: 'var(--color-bg-tertiary)',
-            borderColor: 'var(--color-border)',
-            color: 'var(--color-text-primary)',
-          }}
-        />
-        <div className="flex justify-center">
-          <ColorPicker value={color} onChange={setColor} />
-        </div>
-        <button
-          onClick={create}
-          disabled={!name.trim() || saving}
-          className="mt-4 w-full rounded-xl py-3 text-sm font-semibold disabled:opacity-40"
-          style={{ background: color, color: '#fff' }}>
-          {saving ? 'Saving…' : collection ? 'Save changes' : 'Create collection'}
-        </button>
+        {form}
       </section>
     </div>
   )

@@ -6,6 +6,11 @@ import { useCircularTheme } from './CircularThemeProvider'
 import { AddLinkForm } from './AddLinkForm'
 import { BulkImportModal } from './BulkImportModal'
 import { LinksView } from './LinksView'
+import { AccentPicker } from './ui/AccentPicker'
+import { ProfileDrawer } from './ProfileDrawer'
+import { displayName } from '@/lib/profile'
+import { FolderStylePicker } from './ui/FolderStylePicker'
+import { SMART_FOLDERS, smartKey } from '@/lib/smartFolders'
 
 interface Props {
   collectionId: string
@@ -23,8 +28,15 @@ export function CollectionPage({ collectionId, onBack }: Props) {
   const [showAddLink, setShowAddLink] = useState(false)
   const [showBulkImport, setShowBulkImport] = useState(false)
 
-  const collection = collections.find(c => c.id === collectionId || c.name.toLowerCase() === decodeURIComponent(collectionId).toLowerCase())
-  const profileName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'User'
+  const smart = smartKey(collectionId)
+  const smartFolder = SMART_FOLDERS.find(f => f.key === smart)
+  const collection = smart ? undefined : collections.find(c => c.id === collectionId || c.name.toLowerCase() === decodeURIComponent(collectionId).toLowerCase())
+  const smartCount = smart === 'all' ? stats?.total : smart === 'favorites' ? stats?.favorites : stats?.unsorted
+  const header = smartFolder
+    ? { name: smartFolder.name, color: smartFolder.color, count: smartCount ?? 0 }
+    : collection && { name: collection.name, color: collection.color, count: collection.link_count ?? 0 }
+  const profileName = displayName(user)
+  const [showProfile, setShowProfile] = useState(false)
   const profileInitial = profileName.charAt(0).toUpperCase()
 
   useEffect(() => {
@@ -39,7 +51,7 @@ export function CollectionPage({ collectionId, onBack }: Props) {
 
   return (
     <div className="min-h-screen">
-      <header className="sticky top-0 z-30 backdrop-blur-xl" style={{ background: 'color-mix(in srgb, var(--color-bg-primary) 80%, transparent)' }}>
+      <header className="dot-surface sticky top-0 z-30">
         <div className="mx-auto flex items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8">
           {/* Left: back + collection name */}
           <div className="flex items-center gap-3 min-w-0">
@@ -54,14 +66,14 @@ export function CollectionPage({ collectionId, onBack }: Props) {
               </svg>
             </button>
 
-            {collection && (
+            {header && (
               <div className="flex items-center gap-2 min-w-0">
-                <span className="h-3 w-3 rounded-full shrink-0" style={{ background: collection.color }} />
+                <span className="h-3 w-3 rounded-full shrink-0" style={{ background: header.color }} />
                 <h1 className="text-lg font-semibold truncate" style={{ color: 'var(--color-text-primary)' }}>
-                  {collection.name}
+                  {header.name}
                 </h1>
                 <span className="text-sm shrink-0" style={{ color: 'var(--color-text-muted)' }}>
-                  {collection.link_count ?? 0} links
+                  {header.count} links
                 </span>
               </div>
             )}
@@ -83,7 +95,7 @@ export function CollectionPage({ collectionId, onBack }: Props) {
                 type="button"
                 onClick={e => { e.stopPropagation(); setShowProfileMenu(v => !v) }}
                 className="flex h-10 w-10 items-center justify-center rounded-2xl border text-sm font-semibold"
-                style={{ background: 'var(--color-accent)', borderColor: 'var(--color-accent)', color: 'var(--color-bg-primary)' }}
+                style={{ background: 'var(--color-accent-fill)', borderColor: 'var(--color-accent-fill)', color: 'var(--color-on-accent)' }}
               >
                 {profileInitial}
               </button>
@@ -92,7 +104,7 @@ export function CollectionPage({ collectionId, onBack }: Props) {
                 <motion.div initial={{ opacity: 0, y: -8, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ type: 'spring', stiffness: 420, damping: 26 }} className="absolute right-0 mt-2 w-60 origin-top-right rounded-2xl border p-3 shadow-2xl" style={{ background: 'color-mix(in srgb, var(--color-bg-card) 94%, transparent)', borderColor: 'var(--color-border)', backdropFilter: 'blur(18px)' }} onClick={e => e.stopPropagation()}>
                   <div className="mb-3 px-3 py-2">
                     <div className="flex items-center gap-2.5">
-                      <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl text-xs font-bold" style={{ background: 'var(--color-accent)', color: 'var(--color-bg-primary)' }}>{profileInitial}</div>
+                      <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl text-xs font-bold" style={{ background: 'var(--color-accent-fill)', color: 'var(--color-on-accent)' }}>{profileInitial}</div>
                       <div className="min-w-0">
                         <p className="truncate text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>{profileName}</p>
                         <p className="mt-1 truncate text-[11px]" style={{ color: 'var(--color-text-muted)' }}>{user?.email}</p>
@@ -100,6 +112,10 @@ export function CollectionPage({ collectionId, onBack }: Props) {
                     </div>
                     <p className="mt-2 text-xs" style={{ color: 'var(--color-text-muted)' }}>{stats?.total ?? 0} links saved</p>
                   </div>
+                  <div className="mb-2"><AccentPicker /><FolderStylePicker /></div>
+                  <motion.button whileHover={{ x: 3 }} whileTap={{ scale: 0.98 }} onClick={() => { setShowProfile(true); setShowProfileMenu(false) }} className="w-full rounded-xl px-3 py-2.5 text-left text-sm transition-colors hover:bg-[var(--color-bg-tertiary)]" style={{ color: 'var(--color-text-secondary)' }}>
+                    Edit profile
+                  </motion.button>
                   <motion.button whileHover={{ x: 3 }} whileTap={{ scale: 0.98 }} onClick={() => { setShowProfileMenu(false); signOut() }} className="w-full rounded-xl px-3 py-2.5 text-sm text-left" style={{ background: 'rgba(239,68,68,0.08)', color: 'var(--color-error)' }}>
                     Sign out
                   </motion.button>
@@ -111,7 +127,13 @@ export function CollectionPage({ collectionId, onBack }: Props) {
       </header>
 
       <main className="mx-auto px-2 pt-6 pb-32 sm:px-4 lg:px-6">
-        <LinksView collections={collections} initialCollectionId={collection?.id || collectionId} onRefetchNeeded={invalidateCollections} />
+        <LinksView
+          key={collectionId}
+          collections={collections}
+          initialCollectionId={smart ? (smart === 'unsorted' ? 'none' : '') : collection?.id || collectionId}
+          initialFavorite={smart === 'favorites'}
+          onRefetchNeeded={invalidateCollections}
+        />
       </main>
 
       <div className="capture-dock">
@@ -121,6 +143,7 @@ export function CollectionPage({ collectionId, onBack }: Props) {
 
       <AddLinkForm open={showAddLink} onOpenChange={setShowAddLink} onLinkAdded={invalidateCollections} existingTags={[]} collections={collections} onCollectionCreated={invalidateCollections} />
       {showBulkImport && <BulkImportModal onClose={() => setShowBulkImport(false)} onImported={invalidateCollections} collections={collections} />}
+      <ProfileDrawer open={showProfile} onClose={() => setShowProfile(false)} user={user} />
     </div>
   )
 }

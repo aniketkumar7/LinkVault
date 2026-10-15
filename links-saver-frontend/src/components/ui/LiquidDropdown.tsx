@@ -368,7 +368,7 @@ export function LiquidDropdownItem({
   const ctx = useContext(Ctx)
 
   const bg = selected
-    ? 'rgba(246,131,48,0.10)'
+    ? 'color-mix(in srgb, var(--color-accent) 10%, transparent)'
     : highlighted
     ? 'var(--color-bg-hover)'
     : 'transparent'
