@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { motion } from 'framer-motion'
+import { AnimatePresence, motion } from 'framer-motion'
+import { DownloadSimple, SignOut, Stack, UserCircle } from '@phosphor-icons/react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '@/hooks/useAuth'
 import { queryKeys, useCollections, useStats } from '@/hooks/useLinks'
@@ -58,8 +59,8 @@ function greeting() {
 
 export function Home({ onOpenCollection }: Props) {
   const { user, signOut } = useAuth()
-  const { data: collections = [] } = useCollections()
-  const { data: stats } = useStats()
+  const { data: collections = [], isLoading: collectionsLoading } = useCollections()
+  const { data: stats, isLoading: statsLoading } = useStats()
   const queryClient = useQueryClient()
   // Home shows links, collections and stats together, so refresh all three after changes
   const invalidateCollections = () => {
@@ -187,12 +188,26 @@ export function Home({ onOpenCollection }: Props) {
                 onClick={e => { e.stopPropagation(); setShowProfileMenu(v => !v) }}
                 className="flex h-10 w-10 items-center justify-center rounded-2xl border text-sm font-semibold"
                 style={{ background: 'var(--color-accent-fill)', borderColor: 'var(--color-accent-fill)', color: 'var(--color-on-accent)' }}
+                aria-label="Open profile menu"
+                aria-haspopup="menu"
+                aria-expanded={showProfileMenu}
               >
                 {profileInitial}
               </button>
 
+              <AnimatePresence>
               {showProfileMenu && (
-                <motion.div initial={{ opacity: 0, y: -8, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ type: 'spring', stiffness: 420, damping: 26 }} className="absolute right-0 mt-2 w-60 origin-top-right rounded-2xl border p-3 shadow-2xl" style={{ background: 'color-mix(in srgb, var(--color-bg-card) 94%, transparent)', borderColor: 'var(--color-border)', backdropFilter: 'blur(18px)' }} onClick={e => e.stopPropagation()}>
+                <motion.div
+                  initial={{ opacity: 0, y: -6, scale: 0.97 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -4, scale: 0.98 }}
+                  transition={{ duration: 0.16, ease: [0.16, 1, 0.3, 1] }}
+                  role="menu"
+                  aria-label="Profile menu"
+                  className="absolute right-0 z-40 mt-2 w-64 origin-top-right rounded-2xl border p-3 shadow-2xl"
+                  style={{ background: 'color-mix(in srgb, var(--color-bg-card) 96%, transparent)', borderColor: 'var(--color-border)', backdropFilter: 'blur(18px)' }}
+                  onClick={e => e.stopPropagation()}
+                >
                   <div className="mb-3 px-3 py-2">
                     <div className="flex items-center gap-2.5">
                       <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl text-xs font-bold" style={{ background: 'var(--color-accent-fill)', color: 'var(--color-on-accent)' }}>{profileInitial}</div>
@@ -202,23 +217,32 @@ export function Home({ onOpenCollection }: Props) {
                       </div>
                     </div>
                   </div>
-                  <div className="mb-2"><AccentPicker /><FolderStylePicker /></div>
-                  <div className="flex flex-col gap-1.5">
-                    <motion.button whileHover={{ x: 3 }} whileTap={{ scale: 0.98 }} onClick={() => { setShowProfile(true); setShowProfileMenu(false) }} className="rounded-xl px-3 py-2.5 text-left text-sm transition-colors hover:bg-[var(--color-bg-tertiary)]" style={{ color: 'var(--color-text-secondary)' }}>
-                    Edit profile
+                  <div className="mb-3 space-y-1 rounded-xl border p-2" style={{ borderColor: 'var(--color-border)', background: 'var(--color-bg-tertiary)' }}>
+                    <p className="px-2 pb-1 text-[10px] font-bold uppercase tracking-[0.14em]" style={{ color: 'var(--color-text-muted)' }}>Appearance</p>
+                    <AccentPicker />
+                    <FolderStylePicker />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <motion.button role="menuitem" whileHover={{ x: 3 }} whileTap={{ scale: 0.98 }} onClick={() => { setShowProfile(true); setShowProfileMenu(false) }} className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm transition-colors hover:bg-[var(--color-bg-tertiary)]" style={{ color: 'var(--color-text-secondary)' }}>
+                    <UserCircle size={18} weight="duotone" />
+                    <span>Edit profile</span>
                   </motion.button>
-                                      <motion.button whileHover={{ x: 3 }} whileTap={{ scale: 0.98 }} onClick={() => { setShowCollectionManager(true); setShowProfileMenu(false) }} className="rounded-xl px-3 py-2.5 text-left text-sm transition-colors hover:bg-[var(--color-bg-tertiary)]" style={{ color: 'var(--color-text-secondary)' }}>
-                      Manage collections
+                    <motion.button role="menuitem" whileHover={{ x: 3 }} whileTap={{ scale: 0.98 }} onClick={() => { setShowCollectionManager(true); setShowProfileMenu(false) }} className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm transition-colors hover:bg-[var(--color-bg-tertiary)]" style={{ color: 'var(--color-text-secondary)' }}>
+                      <Stack size={18} weight="duotone" />
+                      <span>Manage collections</span>
                     </motion.button>
-                    <motion.button whileHover={{ x: 3 }} whileTap={{ scale: 0.98 }} onClick={() => { setShowExport(true); setShowProfileMenu(false) }} className="rounded-xl px-3 py-2.5 text-left text-sm transition-colors hover:bg-[var(--color-bg-tertiary)]" style={{ color: 'var(--color-text-secondary)' }}>
-                      Export links
+                    <motion.button role="menuitem" whileHover={{ x: 3 }} whileTap={{ scale: 0.98 }} onClick={() => { setShowExport(true); setShowProfileMenu(false) }} className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm transition-colors hover:bg-[var(--color-bg-tertiary)]" style={{ color: 'var(--color-text-secondary)' }}>
+                      <DownloadSimple size={18} weight="duotone" />
+                      <span>Export links</span>
                     </motion.button>
-                    <motion.button whileHover={{ x: 3 }} whileTap={{ scale: 0.98 }} onClick={() => { setShowProfileMenu(false); signOut() }} className="rounded-xl px-3 py-2.5 text-sm text-left" style={{ background: 'rgba(239,68,68,0.08)', color: 'var(--color-error)' }}>
-                      Sign out
+                    <motion.button role="menuitem" whileHover={{ x: 3 }} whileTap={{ scale: 0.98 }} onClick={() => { setShowProfileMenu(false); signOut() }} className="mt-1 flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-left" style={{ background: 'rgba(239,68,68,0.08)', color: 'var(--color-error)' }}>
+                      <SignOut size={18} weight="duotone" />
+                      <span>Sign out</span>
                     </motion.button>
                   </div>
                 </motion.div>
               )}
+              </AnimatePresence>
             </div>
           </div>
         </div>
@@ -253,30 +277,39 @@ export function Home({ onOpenCollection }: Props) {
             )}>Collections</SectionTitle>
 
             {/* Fixed columns = visible folder width (126px mobile, 179px md+), spread edge to edge */}
-            <div className="grid grid-cols-[repeat(auto-fill,126px)] justify-between gap-x-3 gap-y-5 pt-4 md:grid-cols-[repeat(auto-fill,179px)] md:gap-y-10">
-              {smartFolders.map((folder, index) => (
-                <FolderTile
-                  key={folder.key}
-                  index={index}
-                  name={folder.name}
-                  color={folder.color}
-                  count={folder.count}
-                  onOpen={() => onOpenCollection(SMART_PREFIX + folder.key)}
-                />
-              ))}
-              {sortedCollections.map((collection, index) => (
-                <FolderTile
-                  key={collection.id}
-                  index={smartFolders.length + index}
-                  name={collection.name}
-                  color={collection.color}
-                  count={collection.link_count ?? 0}
-                  onOpen={() => onOpenCollection(collection.id, collection.name)}
-                />
-              ))}
+            <div
+              className="grid grid-cols-[repeat(auto-fill,126px)] justify-between gap-x-3 gap-y-5 pt-4 md:grid-cols-[repeat(auto-fill,179px)] md:gap-y-10"
+              aria-busy={collectionsLoading || statsLoading}
+            >
+              {collectionsLoading || statsLoading ? (
+                Array.from({ length: 4 }).map((_, index) => <FolderSkeleton key={index} />)
+              ) : (
+                <>
+                  {smartFolders.map((folder, index) => (
+                    <FolderTile
+                      key={folder.key}
+                      index={index}
+                      name={folder.name}
+                      color={folder.color}
+                      count={folder.count}
+                      onOpen={() => onOpenCollection(SMART_PREFIX + folder.key)}
+                    />
+                  ))}
+                  {sortedCollections.map((collection, index) => (
+                    <FolderTile
+                      key={collection.id}
+                      index={smartFolders.length + index}
+                      name={collection.name}
+                      color={collection.color}
+                      count={collection.link_count ?? 0}
+                      onOpen={() => onOpenCollection(collection.id, collection.name)}
+                    />
+                  ))}
+                </>
+              )}
             </div>
 
-            {collections.length === 0 && (
+            {!collectionsLoading && !statsLoading && collections.length === 0 && (
               <div className="mt-10 flex flex-col items-center text-center">
                 <p className="mb-2 text-lg font-semibold" style={{ color: 'var(--color-text-primary)' }}>No collections yet</p>
                 <p className="mb-6 text-sm" style={{ color: 'var(--color-text-muted)' }}>Create a collection to start organizing your links.</p>
@@ -301,6 +334,15 @@ export function Home({ onOpenCollection }: Props) {
       {showBulkImport && <BulkImportModal onClose={() => setShowBulkImport(false)} onImported={invalidateCollections} collections={collections} />}
       {showExport && <ExportModal collections={collections} onClose={() => setShowExport(false)} />}
       <ProfileDrawer open={showProfile} onClose={() => setShowProfile(false)} user={user} />
+    </div>
+  )
+}
+
+function FolderSkeleton() {
+  return (
+    <div className="flex w-full flex-col items-center" aria-hidden="true">
+      <div className="shimmer h-[92px] w-[126px] rounded-[28px] md:h-[130px] md:w-[179px]" />
+      <div className="shimmer mt-2 h-3.5 w-20 rounded" />
     </div>
   )
 }
