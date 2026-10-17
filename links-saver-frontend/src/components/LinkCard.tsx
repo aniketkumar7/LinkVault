@@ -47,9 +47,9 @@ export function LinkCard({
   const [copied, setCopied] = useState(false)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [editOpen, setEditOpen] = useState(false)
-  const [editTags, setEditTags] = useState(link.tags.join(', '))
   const [editCollectionId, setEditCollectionId] = useState(link.collection_id || '')
   const [saving, setSaving] = useState(false)
+  const [refreshing, setRefreshing] = useState(false)
   const [collectionDropOpen, setCollectionDropOpen] = useState(false)
   const [newCollectionName, setNewCollectionName] = useState('')
   const selectedCollection = collections.find(c => c.id === editCollectionId)
@@ -72,7 +72,6 @@ export function LinkCard({
   const targetW = Math.min(480, vw - 32)
 
   function openEdit() {
-    setEditTags(link.tags.join(', '))
     setEditCollectionId(link.collection_id || '')
     setEditOpen(true)
   }
@@ -82,7 +81,6 @@ export function LinkCard({
     setSaving(true)
     try {
       await api.updateLink(link.id, {
-        tags: editTags.split(',').map(t => t.trim()).filter(Boolean),
         collection_id: editCollectionId || undefined,
       })
       setEditOpen(false)
@@ -126,13 +124,20 @@ export function LinkCard({
     setTimeout(() => setCopied(false), 2000)
   }
 
+  const handleRefreshMetadata = async () => {
+    setRefreshing(true)
+    try { await api.refreshMetadata(link.id); onUpdated(); toast.success('Preview refreshed') }
+    catch { toast.error('Could not refresh preview') }
+    finally { setRefreshing(false) }
+  }
+
   const handleFav = () => {
     if (onToggleFavorite) onToggleFavorite()
     else api.toggleFavorite(link.id).then(onUpdated)
   }
 
   const collectionObj = collections.find(c => c.id === link.collection_id)
-  const tags = link.tags.filter(Boolean).slice(0, 3)
+  const tags: string[] = []
   const domain = getDomain(link.url)
   const title = link.title?.trim() || 'Untitled link'
   const desc = link.description?.trim() || ''
@@ -336,14 +341,14 @@ export function LinkCard({
           className="line-clamp-1 min-h-[17px] text-[12px] font-semibold leading-[1.4] sm:line-clamp-2 sm:min-h-[38px] sm:text-[13.5px]"
           style={{ color: 'var(--color-text-primary)' }}
         >
-          {title}
+          {refreshing ? <span className="block h-4 w-3/4 rounded shimmer" /> : title}
         </h3>
 
         <p
           className="mt-1 min-h-[34px] line-clamp-2 text-[11px] leading-[1.6] sm:min-h-[58px] sm:line-clamp-3 sm:text-[12px]"
           style={{ color: 'var(--color-text-secondary)' }}
         >
-          {desc || '\u00a0'}
+          {refreshing ? <span className="block h-3 w-full rounded shimmer" /> : (desc || '\u00a0')}
         </p>
 
         {(tags.length > 0 || collectionObj) && (
@@ -364,6 +369,12 @@ export function LinkCard({
       {/* Action strip — always visible */}
       <div className="flex items-center justify-between px-2 pb-2 pt-0.5 sm:px-3 sm:pb-3 sm:pt-1">
         <div className="flex items-center gap-0.5 sm:gap-1">
+          <motion.button type="button" onClick={e => { e.stopPropagation(); handleRefreshMetadata() }} disabled={refreshing}
+            whileTap={{ scale: 0.76 }} className="flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-xl disabled:opacity-50"
+            style={{ background: 'var(--color-bg-tertiary)', color: 'var(--color-text-muted)' }} title="Refresh preview"
+          >
+            <svg className={`h-3.5 w-3.5 sm:h-4 sm:w-4 ${refreshing ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h5M20 20v-5h-5M5.5 15a7 7 0 0011.9 1.9L20 15M4 9l2.6-1.9A7 7 0 0118.5 9" /></svg>
+          </motion.button>
           <motion.button type="button" onClick={e => { e.stopPropagation(); handleCopy() }}
             whileTap={{ scale: 0.76 }} transition={{ type: 'spring', stiffness: 500, damping: 26 }}
             className="flex h-8 w-8 items-center justify-center rounded-xl"
@@ -504,17 +515,6 @@ export function LinkCard({
                           </motion.div>
                         )}
                       </AnimatePresence>
-                    </motion.div>
-
-                    <motion.div variants={{ hidden: { opacity: 0, y: 8 }, show: { opacity: 1, y: 0, transition: { duration: 0.2 } } }}>
-                      <input
-                        value={editTags} onChange={e => setEditTags(e.target.value)}
-                        placeholder="Tags (comma separated)"
-                        className="h-[52px] w-full rounded-full border-2 border-transparent px-5 text-[15px] font-medium outline-none transition-[border-color]"
-                        style={inputStyle}
-                        onFocus={e => (e.target.style.borderColor = 'var(--color-accent)')}
-                        onBlur={e => (e.target.style.borderColor = 'transparent')}
-                      />
                     </motion.div>
 
                     <motion.div

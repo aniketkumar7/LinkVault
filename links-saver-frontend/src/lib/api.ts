@@ -36,6 +36,7 @@ export interface Collection {
   description: string | null
   color: string
   is_public: boolean
+  is_pinned?: boolean
   share_slug: string | null
   link_count?: number
   last_link_at?: string | null
@@ -150,6 +151,20 @@ export const api = {
     return await res.json()
   },
 
+  async bulkUpdateLinks(ids: string[], updates: { tags?: string[]; collection_id?: string | null }): Promise<Link[]> {
+    const headers = await getAuthHeaders()
+    const res = await fetch(`${API_URL}/api/links/bulk`, { method: 'PATCH', headers, body: JSON.stringify({ ids, ...updates }) })
+    if (!res.ok) throw new Error((await res.json()).error || 'Failed to update links')
+    return (await res.json()).links
+  },
+
+  async refreshMetadata(id: string): Promise<Link> {
+    const headers = await getAuthHeaders()
+    const res = await fetch(`${API_URL}/api/links/${id}/refresh-metadata`, { method: 'POST', headers })
+    if (!res.ok) throw new Error((await res.json()).error || 'Failed to refresh metadata')
+    return (await res.json()).link
+  },
+
   async getStats(): Promise<Stats> {
     const headers = await getAuthHeaders()
     const res = await fetch(`${API_URL}/api/links/stats`, { headers })
@@ -213,6 +228,13 @@ export const api = {
     const headers = await getAuthHeaders()
     const res = await fetch(`${API_URL}/api/collections/${id}/share`, { method: 'DELETE', headers })
     if (!res.ok) throw new Error((await res.json()).error || 'Failed to unshare collection')
+  },
+
+  async toggleCollectionPin(id: string): Promise<Collection> {
+    const headers = await getAuthHeaders()
+    const res = await fetch(`${API_URL}/api/collections/${id}/pin`, { method: 'PATCH', headers })
+    if (!res.ok) throw new Error((await res.json()).error || 'Failed to update pin')
+    return (await res.json()).collection
   },
 
   async extractFromScreenshots(images: File[], collections: Collection[]): Promise<ExtractedLink[]> {

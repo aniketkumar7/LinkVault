@@ -15,7 +15,6 @@ CREATE TABLE IF NOT EXISTS public.useful_links (
     favicon_url TEXT,
     category TEXT,
     -- New fields v2
-    tags TEXT[] DEFAULT '{}',
     is_favorite BOOLEAN DEFAULT FALSE,
     status TEXT DEFAULT 'to_try' CHECK (status IN ('to_try', 'tried', 'useful', 'dead')),
     collection_id UUID REFERENCES public.collections(id) ON DELETE SET NULL
@@ -33,13 +32,15 @@ CREATE TABLE IF NOT EXISTS public.collections (
     share_slug TEXT UNIQUE
 );
 
+ALTER TABLE public.collections ADD COLUMN IF NOT EXISTS is_pinned BOOLEAN DEFAULT FALSE NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_collections_is_pinned ON public.collections(is_pinned);
+
 -- Create indexes
 CREATE INDEX IF NOT EXISTS idx_useful_links_user_id ON public.useful_links(user_id);
 CREATE INDEX IF NOT EXISTS idx_useful_links_created_at ON public.useful_links(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_useful_links_category ON public.useful_links(category);
 CREATE INDEX IF NOT EXISTS idx_useful_links_status ON public.useful_links(status);
 CREATE INDEX IF NOT EXISTS idx_useful_links_is_favorite ON public.useful_links(is_favorite);
-CREATE INDEX IF NOT EXISTS idx_useful_links_tags ON public.useful_links USING GIN(tags);
 CREATE INDEX IF NOT EXISTS idx_useful_links_collection ON public.useful_links(collection_id);
 CREATE INDEX IF NOT EXISTS idx_useful_links_url ON public.useful_links(url);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_useful_links_unique_user_url ON public.useful_links(user_id, url);
@@ -101,10 +102,8 @@ GRANT SELECT ON public.collections TO anon; -- For public shared collections
 -- Migration: Add new columns if table already exists
 DO $$ 
 BEGIN
-    -- Add tags column
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'useful_links' AND column_name = 'tags') THEN
-        ALTER TABLE public.useful_links ADD COLUMN tags TEXT[] DEFAULT '{}';
-    END IF;
+    -- Tags are intentionally removed; collections are the sole organization system.
+    ALTER TABLE public.useful_links DROP COLUMN IF EXISTS tags;
     
     -- Add is_favorite column
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'useful_links' AND column_name = 'is_favorite') THEN

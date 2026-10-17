@@ -228,7 +228,13 @@ export function useBatchActions() {
       toast.success(`Moved ${ids.length} links`)
     },
   })
+
+  const batchUpdateTags = useMutation({
+    mutationFn: ({ ids, tags }: { ids: string[]; tags: string[] }) => api.bulkUpdateLinks(ids, { tags }),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['links'] }); toast.success('Tags updated') },
+    onError: () => toast.error('Failed to update tags'),
+  })
   
-  return { batchDelete, batchMoveToCollection }
+  return { batchDelete, batchMoveToCollection, batchUpdateTags }
 }
 

@@ -138,10 +138,10 @@ export function CollectionPage({ collectionId, onBack }: Props) {
 
       <div className="capture-dock">
         <button type="button" onClick={() => setShowAddLink(true)} className="capture-primary">+ Add link</button>
-        <button type="button" onClick={() => setShowBulkImport(true)} className="capture-secondary">Bulk import</button>
+        <button type="button" onClick={() => setShowBulkImport(true)} className="capture-secondary">Import links</button>
       </div>
 
-      <AddLinkForm open={showAddLink} onOpenChange={setShowAddLink} onLinkAdded={invalidateCollections} existingTags={[]} collections={collections} onCollectionCreated={invalidateCollections} />
+      <AddLinkForm open={showAddLink} onOpenChange={setShowAddLink} onLinkAdded={invalidateCollections} collections={collections} onCollectionCreated={invalidateCollections} />
       {showBulkImport && <BulkImportModal onClose={() => setShowBulkImport(false)} onImported={invalidateCollections} collections={collections} />}
       <ProfileDrawer open={showProfile} onClose={() => setShowProfile(false)} user={user} />
     </div>

@@ -41,7 +41,7 @@ export function LinksView({ collections, initialCollectionId = '', initialFavori
 
   const { data: links = [], isLoading, error, refetch } = useLinks(filters)
   const { deleteWithUndo } = useDeleteWithUndo()
-  const { batchDelete, batchMoveToCollection } = useBatchActions()
+  const { batchDelete } = useBatchActions()
   const toggleFavorite = useToggleFavorite()
 
   const isDefaultSort = sortField === 'created_at' && sortOrder === 'desc'
@@ -80,11 +80,6 @@ export function LinksView({ collections, initialCollectionId = '', initialFavori
     setSelectMode(false)
   }
 
-  const handleBatchCollection = (collectionId: string | null) => {
-    batchMoveToCollection.mutate({ ids: [...selectedIds], collectionId })
-    setSelectedIds(new Set())
-    setSelectMode(false)
-  }
 
   const done = () => { refetch(); onRefetchNeeded?.() }
 
@@ -142,6 +137,7 @@ export function LinksView({ collections, initialCollectionId = '', initialFavori
           )}
 
           {collections.length > 0 && <div className="h-5 w-px shrink-0" style={{ background: 'var(--color-border)' }} />}
+
 
           {/* Sort — ✕ badge top-right when non-default */}
           <div className="relative">
@@ -250,6 +246,7 @@ export function LinksView({ collections, initialCollectionId = '', initialFavori
                   />
                 )}
 
+
                 {/* Sort */}
                 <Select
                   value={`${sortField}-${sortOrder}`}
@@ -282,23 +279,21 @@ export function LinksView({ collections, initialCollectionId = '', initialFavori
         </div>
       </div>
 
+      <div className="mb-4 flex justify-end">
+        <button
+          type="button"
+          onClick={() => { setSelectMode(value => !value); setSelectedIds(new Set()) }}
+          className="rounded-xl border px-3 py-2 text-sm font-medium"
+          style={{ background: selectMode ? 'color-mix(in srgb, var(--color-accent) 10%, transparent)' : 'var(--color-bg-tertiary)', borderColor: selectMode ? 'var(--color-accent)' : 'var(--color-border)', color: selectMode ? 'var(--color-accent)' : 'var(--color-text-secondary)' }}
+        >{selectMode ? 'Done selecting' : 'Select links'}</button>
+      </div>
+
       {/* Batch actions */}
       {selectMode && selectedIds.size > 0 && (
         <div className="mb-4 flex flex-wrap items-center gap-2 rounded-2xl border p-3" style={{ background: 'var(--color-bg-tertiary)', borderColor: 'var(--color-border)' }}>
           <button onClick={() => setSelectedIds(new Set(links.map(l => l.id)))} className="rounded-lg px-4 py-2 text-sm font-medium" style={{ background: 'var(--color-bg-card)', color: 'var(--color-text-secondary)' }}>Select all</button>
           <button onClick={() => setSelectedIds(new Set())} className="rounded-lg px-4 py-2 text-sm font-medium" style={{ background: 'var(--color-bg-card)', color: 'var(--color-text-secondary)' }}>Clear</button>
           <button onClick={handleBatchDelete} className="ml-auto rounded-lg px-4 py-2 text-sm font-semibold" style={{ background: 'rgba(239,68,68,0.1)', color: '#ef4444' }}>Delete selected</button>
-          <Select
-            value=""
-            onChange={val => val && handleBatchCollection(val === 'null' ? null : val)}
-            options={[
-              { value: '', label: 'Move to...' },
-              { value: 'null', label: 'No collection' },
-              ...collections.map(col => ({ value: col.id, label: col.name, color: col.color }))
-            ]}
-            size="md"
-            width={144}
-          />
         </div>
       )}
 

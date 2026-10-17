@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import type { MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { DownloadSimple, SignOut, Stack, UserCircle } from '@phosphor-icons/react'
 import { useQueryClient } from '@tanstack/react-query'
@@ -20,6 +21,9 @@ import { AccentPicker } from './ui/AccentPicker'
 import { ProfileDrawer } from './ProfileDrawer'
 import { displayName, firstName } from '@/lib/profile'
 import { FolderStylePicker } from './ui/FolderStylePicker'
+import { api } from '@/lib/api'
+import { toast } from '@/lib/toast'
+import { PushPin } from '@phosphor-icons/react'
 
 interface Props {
   onOpenCollection: (collectionId: string, collectionName?: string) => void
@@ -35,12 +39,13 @@ const FOLDER_SORTS: { value: FolderSort; label: string }[] = [
 ]
 
 function sortCollections(collections: Collection[], sort: FolderSort) {
-  const list = [...collections]
-  if (sort === 'name') return list.sort((a, b) => a.name.localeCompare(b.name))
-  if (sort === 'size') return list.sort((a, b) => (b.link_count ?? 0) - (a.link_count ?? 0))
-  if (sort === 'newest') return list.sort((a, b) => b.created_at.localeCompare(a.created_at))
+  const list = [...collections].sort((a, b) => Number(Boolean(b.is_pinned)) - Number(Boolean(a.is_pinned)))
+  const pinnedFirst = (compare: (a: Collection, b: Collection) => number) => list.sort((a, b) => Number(Boolean(b.is_pinned)) - Number(Boolean(a.is_pinned)) || compare(a, b))
+  if (sort === 'name') return pinnedFirst((a, b) => a.name.localeCompare(b.name))
+  if (sort === 'size') return pinnedFirst((a, b) => (b.link_count ?? 0) - (a.link_count ?? 0))
+  if (sort === 'newest') return pinnedFirst((a, b) => b.created_at.localeCompare(a.created_at))
   // recent: latest saved link first, empty collections fall back to creation date
-  return list.sort((a, b) => (b.last_link_at ?? b.created_at).localeCompare(a.last_link_at ?? a.created_at))
+  return pinnedFirst((a, b) => (b.last_link_at ?? b.created_at).localeCompare(a.last_link_at ?? a.created_at))
 }
 
 function isLikelyUrl(text: string) {
@@ -67,6 +72,15 @@ export function Home({ onOpenCollection }: Props) {
     queryClient.invalidateQueries({ queryKey: queryKeys.collections })
     queryClient.invalidateQueries({ queryKey: ['links'] })
     queryClient.invalidateQueries({ queryKey: queryKeys.stats })
+  }
+  const togglePin = async (collection: Collection) => {
+    try {
+      await api.toggleCollectionPin(collection.id)
+      invalidateCollections()
+      toast.success(collection.is_pinned ? 'Collection unpinned' : 'Collection pinned')
+    } catch {
+      toast.error('Could not pin collection. Apply the database migration first.')
+    }
   }
   const { theme, triggerTransition } = useCircularTheme()
 
@@ -286,7 +300,7 @@ export function Home({ onOpenCollection }: Props) {
               ) : (
                 <>
                   {smartFolders.map((folder, index) => (
-                    <FolderTile
+                <FolderTile
                       key={folder.key}
                       index={index}
                       name={folder.name}
@@ -302,8 +316,10 @@ export function Home({ onOpenCollection }: Props) {
                       name={collection.name}
                       color={collection.color}
                       count={collection.link_count ?? 0}
-                      onOpen={() => onOpenCollection(collection.id, collection.name)}
-                    />
+                  onOpen={() => onOpenCollection(collection.id, collection.name)}
+                  isPinned={collection.is_pinned}
+                  onPin={() => void togglePin(collection)}
+                />
                   ))}
                 </>
               )}
@@ -325,12 +341,12 @@ export function Home({ onOpenCollection }: Props) {
       <div className="capture-dock">
         <button type="button" onClick={() => setShowAddCollection(true)} className="capture-secondary">New collection</button>
         <button type="button" onClick={() => { setPastedUrl(''); setShowAddLink(true) }} className="capture-primary">+ Add link</button>
-        <button type="button" onClick={() => setShowBulkImport(true)} className="capture-secondary">Bulk import</button>
+        <button type="button" onClick={() => setShowBulkImport(true)} className="capture-secondary">Import links</button>
       </div>
 
       <CollectionManager open={showCollectionManager} onClose={() => setShowCollectionManager(false)} collections={collections} onChanged={invalidateCollections} />
       <AddCollectionModal key={showAddCollection ? 'new-open' : 'new-closed'} open={showAddCollection} onClose={() => setShowAddCollection(false)} onCreated={invalidateCollections} />
-      <AddLinkForm key={addLinkKey} initialUrl={pastedUrl} open={showAddLink} onOpenChange={setShowAddLink} onLinkAdded={invalidateCollections} existingTags={[]} collections={collections} onCollectionCreated={invalidateCollections} />
+      <AddLinkForm key={addLinkKey} initialUrl={pastedUrl} open={showAddLink} onOpenChange={setShowAddLink} onLinkAdded={invalidateCollections} collections={collections} onCollectionCreated={invalidateCollections} />
       {showBulkImport && <BulkImportModal onClose={() => setShowBulkImport(false)} onImported={invalidateCollections} collections={collections} />}
       {showExport && <ExportModal collections={collections} onClose={() => setShowExport(false)} />}
       <ProfileDrawer open={showProfile} onClose={() => setShowProfile(false)} user={user} />
@@ -347,11 +363,26 @@ function FolderSkeleton() {
   )
 }
 
-function FolderTile({ index, name, color, count, onOpen }: { index: number; name: string; color: string; count: number; onOpen: () => void }) {
+function FolderTile({ index, name, color, count, onOpen, isPinned = false, onPin }: { index: number; name: string; color: string; count: number; onOpen: () => void; isPinned?: boolean; onPin?: () => void }) {
+  const [menuOpen, setMenuOpen] = useState(false)
+  const longPress = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const startLongPress = () => {
+    if (!onPin) return
+    longPress.current = setTimeout(() => setMenuOpen(true), 550)
+  }
+  const endLongPress = () => { if (longPress.current) clearTimeout(longPress.current) }
+  const openPinMenu = (event: ReactMouseEvent | ReactPointerEvent) => {
+    if (!onPin) return
+    event.preventDefault()
+    event.stopPropagation()
+    setMenuOpen(true)
+  }
   return (
+    <div className="relative w-full" onPointerDown={startLongPress} onPointerUp={endLongPress} onPointerCancel={endLongPress} onPointerLeave={endLongPress}>
     <motion.button
       type="button"
-      onClick={onOpen}
+      onClick={() => { if (!menuOpen) onOpen() }}
+      onContextMenu={openPinMenu}
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.05, duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
@@ -364,6 +395,15 @@ function FolderTile({ index, name, color, count, onOpen }: { index: number; name
         {name}
       </p>
     </motion.button>
+    {onPin && <>
+      <button type="button" aria-label={isPinned ? `Unpin ${name}` : `Pin ${name}`} onClick={event => { event.stopPropagation(); onPin() }} className={`absolute right-4 top-12 z-20 p-1 transition-opacity ${isPinned ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 focus:opacity-100'}`} style={{ color: '#000000' }}>
+        <PushPin size={22} weight={isPinned ? 'fill' : 'regular'} aria-hidden="true" />
+      </button>
+      {menuOpen && <div className="absolute left-1/2 top-full z-30 mt-2 min-w-36 -translate-x-1/2 rounded-xl border p-1.5 shadow-xl" style={{ background: 'var(--color-bg-card)', borderColor: 'var(--color-border)' }} onPointerDown={event => event.stopPropagation()}>
+        <button type="button" onClick={() => { onPin(); setMenuOpen(false) }} className="w-full rounded-lg px-3 py-2 text-left text-xs font-medium hover:bg-[var(--color-bg-tertiary)]" style={{ color: 'var(--color-text-primary)' }}>{isPinned ? 'Unpin' : 'Pin'}</button>
+      </div>}
+    </>}
+    </div>
   )
 }
 

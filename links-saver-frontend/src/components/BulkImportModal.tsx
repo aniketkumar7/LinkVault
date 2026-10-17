@@ -1,10 +1,12 @@
 import { useState, useRef, useEffect, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, CaretDown, Check, UploadSimple, TextT, Image, ArrowLeft, Plus } from '@phosphor-icons/react'
+import { X, CaretDown, Check, UploadSimple, Image, ArrowLeft, Plus, FileText, CheckCircle } from '@phosphor-icons/react'
 import { api } from '@/lib/api'
 import type { Collection, BulkImportResult, ExtractedLink } from '@/lib/api'
 import { toast } from '@/lib/toast'
 import { normalizeUrl } from '@/lib/url'
+import { AnimatedFileUpload } from '@/components/AnimatedFileUpload'
+import { DotShader } from '@/components/ui/DotShader'
 
 interface Props {
   onClose: () => void
@@ -16,6 +18,71 @@ const MORPH = { type: 'spring' as const, stiffness: 320, damping: 30, mass: 1 }
 const MAX_IMPORT_URLS = 500
 const API_BATCH_SIZE = 20
 const REVIEW_BATCH_SIZE = 20
+
+function ExtractionProgress() {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 8, scale: 0.97 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{ type: 'spring', stiffness: 340, damping: 28 }}
+      className="w-full overflow-hidden rounded-2xl border"
+      style={{ borderColor: 'var(--color-border)' }}
+      role="status" aria-live="polite"
+    >
+      <DotShader
+        dotColor="var(--color-text-muted)"
+        accentColor="var(--color-accent)"
+        dotSize={2.8}
+        spacing={16}
+        waveIntensity={1.4}
+        speed={2.5}
+        interactive={false}
+        overlay={false}
+        style={{ minHeight: 200, background: 'var(--color-bg-tertiary)' }}
+      >
+        <div className="flex flex-col items-center gap-4 py-10">
+          <div className="relative grid h-14 w-14 place-items-center" aria-hidden="true">
+            <motion.span
+              className="absolute inset-0 rounded-full"
+              style={{ border: '1.5px solid', borderColor: 'color-mix(in srgb, var(--color-accent) 30%, transparent)' }}
+              animate={{ scale: [0.7, 1.18, 0.7], opacity: [0.15, 0.55, 0.15] }}
+              transition={{ duration: 2.2, repeat: Infinity, ease: 'easeInOut' }}
+            />
+            <motion.span
+              className="absolute h-10 w-10 rounded-full"
+              style={{ border: '1.5px solid var(--color-accent)' }}
+              animate={{ rotate: 360 }}
+              transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
+            />
+            <motion.span
+              className="absolute h-6 w-6 rounded-full"
+              style={{ border: '1px solid', borderColor: 'color-mix(in srgb, var(--color-accent) 55%, transparent)' }}
+              animate={{ rotate: -360 }}
+              transition={{ duration: 1.4, repeat: Infinity, ease: 'linear' }}
+            />
+            <motion.span
+              className="h-2.5 w-2.5 rounded-full"
+              style={{ background: 'var(--color-accent)', boxShadow: '0 0 14px var(--color-accent)' }}
+              animate={{ scale: [0.8, 1.25, 0.8], opacity: [0.7, 1, 0.7] }}
+              transition={{ duration: 1.2, repeat: Infinity, ease: 'easeInOut' }}
+            />
+          </div>
+          <div className="text-center">
+            <motion.p
+              className="text-sm font-semibold"
+              style={{ color: 'var(--color-text-primary)' }}
+              animate={{ opacity: [0.6, 1, 0.6] }}
+              transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+            >
+              Extracting links…
+            </motion.p>
+            <p className="mt-1 text-xs" style={{ color: 'var(--color-text-muted)' }}>Reading your file and finding URLs</p>
+          </div>
+        </div>
+      </DotShader>
+    </motion.div>
+  )
+}
 
 function chunk<T>(items: T[], size: number): T[][] {
   return Array.from({ length: Math.ceil(items.length / size) }, (_, index) => items.slice(index * size, (index + 1) * size))
@@ -90,13 +157,15 @@ function extractUrlsFromHtml(html: string): string[] {
 }
 
 export function BulkImportModal({ onClose, onImported, collections }: Props) {
-  const [tab, setTab] = useState<'paste' | 'file' | 'screenshots'>('paste')
+  const [tab, setTab] = useState<'paste' | 'file' | 'screenshots'>('file')
   const [urlsText, setUrlsText] = useState('')
   const [fileUrls, setFileUrls] = useState<string[]>([])
   const [processedFileUrls, setProcessedFileUrls] = useState<Set<string>>(new Set())
   const [fileSessionKey, setFileSessionKey] = useState('')
   const [fileName, setFileName] = useState('')
-  const [tags, setTags] = useState('')
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([])
+  const [uploadingFiles, setUploadingFiles] = useState(false)
+  const [fileDragActive, setFileDragActive] = useState(false)
   const [collectionId, setCollectionId] = useState('')
   const [collectionOpen, setCollectionOpen] = useState(false)
   const [collectionSearch, setCollectionSearch] = useState('')
@@ -167,6 +236,23 @@ export function BulkImportModal({ onClose, onImported, collections }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  useEffect(() => {
+    const onPasteScreenshot = (event: ClipboardEvent) => {
+      const imageItem = Array.from(event.clipboardData?.items || []).find(item => item.type.startsWith('image/'))
+      const blob = imageItem?.getAsFile()
+      if (!blob) return
+      event.preventDefault()
+      const file = new File([blob], `pasted-screenshot-${Date.now()}.png`, { type: blob.type || 'image/png' })
+      setSelectedFiles(previous => [...previous, file].slice(0, 10))
+      setScreenshots(previous => [...previous, file].slice(0, 10))
+      setScreenshotPreviews(previous => [...previous, URL.createObjectURL(file)].slice(0, 10))
+      setTab('screenshots')
+      toast.success('Screenshot added')
+    }
+    window.addEventListener('paste', onPasteScreenshot)
+    return () => window.removeEventListener('paste', onPasteScreenshot)
+  }, [])
+
   function handleScreenshots(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files || [])
     if (!files.length) return
@@ -175,10 +261,29 @@ export function BulkImportModal({ onClose, onImported, collections }: Props) {
     setScreenshotPreviews(prev => [...prev, ...newPreviews].slice(0, 10))
   }
 
+  function handleScreenshotFiles(files: File[]) {
+    const limited = files.slice(0, 10 - screenshots.length)
+    if (!limited.length) return
+    setScreenshots(prev => [...prev, ...limited].slice(0, 10))
+    setScreenshotPreviews(prev => [...prev, ...limited.map(file => URL.createObjectURL(file))].slice(0, 10))
+  }
+
   function removeScreenshot(i: number) {
     URL.revokeObjectURL(screenshotPreviews[i])
     setScreenshots(prev => prev.filter((_, idx) => idx !== i))
     setScreenshotPreviews(prev => prev.filter((_, idx) => idx !== i))
+  }
+
+  function removeSelectedFile(index: number) {
+    const remaining = selectedFiles.filter((_, fileIndex) => fileIndex !== index)
+    setSelectedFiles(remaining)
+    if (index === 0) {
+      setFileName(remaining[0]?.name || '')
+      setFileUrls([])
+      setExtracted(null)
+      setScreenshots([])
+      setScreenshotPreviews([])
+    }
   }
 
   async function handleExtract() {
@@ -328,8 +433,19 @@ export function BulkImportModal({ onClose, onImported, collections }: Props) {
   }
 
   async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
+    const files = Array.from(e.target.files || []).slice(0, 10)
+    const file = files[0]
     if (!file) return
+    setSelectedFiles(files)
+    setUploadingFiles(true)
+    window.setTimeout(() => setUploadingFiles(false), 700)
+    if (file.type.startsWith('image/')) {
+      const images = files
+      setScreenshots(images)
+      setScreenshotPreviews(images.map(image => URL.createObjectURL(image)))
+      setTab('screenshots')
+      return
+    }
     const sessionKey = `linkvault-reviewed:${file.name}:${file.size}:${file.lastModified}`
     setFileSessionKey(sessionKey)
     try { setProcessedFileUrls(new Set(JSON.parse(sessionStorage.getItem(sessionKey) || '[]'))) } catch { setProcessedFileUrls(new Set()) }
@@ -361,10 +477,7 @@ export function BulkImportModal({ onClose, onImported, collections }: Props) {
       const importResult: BulkImportResult = { success: [], failed: [], duplicates: [] }
       for (const batch of chunk(urls, API_BATCH_SIZE)) {
         try {
-          const result = await api.bulkImport(batch, {
-            tags: tags.split(',').map(t => t.trim()).filter(Boolean),
-            collection_id: collectionId || undefined,
-          })
+          const result = await api.bulkImport(batch, { collection_id: collectionId || undefined })
           importResult.success.push(...result.success)
           importResult.failed.push(...result.failed)
           importResult.duplicates.push(...result.duplicates)
@@ -388,7 +501,7 @@ export function BulkImportModal({ onClose, onImported, collections }: Props) {
     }
   }
 
-  const targetW = Math.min(520, (typeof window !== 'undefined' ? window.innerWidth : 1024) - 32)
+  const targetW = Math.min(720, (typeof window !== 'undefined' ? window.innerWidth : 1024) - 32)
   const isScreenshotReview = (tab === 'screenshots' || tab === 'file') && extracted !== null
 
   const inputStyle = { background: 'var(--color-bg-tertiary)', color: 'var(--color-text-primary)' }
@@ -409,38 +522,42 @@ export function BulkImportModal({ onClose, onImported, collections }: Props) {
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.96, y: 12 }}
           transition={MORPH}
-          style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)', borderRadius: 24, width: '100%', maxWidth: targetW, maxHeight: '90vh', overflowY: 'auto' }}
+          style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)', borderRadius: 24, width: '100%', maxWidth: targetW, height: isScreenshotReview ? 'min(90vh, 620px)' : 'auto', maxHeight: '90vh', overflow: 'hidden' }}
           onClick={e => e.stopPropagation()}
           role="dialog" aria-modal="true"
-          className="px-6 pb-6 pt-6"
+          className="relative flex flex-col px-4 pb-4 pt-4 sm:px-5 sm:pb-5 sm:pt-5"
         >
           {/* Header */}
-          <div className="relative mb-5 flex items-center justify-center">
+          <div className="sticky top-0 z-20 relative mb-3 grid min-h-10 grid-cols-[36px_1fr_36px] items-center bg-[var(--color-bg-card)] pb-1">
             {isScreenshotReview && (
               <motion.button
                 onClick={() => { setExtracted(null); setDuplicateUrls(new Set()) }}
                 whileTap={{ scale: 0.88 }} whileHover={{ scale: 1.1 }}
                 transition={{ type: 'spring', stiffness: 400, damping: 26 }}
-                className="absolute left-0 flex size-9 items-center justify-center rounded-full"
+                className="relative col-start-1 flex size-9 items-center justify-center rounded-full"
                 style={{ background: 'var(--color-bg-tertiary)', color: 'var(--color-text-muted)' }}
               >
                 <ArrowLeft size={16} weight="bold" />
               </motion.button>
             )}
-            <span className="text-[18px] font-bold" style={{ color: 'var(--color-text-primary)' }}>
-              {isScreenshotReview ? `Review ${extracted!.length} links` : 'Bulk Import'}
-            </span>
+            <div className={`${isScreenshotReview ? 'col-start-2 px-3' : 'col-start-1 col-span-2 pr-3'} min-w-0 text-left`}>
+              <span className="block text-[18px] font-bold" style={{ color: 'var(--color-text-primary)' }}>
+                {isScreenshotReview ? `Review ${extracted!.length} links` : 'Upload files to extract'}
+              </span>
+              {!isScreenshotReview && <span className="mt-1 block text-xs" style={{ color: 'var(--color-text-muted)' }}>Drop a bookmark file, document, spreadsheet, PDF, or screenshot and we’ll find the links.</span>}
+            </div>
             <motion.button
               onClick={onClose}
               whileTap={{ scale: 0.88 }} whileHover={{ scale: 1.1 }}
               transition={{ type: 'spring', stiffness: 400, damping: 26 }}
-              className="absolute right-0 flex size-9 items-center justify-center rounded-full"
+              className="relative col-start-3 flex size-9 items-center justify-center rounded-full"
               style={{ background: 'var(--color-bg-tertiary)', color: 'var(--color-text-muted)' }}
             >
               <X size={16} weight="bold" />
             </motion.button>
           </div>
 
+          <div className={`min-h-0 flex-1 overflow-y-auto pr-1 ${isScreenshotReview ? 'pb-64' : 'pb-2'} flex flex-col`}>
           {result ? (
             /* Results */
             <div className="flex flex-col gap-4">
@@ -474,33 +591,10 @@ export function BulkImportModal({ onClose, onImported, collections }: Props) {
               </motion.button>
             </div>
           ) : (
-            <div className="flex flex-col gap-3">
-              {/* Tab switcher */}
-              {!isScreenshotReview && (
-                <div className="flex gap-1 rounded-full p-1" style={{ background: 'var(--color-bg-tertiary)' }}>
-                  {([
-                    ['paste', <TextT size={15} />, 'Paste URLs'],
-                    ['file', <UploadSimple size={15} />, 'Upload File'],
-                    ['screenshots', <Image size={15} />, 'Screenshots'],
-                  ] as const).map(([key, icon, label]) => (
-                    <button
-                      key={key}
-                      onClick={() => setTab(key)}
-                      className="flex flex-1 items-center justify-center gap-2 rounded-full py-2 text-sm font-medium transition-all"
-                      style={{
-                        background: tab === key ? 'var(--color-bg-card)' : 'transparent',
-                        color: tab === key ? 'var(--color-text-primary)' : 'var(--color-text-muted)',
-                        boxShadow: tab === key ? '0 1px 4px rgba(0,0,0,0.15)' : 'none',
-                      }}
-                    >
-                      {icon}{label}
-                    </button>
-                  ))}
-                </div>
-              )}
-
+            <div className="flex min-h-0 flex-1 flex-col gap-3">
+              {extracting && <ExtractionProgress />}
               {/* Paste tab */}
-              {tab === 'paste' && (
+              {tab === 'paste' && !extracting && (
                   <div className="flex flex-col gap-1">
                   <div className="relative">
                     <textarea
@@ -533,12 +627,13 @@ export function BulkImportModal({ onClose, onImported, collections }: Props) {
               )}
 
               {/* Screenshots tab */}
-              {tab === 'screenshots' && !isScreenshotReview && (
+              {tab === 'screenshots' && !isScreenshotReview && !extracting && (
                 <div className="flex flex-col gap-3">
-                  {/* Upload area */}
-                  <button
+                  <AnimatedFileUpload files={screenshots} accept="image/*" title="Drop screenshots here" subtitle="or click to browse · PNG, JPG, WEBP · up to 10 files" processing={extracting} onFilesSelected={handleScreenshotFiles} onRemove={removeScreenshot} />
+                  {/* Legacy preview markup retained below for now */}
+                  {false && <button
                     onClick={() => screenshotRef.current?.click()}
-                    className="flex flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed py-8 transition-[border-color]"
+                    className="flex min-h-44 flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed px-4 py-6 transition-[border-color]"
                     style={{ borderColor: screenshots.length ? 'var(--color-accent)' : 'var(--color-border)', background: 'var(--color-bg-tertiary)' }}
                   >
                     <Image size={28} style={{ color: screenshots.length ? 'var(--color-accent)' : 'var(--color-text-muted)' }} />
@@ -548,28 +643,55 @@ export function BulkImportModal({ onClose, onImported, collections }: Props) {
                       </p>
                       <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>PNG, JPG, WEBP — up to 10 images</p>
                     </div>
-                  </button>
+                  </button>}
                   <input ref={screenshotRef} type="file" accept="image/*" multiple className="hidden" onChange={handleScreenshots} />
 
                   {/* Previews */}
-                  {screenshotPreviews.length > 0 && (
-                    <div className="flex flex-wrap gap-2">
-                      {screenshotPreviews.map((src, i) => (
-                        <div key={i} className="relative">
-                          <img src={src} className="h-16 w-16 rounded-xl object-cover" style={{ border: '1px solid var(--color-border)' }} />
-                          <button
-                            onClick={() => removeScreenshot(i)}
-                            className="absolute -top-1.5 -right-1.5 flex size-5 items-center justify-center rounded-full"
-                            style={{ background: 'var(--color-error)', color: '#fff' }}
+                  {false && screenshotPreviews.length > 0 && (
+                    <div className="space-y-2" aria-label="Selected screenshots">
+                      {screenshotPreviews.map((_, i) => (
+                        <motion.div
+                          key={i}
+                          initial={{ opacity: 0, y: 6 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="relative flex items-center gap-3 overflow-hidden rounded-xl border px-3 py-2"
+                          style={{ background: 'var(--color-bg-tertiary)', borderColor: 'var(--color-border)' }}
+                        >
+                          <span
+                            className="relative grid size-11 shrink-0 place-items-center rounded-lg border"
+                            style={{ background: 'var(--color-bg-card)', borderColor: 'var(--color-border)', color: 'var(--color-accent)' }}
                           >
-                            <X size={10} weight="bold" />
+                            <Image size={21} weight="duotone" />
+                            <span className="absolute -bottom-1 -right-1 rounded bg-[var(--color-bg-card)] px-1 text-[8px] font-bold uppercase" style={{ color: 'var(--color-text-muted)' }}>
+                              {screenshots[i]?.name.split('.').pop()?.slice(0, 4) || 'img'}
+                            </span>
+                          </span>
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-xs font-semibold" style={{ color: 'var(--color-text-primary)' }}>
+                              {screenshots[i]?.name || `Screenshot ${i + 1}`}
+                            </p>
+                            <p className="mt-0.5 text-[10px]" style={{ color: 'var(--color-text-muted)' }}>
+                              {screenshots[i] ? `${Math.max(1, Math.round(screenshots[i].size / 1024))} KB · Ready to extract` : 'Ready to extract'}
+                            </p>
+                            <span className="mt-1 block h-1 overflow-hidden rounded-full" style={{ background: 'var(--color-border)' }}>
+                              <motion.span className="block h-full rounded-full" style={{ background: 'var(--color-success)' }} initial={{ width: '0%' }} animate={{ width: '100%' }} transition={{ duration: 0.45 }} />
+                            </span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => removeScreenshot(i)}
+                            className="shrink-0 rounded-md p-1.5 transition-colors hover:bg-[var(--color-bg-hover)]"
+                            style={{ color: 'var(--color-text-muted)' }}
+                            aria-label={`Remove ${screenshots[i]?.name || `screenshot ${i + 1}`}`}
+                          >
+                            <X size={15} weight="bold" />
                           </button>
-                        </div>
+                        </motion.div>
                       ))}
                     </div>
                   )}
 
-                  <div className="flex justify-end pt-1">
+                  <div className="flex items-center justify-end gap-3 pt-1">
                     <motion.button
                       onClick={handleExtract}
                       disabled={extracting || screenshots.length === 0}
@@ -587,7 +709,7 @@ export function BulkImportModal({ onClose, onImported, collections }: Props) {
 
               {/* Screenshot review — grouped by collection */}
               {isScreenshotReview && (
-                <div className="flex flex-col gap-4">
+                <div className="flex flex-col gap-4 pb-32">
                   {extractedGroups.map(({ collection, urls }) => (
                     <div key={collection?.id ?? '__none__'} className="flex flex-col gap-2">
                       {/* Collection header */}
@@ -684,7 +806,7 @@ export function BulkImportModal({ onClose, onImported, collections }: Props) {
                     </div>
                   ))}
 
-                  <div className="flex justify-end pt-1">
+                  <div className="absolute bottom-0 left-0 right-0 z-20 flex justify-end border-t px-4 pb-3 pt-3 sm:px-5" style={{ background: 'var(--color-bg-card)', borderColor: 'var(--color-border)' }}>
                     <motion.button
                       onClick={handleSaveExtracted}
                       disabled={loading}
@@ -701,22 +823,47 @@ export function BulkImportModal({ onClose, onImported, collections }: Props) {
               )}
 
               {/* File tab */}
-              {tab === 'file' && !isScreenshotReview && (
-                <div className="flex flex-col gap-1">
+              {tab === 'file' && !isScreenshotReview && !extracting && (
+                <div className="flex min-h-0 flex-1 flex-col gap-1">
                   <button
                     onClick={() => fileRef.current?.click()}
-                    className="flex flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed py-10 transition-[border-color]"
-                    style={{ borderColor: fileName ? 'var(--color-accent)' : 'var(--color-border)', background: 'var(--color-bg-tertiary)' }}
+                    onDragEnter={event => { event.preventDefault(); setFileDragActive(true) }}
+                    onDragOver={event => event.preventDefault()}
+                    onDragLeave={() => setFileDragActive(false)}
+                    onDrop={event => { event.preventDefault(); setFileDragActive(false); const dropped = event.dataTransfer.files; if (dropped.length) void handleFile({ target: { files: dropped } } as React.ChangeEvent<HTMLInputElement>) }}
+                    className="flex min-h-52 w-full flex-1 flex-col items-center justify-center gap-4 rounded-2xl border-2 border-dashed px-4 py-10 transition-[border-color,background] sm:min-h-64"
+                    style={{ borderColor: fileDragActive || fileName ? 'var(--color-accent)' : 'var(--color-border)', background: fileDragActive ? 'color-mix(in srgb, var(--color-accent) 8%, var(--color-bg-tertiary))' : 'var(--color-bg-tertiary)' }}
                   >
                     <UploadSimple size={28} style={{ color: fileName ? 'var(--color-accent)' : 'var(--color-text-muted)' }} />
                     <div className="text-center">
                       <p className="text-sm font-medium" style={{ color: fileName ? 'var(--color-text-primary)' : 'var(--color-text-muted)' }}>
-                        {fileName || 'Click to upload'}
+                        {fileName || 'Drop files here, click to upload, or paste a screenshot'}
                       </p>
-                      <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>CSV, Excel, PDF, HTML, or text — links are detected automatically</p>
+                      <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>Bookmarks, CSV, Excel, PDF, text, or screenshots — links are detected automatically</p>
                     </div>
                   </button>
-                  <input ref={fileRef} type="file" accept=".csv,.xlsx,.xls,.pdf,.txt,.html,.htm" className="hidden" onChange={handleFile} />
+                  <input ref={fileRef} type="file" accept=".html,.htm,.csv,.xlsx,.xls,.pdf,.txt,image/*" multiple className="hidden" onChange={handleFile} />
+                  {selectedFiles.length > 0 && (
+                    <div className="mt-2 space-y-2" aria-label="Selected files">
+                      {selectedFiles.map((selectedFile, index) => (
+                        <motion.div key={`${selectedFile.name}-${selectedFile.lastModified}-${index}`} initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} className="flex items-center gap-3 rounded-xl border px-3 py-2.5" style={{ background: 'var(--color-bg-tertiary)', borderColor: 'var(--color-border)' }}>
+                          <span className="relative grid h-9 w-9 shrink-0 place-items-center rounded-lg" style={{ background: 'var(--color-bg-card)', color: selectedFile.type.startsWith('image/') ? '#8b5cf6' : selectedFile.name.toLowerCase().endsWith('.pdf') ? '#ef4444' : selectedFile.name.toLowerCase().endsWith('.html') || selectedFile.name.toLowerCase().endsWith('.htm') ? '#e8752b' : selectedFile.name.toLowerCase().endsWith('.csv') ? '#22c55e' : 'var(--color-accent)' }}>
+                            {selectedFile.type.startsWith('image/') ? <Image size={18} weight="duotone" /> : <FileText size={18} weight="duotone" />}
+                            <span className="absolute -bottom-1 -right-1 rounded bg-[var(--color-bg-card)] px-1 text-[7px] font-bold uppercase" style={{ color: 'var(--color-text-muted)' }}>{selectedFile.name.split('.').pop()?.slice(0, 4)}</span>
+                          </span>
+                          <span className="min-w-0 flex-1">
+                            <span className="block truncate text-xs font-semibold" style={{ color: 'var(--color-text-primary)' }}>{selectedFile.name}</span>
+                            <span className="mt-0.5 block text-[10px]" style={{ color: 'var(--color-text-muted)' }}>{Math.max(1, Math.round(selectedFile.size / 1024))} KB · {uploadingFiles ? 'Uploading…' : extracting ? 'Extracting links…' : 'Ready to extract'}</span>
+                            {(uploadingFiles || extracting) && <span className="mt-1 block h-1 overflow-hidden rounded-full" style={{ background: 'var(--color-border)' }}><motion.span className="block h-full rounded-full" style={{ background: extracting ? 'var(--color-accent-fill)' : 'var(--color-accent)' }} initial={{ width: '5%' }} animate={{ width: extracting ? ['8%', '72%', '92%'] : '100%' }} transition={{ duration: extracting ? 2.4 : 0.65, repeat: extracting ? Infinity : 0 }} /></span>}
+                          </span>
+                          <div className="flex items-center gap-2">
+                            {uploadingFiles || extracting ? <span className="h-2 w-2 animate-pulse rounded-full" style={{ background: 'var(--color-accent)' }} /> : <CheckCircle size={18} weight="fill" style={{ color: 'var(--color-success)' }} />}
+                            <button type="button" onClick={() => removeSelectedFile(index)} aria-label={`Remove ${selectedFile.name}`} className="rounded-md p-1 transition-colors hover:bg-[var(--color-bg-hover)]" style={{ color: 'var(--color-text-muted)' }}><X size={14} /></button>
+                          </div>
+                        </motion.div>
+                      ))}
+                    </div>
+                  )}
                   {fileUrls.length > 0 && (
                     <p className="pl-2 text-xs" style={{ color: tooMany ? 'var(--color-error)' : 'var(--color-text-muted)' }}>
                       {fileUrls.length} URL{fileUrls.length !== 1 ? 's' : ''} found{tooMany ? ` — max ${MAX_IMPORT_URLS}` : ''}
@@ -724,6 +871,7 @@ export function BulkImportModal({ onClose, onImported, collections }: Props) {
                   )}
                   {fileUrls.length > 0 && (
                     <div className="flex flex-col items-end gap-1 pt-2">
+                      {extracting && <ExtractionProgress />}
                       <motion.button onClick={handleFileExtract} disabled={extracting || tooMany} whileHover={extracting ? {} : { scale: 1.04 }} whileTap={extracting ? {} : { scale: 0.96 }} className="rounded-full px-6 py-3 text-[14px] font-bold text-on-accent disabled:opacity-50" style={{ background: 'var(--color-accent-fill)' }}>
                         {extracting ? 'Extracting...' : `Extract & review ${Math.min(REVIEW_BATCH_SIZE, fileUrls.filter(url => !processedFileUrls.has(url)).length)} links`}
                       </motion.button>
@@ -789,16 +937,6 @@ export function BulkImportModal({ onClose, onImported, collections }: Props) {
                     </AnimatePresence>
                   </div>
 
-                  <input
-                    value={tags}
-                    onChange={e => setTags(e.target.value)}
-                    placeholder="Tags (optional, comma separated)"
-                    className="h-[52px] w-full rounded-full border-2 border-transparent px-5 text-[15px] font-medium outline-none transition-[border-color]"
-                    style={inputStyle}
-                    onFocus={e => (e.target.style.borderColor = 'var(--color-accent)')}
-                    onBlur={e => (e.target.style.borderColor = 'transparent')}
-                  />
-
                   <div className="flex justify-end pt-1">
                     <motion.button
                       onClick={handleImport}
@@ -816,6 +954,7 @@ export function BulkImportModal({ onClose, onImported, collections }: Props) {
               )}
             </div>
           )}
+          </div>
         </motion.div>
       </div>
     </>

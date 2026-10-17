@@ -13,7 +13,6 @@ router.get('/', async (req, res) => {
         const { 
             favorite, 
             collection_id,
-            tag,
             search,
             sort = 'created_at',
             order = 'desc',
@@ -30,7 +29,6 @@ router.get('/', async (req, res) => {
         // collection_id=none -> links without a collection ("Unsorted")
         if (collection_id === 'none') query = query.is('collection_id', null);
         else if (collection_id) query = query.eq('collection_id', collection_id);
-        if (tag) query = query.contains('tags', [tag]);
         // Strip PostgREST filter syntax chars so user input can't break the .or() expression
         const term = String(search || '').replace(/[,()*%\\]/g, ' ').trim().slice(0, 200);
         if (term) {
@@ -96,7 +94,7 @@ router.get('/stats', async (req, res) => {
     try {
         const { data, error } = await supabase
             .from('useful_links')
-            .select('is_favorite, tags, collection_id')
+            .select('is_favorite, collection_id')
             .eq('user_id', req.user.id);
 
         if (error) throw error;
@@ -113,10 +111,9 @@ router.get('/stats', async (req, res) => {
         data.forEach(link => {
             if (link.is_favorite) stats.favorites++;
             if (!link.collection_id) stats.unsorted++;
-            if (link.tags) link.tags.forEach(t => tagSet.add(t));
         });
 
-        stats.tags = Array.from(tagSet).sort();
+        stats.tags = [];
 
         res.json(stats);
     } catch (error) {
@@ -142,7 +139,7 @@ router.get('/export', async (req, res) => {
         if (error) throw error;
 
         if (format === 'csv') {
-            const headers = ['url', 'title', 'note', 'tags', 'is_favorite', 'collection_id', 'created_at'];
+            const headers = ['url', 'title', 'note', 'is_favorite', 'collection_id', 'created_at'];
             const csv = [
                 headers.join(','),
                 ...data.map(link => headers.map(h => {
@@ -175,7 +172,7 @@ router.get('/export', async (req, res) => {
  */
 router.post('/', async (req, res) => {
     try {
-        const { url, note, tags, is_favorite, collection_id, allow_duplicate } = req.body;
+        const { url, note, is_favorite, collection_id, allow_duplicate } = req.body;
 
         // Validate input
         const validation = validateLinkInput({ url, note });
@@ -201,22 +198,17 @@ router.post('/', async (req, res) => {
             }
         }
 
-        // Fetch metadata from URL
-        console.log(`Fetching metadata for: ${normalizedUrl}`);
-        const metadata = await fetchMetadata(normalizedUrl);
-
         // Prepare link data
         const linkData = {
             user_id: req.user.id,
             url: normalizedUrl,
             note: note?.trim() || '',
-            tags: Array.isArray(tags) ? tags.map(t => t.trim()).filter(Boolean) : [],
             is_favorite: is_favorite || false,
             collection_id: collection_id || null,
-            title: metadata.title || null,
-            description: metadata.description || null,
-            image_url: metadata.image || null,
-            favicon_url: metadata.favicon || null
+            title: null,
+            description: null,
+            image_url: null,
+            favicon_url: null
         };
 
         // Insert into database
@@ -230,6 +222,14 @@ router.post('/', async (req, res) => {
 
         console.log(`✅ Link saved: ${data.id}`);
         res.status(201).json({ link: data });
+        fetchMetadata(normalizedUrl).then(async metadata => {
+            await supabase.from('useful_links').update({
+                title: metadata.title || null,
+                description: metadata.description || null,
+                image_url: metadata.image || null,
+                favicon_url: metadata.favicon || null,
+            }).eq('id', data.id).eq('user_id', req.user.id);
+        }).catch(error => console.error(`Metadata fetch failed for ${normalizedUrl}:`, error.message));
     } catch (error) {
         console.error('Error creating link:', error);
         res.status(500).json({
@@ -245,7 +245,7 @@ router.post('/', async (req, res) => {
  */
 router.post('/bulk', async (req, res) => {
     try {
-        const { urls, tags, collection_id } = req.body;
+        const { urls, collection_id } = req.body;
 
         if (!Array.isArray(urls) || urls.length === 0) {
             return res.status(400).json({ error: 'URLs array required' });
@@ -261,7 +261,7 @@ router.post('/bulk', async (req, res) => {
             duplicates: []
         };
 
-        for (const urlItem of urls) {
+        const importOne = async (urlItem) => {
             const rawUrl = typeof urlItem === 'string' ? urlItem : urlItem.url;
             const note = typeof urlItem === 'object' ? urlItem.note : '';
 
@@ -279,7 +279,7 @@ router.post('/bulk', async (req, res) => {
 
                 if (existing) {
                     results.duplicates.push({ url, id: existing.id });
-                    continue;
+                    return;
                 }
 
                 // Fetch metadata
@@ -292,7 +292,6 @@ router.post('/bulk', async (req, res) => {
                         user_id: req.user.id,
                         url,
                         note: note || '',
-                        tags: tags || [],
                         collection_id: collection_id || null,
                         title: metadata.title || null,
                         description: metadata.description || null,
@@ -307,12 +306,54 @@ router.post('/bulk', async (req, res) => {
             } catch (err) {
                 results.failed.push({ url: rawUrl, error: err.message });
             }
+        };
+
+        // Process a small number in parallel so bulk imports are faster
+        // without overwhelming remote sites or the database.
+        const concurrency = 5;
+        for (let index = 0; index < urls.length; index += concurrency) {
+            await Promise.all(urls.slice(index, index + concurrency).map(importOne));
         }
 
         res.status(201).json(results);
     } catch (error) {
         console.error('Error bulk creating links:', error);
         res.status(500).json({ error: 'Failed to bulk create links' });
+    }
+});
+
+router.patch('/bulk', async (req, res) => {
+    try {
+        const { ids, collection_id } = req.body;
+        if (!Array.isArray(ids) || ids.length === 0) return res.status(400).json({ error: 'Link ids required' });
+        const updates = {};
+        if (collection_id !== undefined) updates.collection_id = collection_id || null;
+        if (!Object.keys(updates).length) return res.status(400).json({ error: 'No updates provided' });
+        const { data, error } = await supabase.from('useful_links').update(updates).in('id', ids).eq('user_id', req.user.id).select();
+        if (error) throw error;
+        res.json({ links: data });
+    } catch (error) {
+        console.error('Error applying bulk link updates:', error);
+        res.status(500).json({ error: 'Failed to update links' });
+    }
+});
+
+router.post('/:id/refresh-metadata', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { data: link, error: findError } = await supabase.from('useful_links').select('url').eq('id', id).eq('user_id', req.user.id).single();
+        if (findError || !link) return res.status(404).json({ error: 'Link not found' });
+        const metadata = await fetchMetadata(link.url);
+        const { data, error } = await supabase.from('useful_links').update({
+            title: metadata.title || null, description: metadata.description || null,
+            image_url: metadata.image || null, favicon_url: metadata.favicon || null,
+            updated_at: new Date().toISOString(),
+        }).eq('id', id).eq('user_id', req.user.id).select().single();
+        if (error) throw error;
+        res.json({ link: data });
+    } catch (error) {
+        console.error('Error refreshing metadata:', error);
+        res.status(500).json({ error: 'Failed to refresh metadata' });
     }
 });
 
@@ -374,7 +415,7 @@ router.post('/:id/check-health', async (req, res) => {
 router.patch('/:id', async (req, res) => {
     try {
         const { id } = req.params;
-        const { url, note, tags, is_favorite, collection_id } = req.body;
+        const { url, note, is_favorite, collection_id } = req.body;
 
         const updates = {};
         if (url !== undefined) {
@@ -391,7 +432,6 @@ router.patch('/:id', async (req, res) => {
             updates.url = normalizedUrl;
         }
         if (note !== undefined) updates.note = note.trim();
-        if (tags !== undefined) updates.tags = Array.isArray(tags) ? tags.map(t => t.trim()).filter(Boolean) : [];
         if (is_favorite !== undefined) updates.is_favorite = is_favorite;
         if (collection_id !== undefined) updates.collection_id = collection_id || null;
 

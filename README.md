@@ -18,7 +18,8 @@ Save links from **YouTube videos**, **Medium articles**, **websites**, **documen
 - **Duplicate Detection** - Prevents saving the same link twice
 - **Dark/Light Theme** - Toggle between themes with persistence
 - **Responsive Design** - Works on desktop and mobile
-- **Magic Link Auth** - Passwordless login via email
+- **Email/Password Auth** - Secure account authentication through Supabase
+- **Bookmark Import** - Import browser bookmark HTML files and preserve their URLs
 
 ### Supported Link Types
 

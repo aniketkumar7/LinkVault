@@ -284,9 +284,22 @@ router.delete('/:id/share', async (req, res) => {
     }
 });
 
+router.patch('/:id/pin', async (req, res) => {
+    try {
+        const { data: current, error: findError } = await supabase.from('collections').select('is_pinned').eq('id', req.params.id).eq('user_id', req.user.id).single();
+        if (findError || !current) return res.status(404).json({ error: 'Collection not found' });
+        const { data, error } = await supabase.from('collections').update({ is_pinned: !current.is_pinned }).eq('id', req.params.id).eq('user_id', req.user.id).select().single();
+        if (error) throw error;
+        res.json({ collection: data });
+    } catch (error) {
+        console.error('Error toggling collection pin:', error);
+        res.status(500).json({ error: 'Failed to update collection pin' });
+    }
+});
+
 /**
  * DELETE /api/collections/:id
- * Delete a collection (links are kept but unassigned)
+ * Delete a collection and all links inside it
  */
 router.delete('/:id', async (req, res) => {
     try {

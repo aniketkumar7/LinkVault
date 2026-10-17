@@ -8,7 +8,6 @@ import { normalizeUrl as canonicalizeUrl } from '@/lib/url'
 
 interface Props {
   onLinkAdded: () => void
-  existingTags: string[]
   collections: Collection[]
   onCollectionCreated?: () => void
   open?: boolean
@@ -20,7 +19,7 @@ interface Props {
 const MORPH = { type: 'spring' as const, stiffness: 320, damping: 30, mass: 1 }
 type ButtonRect = { x: number; y: number; w: number; h: number } | null
 
-export function AddLinkForm({ onLinkAdded, existingTags, collections, onCollectionCreated, open, onOpenChange, initialUrl = '' }: Props) {
+export function AddLinkForm({ onLinkAdded, collections, onCollectionCreated, open, onOpenChange, initialUrl = '' }: Props) {
   const [internalOpen, setInternalOpen] = useState(false)
   const isOpen = open ?? internalOpen
   const setOpenState = (next: boolean) => {
@@ -31,10 +30,10 @@ export function AddLinkForm({ onLinkAdded, existingTags, collections, onCollecti
     }
   }
   const [origin] = useState<ButtonRect>(null)
-  const urlRef = useRef<HTMLInputElement>(null)
+  const urlRef = useRef<HTMLInputElement | HTMLTextAreaElement>(null)
 
   const [url, setUrl] = useState(initialUrl)
-  const [tags, setTags] = useState('')
+  const [multiMode, setMultiMode] = useState(false)
   const [collectionId, setCollectionId] = useState('')
   const [loading, setLoading] = useState(false)
   const [duplicate, setDuplicate] = useState<{ id: string; title: string } | null>(null)
@@ -59,7 +58,7 @@ export function AddLinkForm({ onLinkAdded, existingTags, collections, onCollecti
   function handleClose() {
     setOpenState(false)
     setUrl('')
-    setTags('')
+    setMultiMode(false)
     setCollectionId('')
     setDuplicate(null)
     setAllowDuplicate(false)
@@ -132,6 +131,21 @@ export function AddLinkForm({ onLinkAdded, existingTags, collections, onCollecti
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    if (multiMode) {
+      const urls = url.split(/\s+/).map(value => value.trim()).filter(Boolean).map(value => normalizeUrl(value)).filter(value => { try { new URL(value); return true } catch { return false } })
+      if (!urls.length) { setUrlError(true); return }
+      if (!collectionId) { setCollectionError(true); return }
+      setLoading(true)
+      try {
+        const result = await api.bulkImport([...new Set(urls)], { collection_id: collectionId })
+        if (result.success.length) { toast.success(`Saved ${result.success.length} links`); onLinkAdded() }
+        if (result.duplicates.length) toast(`${result.duplicates.length} duplicates skipped`)
+        if (result.failed.length) toast.error(`${result.failed.length} links could not be saved`)
+        handleClose()
+      } catch { toast.error('Could not save links') }
+      finally { setLoading(false) }
+      return
+    }
     const finalUrl = normalizeUrl(url)
     let hasError = false
     if (!finalUrl) { setUrlError(true); hasError = true }
@@ -144,7 +158,6 @@ export function AddLinkForm({ onLinkAdded, existingTags, collections, onCollecti
     try {
       await api.createLink({
         url: finalUrl,
-        tags: tags.split(',').map(t => t.trim()).filter(Boolean),
         collection_id: collectionId,
         allow_duplicate: allowDuplicate,
       })
@@ -216,7 +229,10 @@ export function AddLinkForm({ onLinkAdded, existingTags, collections, onCollecti
                   variants={{ hidden: { opacity: 0, y: -6 }, show: { opacity: 1, y: 0, transition: { duration: 0.2 } } }}
                   className="relative mb-5 flex items-center justify-left"
                 >
-                  <span className="text-[18px] font-bold" style={{ color: 'var(--color-text-primary)' }}>Save Link</span>
+                  <div>
+                    <span className="block text-[18px] font-bold" style={{ color: 'var(--color-text-primary)' }}>Save your link</span>
+                    <span className="mt-1 block text-xs" style={{ color: 'var(--color-text-muted)' }}>{multiMode ? 'Paste several links and save them together.' : 'Keep a useful link close at hand.'}</span>
+                  </div>
                   <motion.button
                     onClick={handleClose}
                     whileTap={{ scale: 0.88 }} whileHover={{ scale: 1.1 }}
@@ -234,8 +250,22 @@ export function AddLinkForm({ onLinkAdded, existingTags, collections, onCollecti
                     variants={{ hidden: { opacity: 0, y: 8 }, show: { opacity: 1, y: 0, transition: { duration: 0.2 } } }}
                     className="flex flex-col gap-1"
                   >
-                    <input
-                      ref={urlRef}
+                    <div className="mb-1 flex items-center justify-between gap-3">
+                      <button type="button" role="switch" aria-checked={multiMode} onClick={() => setMultiMode(value => !value)} className="inline-flex h-10 items-center gap-2 rounded-full border px-3 text-xs font-semibold" style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-secondary)', background: 'var(--color-bg-tertiary)' }}>
+                        <span style={{ color: !multiMode ? 'var(--color-text-primary)' : 'var(--color-text-muted)' }}>Single link</span>
+                        <span className="relative flex h-6 w-11 items-center rounded-full p-0.5" style={{ background: multiMode ? 'var(--color-accent-fill)' : 'var(--color-border)' }}><motion.span animate={{ x: multiMode ? 20 : 0 }} transition={{ type: 'spring', stiffness: 500, damping: 30 }} className="h-5 w-5 rounded-full bg-white shadow-sm" /></span>
+                        <span style={{ color: multiMode ? 'var(--color-text-primary)' : 'var(--color-text-muted)' }}>Multiple links</span>
+                      </button>
+                      <span className="text-[11px]" style={{ color: 'var(--color-text-muted)' }}>{multiMode ? 'one per line' : 'one URL'}</span>
+                    </div>
+                    {multiMode ? <textarea
+                      value={url}
+                      onChange={(e) => { setUrl(e.target.value); setUrlError(false) }}
+                      placeholder="Paste multiple links, one per line or separated by spaces"
+                      rows={6}
+                      className={`w-full resize-y rounded-2xl border-2 px-5 py-4 text-[15px] font-medium outline-none transition-[border-color] ${urlError ? 'border-red-400' : 'border-transparent'}`}
+                      style={inputStyle}
+                    /> : <input
                       value={url}
                       onChange={(e) => { setUrl(e.target.value); setUrlError(false); setAllowDuplicate(false) }}
                       placeholder="Enter URL"
@@ -243,7 +273,7 @@ export function AddLinkForm({ onLinkAdded, existingTags, collections, onCollecti
                       style={inputStyle}
                       onFocus={(e) => { if (!urlError) e.target.style.borderColor = 'var(--color-accent)' }}
                       onBlur={(e) => { if (!urlError) e.target.style.borderColor = 'transparent' }}
-                    />
+                    />}
                     <AnimatePresence>
                       {urlError && (
                         <motion.span
@@ -306,7 +336,7 @@ export function AddLinkForm({ onLinkAdded, existingTags, collections, onCollecti
                             animate={{ opacity: 1, y: 0, scale: 1 }}
                             exit={{ opacity: 0, y: -8, scale: 0.97 }}
                             transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-                            className="absolute top-[56px] left-0 right-0 z-10 rounded-2xl py-1"
+                            className="absolute top-[56px] left-0 right-0 z-10 max-h-48 overflow-y-auto rounded-2xl py-1"
                             style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)', boxShadow: '0 8px 24px rgba(0,0,0,0.18)' }}
                           >
                             <div style={{ maxHeight: 224, overflowY: 'auto' }}>
@@ -380,30 +410,12 @@ export function AddLinkForm({ onLinkAdded, existingTags, collections, onCollecti
                     </AnimatePresence>
                   </motion.div>
 
-                  {/* Tags */}
-                  <motion.div
-                    variants={{ hidden: { opacity: 0, y: 8 }, show: { opacity: 1, y: 0, transition: { duration: 0.2 } } }}
-                  >
-                    <input
-                      value={tags}
-                      onChange={(e) => setTags(e.target.value)}
-                      placeholder="Tags (optional, comma separated)"
-                      list="tag-suggestions"
-                      className="h-[52px] w-full rounded-full border-2 border-transparent px-5 text-[15px] font-medium outline-none transition-[border-color]"
-                      style={inputStyle}
-                      onFocus={(e) => (e.target.style.borderColor = 'var(--color-accent)')}
-                      onBlur={(e) => (e.target.style.borderColor = 'transparent')}
-                    />
-                    <datalist id="tag-suggestions">
-                      {existingTags.map(t => <option key={t} value={t} />)}
-                    </datalist>
-                  </motion.div>
-
                   {/* Submit */}
                   <motion.div
                     variants={{ hidden: { opacity: 0, y: 8 }, show: { opacity: 1, y: 0, transition: { duration: 0.2 } } }}
                     className="flex justify-end pt-1"
                   >
+                    <button type="button" onClick={handleClose} className="rounded-full border px-5 py-3 text-sm font-semibold" style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-secondary)' }}>Cancel</button>
                     <motion.button
                       type="submit"
                       disabled={loading}
