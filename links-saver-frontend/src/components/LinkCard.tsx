@@ -493,22 +493,24 @@ export function LinkCard({
                           <motion.div
                             initial={{ opacity: 0, y: -8, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -8, scale: 0.97 }}
                             transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-                            className="absolute top-[56px] left-0 right-0 z-10 rounded-2xl overflow-hidden py-1"
-                            style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)', boxShadow: '0 8px 24px rgba(0,0,0,0.25)' }}
+                            className="absolute top-[56px] left-0 right-0 z-10 flex flex-col overflow-hidden rounded-2xl py-1"
+                            style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)', boxShadow: '0 8px 24px rgba(0,0,0,0.25)', maxHeight: 'min(320px, calc(100dvh - 32px))' }}
                           >
-                            {[{ id: '', name: 'No collection', color: 'var(--color-border)' }, ...collections].map(col => (
-                              <button key={col.id} type="button"
-                                onClick={() => { setEditCollectionId(col.id); setCollectionDropOpen(false) }}
-                                className="w-full flex items-center gap-3 px-4 py-3 text-[14px] font-medium text-left transition-colors hover:bg-[var(--color-bg-tertiary)]"
-                                style={{ color: 'var(--color-text-primary)' }}
-                              >
-                                <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: col.color }} />
-                                <span className="flex-1">{col.name}</span>
-                                {editCollectionId === col.id && <Check size={14} weight="bold" style={{ color: 'var(--color-accent)' }} />}
-                              </button>
-                            ))}
-                            <div className="mx-3 my-1 h-px" style={{ background: 'var(--color-border)' }} />
-                            <div className="flex gap-2 px-3 py-2">
+                            <div className="min-h-0 overflow-y-auto overscroll-contain" style={{ maxHeight: 'min(224px, calc(100dvh - 128px))' }}>
+                              {[{ id: '', name: 'No collection', color: 'var(--color-border)' }, ...collections].map(col => (
+                                <button key={col.id} type="button"
+                                  onClick={() => { setEditCollectionId(col.id); setCollectionDropOpen(false) }}
+                                  className="w-full flex items-center gap-3 px-4 py-3 text-[14px] font-medium text-left transition-colors hover:bg-[var(--color-bg-tertiary)]"
+                                  style={{ color: 'var(--color-text-primary)' }}
+                                >
+                                  <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: col.color }} />
+                                  <span className="flex-1 truncate">{col.name}</span>
+                                  {editCollectionId === col.id && <Check size={14} weight="bold" style={{ color: 'var(--color-accent)' }} />}
+                                </button>
+                              ))}
+                            </div>
+                            <div className="mx-3 my-1 h-px shrink-0" style={{ background: 'var(--color-border)' }} />
+                            <div className="flex shrink-0 gap-2 px-3 py-2">
                               <input value={newCollectionName} onChange={e => setNewCollectionName(e.target.value)} onKeyDown={e => e.key === 'Enter' && createCollectionAndSelect()} placeholder="Create collection" className="min-w-0 flex-1 rounded-lg px-2 py-1.5 text-xs" style={{ background: 'var(--color-bg-tertiary)' }} />
                               <button type="button" onClick={createCollectionAndSelect} className="rounded-lg px-2" style={{ color: 'var(--color-accent)' }}><Plus size={14} /></button>
                             </div>

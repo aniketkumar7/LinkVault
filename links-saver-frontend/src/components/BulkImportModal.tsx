@@ -744,19 +744,21 @@ export function BulkImportModal({ onClose, onImported, collections, initialFiles
                         const isUnassigned = (overrides[url] ?? null) === null
                         const alreadyCreated = suggestion && createdSuggestions[suggestion.name]
                         return (
-                          <div key={url} className="flex flex-col gap-1.5">
-                            <div className="flex items-center gap-3 rounded-2xl px-4 py-3" style={{ background: 'var(--color-bg-tertiary)' }}>
+                          <div key={url} className="rounded-2xl px-3 py-2.5" style={{ background: 'var(--color-bg-tertiary)' }}>
+                            <div className="flex min-w-0 items-center gap-3">
                               <img
                                 src={`https://www.google.com/s2/favicons?domain=${new URL(url).hostname}&sz=32`}
                                 className="size-5 rounded shrink-0"
                                 onError={e => { (e.target as HTMLImageElement).style.display = 'none' }}
                               />
-                              <span className="flex-1 text-[13px] truncate" style={{ color: 'var(--color-text-primary)' }}>{url}</span>
-                              {duplicateUrls.has(url) && (
-                                <span className="shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold" style={{ background: 'rgba(251,191,36,0.15)', color: '#fbbf24' }}>Saved</span>
-                              )}
+                              <span className="min-w-0 flex-1 truncate text-[13px]" style={{ color: 'var(--color-text-primary)' }}>{url}</span>
                               <button type="button" onClick={() => skipExtractedLink(url)} className="p-1" title="Skip this link" aria-label={`Skip ${url}`} style={{ color: 'var(--color-text-muted)' }}><X size={14} weight="bold" /></button>
+                            </div>
 
+                            <div className="ml-8 mt-2 flex min-w-0 items-center justify-between gap-2">
+                              {duplicateUrls.has(url) ? (
+                                <span className="shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold" style={{ background: 'rgba(251,191,36,0.15)', color: '#fbbf24' }}>Already saved</span>
+                              ) : <span />}
                               {/* Per-link collection override dropdown */}
                               <div className="relative shrink-0">
                                 <button
@@ -776,23 +778,25 @@ export function BulkImportModal({ onClose, onImported, collections, initialFiles
                                     <motion.div
                                       initial={{ opacity: 0, y: -6, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -6, scale: 0.97 }}
                                       transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-                                      className="absolute right-0 top-[34px] z-20 rounded-2xl overflow-hidden py-1 min-w-[160px]"
-                                      style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)', boxShadow: '0 8px 24px rgba(0,0,0,0.2)' }}
+                                      className="absolute right-0 top-[34px] z-20 flex min-w-[180px] flex-col overflow-hidden rounded-2xl py-1"
+                                      style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)', boxShadow: '0 8px 24px rgba(0,0,0,0.2)', maxHeight: 'min(320px, calc(100dvh - 32px))' }}
                                       onClick={e => e.stopPropagation()}
                                     >
-                                      {[{ id: null, name: 'No collection', color: 'var(--color-border)' }, ...localCollections].map(col => (
-                                        <button key={col.id ?? 'none'} type="button"
-                                          onClick={() => { setOverrides(prev => ({ ...prev, [url]: col.id })); setOpenOverrideDropdown(null) }}
-                                          className="w-full flex items-center gap-3 px-4 py-2.5 text-[13px] font-medium text-left transition-colors hover:bg-[var(--color-bg-tertiary)]"
-                                          style={{ color: 'var(--color-text-primary)' }}
-                                        >
-                                          <span className="w-2 h-2 rounded-full shrink-0" style={{ background: col.color }} />
-                                          <span className="flex-1">{col.name}</span>
-                                          {overrides[url] === col.id && <Check size={12} weight="bold" style={{ color: 'var(--color-accent)' }} />}
-                                        </button>
-                                      ))}
-                                      <div className="mx-3 my-1 h-px" style={{ background: 'var(--color-border)' }} />
-                                      <div className="flex gap-1 px-3 py-2"><input value={overrideCollectionName} onChange={e => setOverrideCollectionName(e.target.value)} onKeyDown={e => e.key === 'Enter' && createOverrideCollection(url)} placeholder="Create collection" className="min-w-0 flex-1 rounded-lg px-2 py-1.5 text-xs" style={{ background: 'var(--color-bg-tertiary)' }} /><button type="button" onClick={() => createOverrideCollection(url)} className="p-1" style={{ color: 'var(--color-accent)' }}><Plus size={14} /></button></div>
+                                      <div className="min-h-0 overflow-y-auto overscroll-contain" style={{ maxHeight: 'min(224px, calc(100dvh - 128px))' }}>
+                                        {[{ id: null, name: 'No collection', color: 'var(--color-border)' }, ...localCollections].map(col => (
+                                          <button key={col.id ?? 'none'} type="button"
+                                            onClick={() => { setOverrides(prev => ({ ...prev, [url]: col.id })); setOpenOverrideDropdown(null) }}
+                                            className="w-full flex items-center gap-3 px-4 py-2.5 text-[13px] font-medium text-left transition-colors hover:bg-[var(--color-bg-tertiary)]"
+                                            style={{ color: 'var(--color-text-primary)' }}
+                                          >
+                                            <span className="w-2 h-2 rounded-full shrink-0" style={{ background: col.color }} />
+                                            <span className="flex-1 truncate">{col.name}</span>
+                                            {overrides[url] === col.id && <Check size={12} weight="bold" style={{ color: 'var(--color-accent)' }} />}
+                                          </button>
+                                        ))}
+                                      </div>
+                                      <div className="mx-3 my-1 h-px shrink-0" style={{ background: 'var(--color-border)' }} />
+                                      <div className="flex shrink-0 gap-1 px-3 py-2"><input value={overrideCollectionName} onChange={e => setOverrideCollectionName(e.target.value)} onKeyDown={e => e.key === 'Enter' && createOverrideCollection(url)} placeholder="Create collection" className="min-w-0 flex-1 rounded-lg px-2 py-1.5 text-xs" style={{ background: 'var(--color-bg-tertiary)' }} /><button type="button" onClick={() => createOverrideCollection(url)} className="p-1" style={{ color: 'var(--color-accent)' }}><Plus size={14} /></button></div>
                                     </motion.div>
                                   )}
                                 </AnimatePresence>
