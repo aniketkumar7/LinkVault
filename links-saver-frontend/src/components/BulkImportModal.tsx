@@ -560,7 +560,7 @@ export function BulkImportModal({ onClose, onImported, collections, initialFiles
               <span className="block text-[18px] font-bold" style={{ color: 'var(--color-text-primary)' }}>
                 {isScreenshotReview ? `Review ${extracted!.length} links` : 'Upload files to extract'}
               </span>
-              {!isScreenshotReview && <span className="mt-1 block text-xs" style={{ color: 'var(--color-text-muted)' }}>Drop a bookmark file, document, spreadsheet, PDF, or screenshot and we’ll find the links.</span>}
+              {!isScreenshotReview && <span className="mt-1 block text-xs" style={{ color: 'var(--color-text-muted)' }}>Supports bookmarks, spreadsheets, PDFs, text files, and images.</span>}
             </div>
             <motion.button
               onClick={onClose}
@@ -709,7 +709,7 @@ export function BulkImportModal({ onClose, onImported, collections, initialFiles
 
                   <div className="flex items-center justify-end gap-3 pt-1">
                     <motion.button
-                      onClick={handleExtract}
+                      onClick={() => void handleExtract()}
                       disabled={extracting || screenshots.length === 0}
                       whileHover={extracting ? {} : { scale: 1.04 }}
                       whileTap={extracting ? {} : { scale: 0.96 }}
@@ -853,9 +853,9 @@ export function BulkImportModal({ onClose, onImported, collections, initialFiles
                     <UploadSimple size={28} style={{ color: fileName ? 'var(--color-accent)' : 'var(--color-text-muted)' }} />
                     <div className="text-center">
                       <p className="text-sm font-medium" style={{ color: fileName ? 'var(--color-text-primary)' : 'var(--color-text-muted)' }}>
-                        {fileName || 'Drop files here, click to upload, or paste a screenshot'}
+                        {fileName || 'Drop files here'}
                       </p>
-                      <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>Bookmarks, CSV, Excel, PDF, text, or screenshots — links are detected automatically</p>
+                      <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>{fileName ? 'Click to choose different files' : 'or click to browse'}</p>
                     </div>
                   </button>
                   <input ref={fileRef} type="file" accept=".html,.htm,.csv,.xlsx,.xls,.pdf,.txt,image/*" multiple className="hidden" onChange={handleFile} />
@@ -888,7 +888,7 @@ export function BulkImportModal({ onClose, onImported, collections, initialFiles
                   {fileUrls.length > 0 && (
                     <div className="flex flex-col items-end gap-1 pt-2">
                       {extracting && <ExtractionProgress />}
-                      <motion.button onClick={handleFileExtract} disabled={extracting || tooMany} whileHover={extracting ? {} : { scale: 1.04 }} whileTap={extracting ? {} : { scale: 0.96 }} className="rounded-full px-6 py-3 text-[14px] font-bold text-on-accent disabled:opacity-50" style={{ background: 'var(--color-accent-fill)' }}>
+                      <motion.button onClick={() => void handleFileExtract()} disabled={extracting || tooMany} whileHover={extracting ? {} : { scale: 1.04 }} whileTap={extracting ? {} : { scale: 0.96 }} className="rounded-full px-6 py-3 text-[14px] font-bold text-on-accent disabled:opacity-50" style={{ background: 'var(--color-accent-fill)' }}>
                         {extracting ? 'Extracting...' : `Extract & review ${Math.min(REVIEW_BATCH_SIZE, fileUrls.filter(url => !processedFileUrls.has(url)).length)} links`}
                       </motion.button>
                       {fileUrls.filter(url => !processedFileUrls.has(url)).length > REVIEW_BATCH_SIZE && <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Review the next 20 after re-uploading this file.</p>}
