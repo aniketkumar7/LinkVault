@@ -1,6 +1,18 @@
 -- Reels Links Saver - Database Schema v2
 -- Run this in Supabase SQL Editor
 
+-- Collections must exist before useful_links references it.
+CREATE TABLE IF NOT EXISTS public.collections (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
+    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+    name TEXT NOT NULL,
+    description TEXT,
+    color TEXT DEFAULT '#f97316',
+    is_public BOOLEAN DEFAULT FALSE,
+    share_slug TEXT UNIQUE
+);
+
 -- Create the useful_links table
 CREATE TABLE IF NOT EXISTS public.useful_links (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -18,18 +30,6 @@ CREATE TABLE IF NOT EXISTS public.useful_links (
     is_favorite BOOLEAN DEFAULT FALSE,
     status TEXT DEFAULT 'to_try' CHECK (status IN ('to_try', 'tried', 'useful', 'dead')),
     collection_id UUID REFERENCES public.collections(id) ON DELETE SET NULL
-);
-
--- Collections table
-CREATE TABLE IF NOT EXISTS public.collections (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
-    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
-    name TEXT NOT NULL,
-    description TEXT,
-    color TEXT DEFAULT '#f97316',
-    is_public BOOLEAN DEFAULT FALSE,
-    share_slug TEXT UNIQUE
 );
 
 ALTER TABLE public.collections ADD COLUMN IF NOT EXISTS is_pinned BOOLEAN DEFAULT FALSE NOT NULL;
@@ -66,7 +66,8 @@ CREATE POLICY "Users can insert own links"
 DROP POLICY IF EXISTS "Users can update own links" ON public.useful_links;
 CREATE POLICY "Users can update own links"
     ON public.useful_links FOR UPDATE
-    USING (auth.uid() = user_id);
+    USING (auth.uid() = user_id)
+    WITH CHECK (auth.uid() = user_id);
 
 DROP POLICY IF EXISTS "Users can delete own links" ON public.useful_links;
 CREATE POLICY "Users can delete own links"
@@ -87,7 +88,8 @@ CREATE POLICY "Users can insert own collections"
 DROP POLICY IF EXISTS "Users can update own collections" ON public.collections;
 CREATE POLICY "Users can update own collections"
     ON public.collections FOR UPDATE
-    USING (auth.uid() = user_id);
+    USING (auth.uid() = user_id)
+    WITH CHECK (auth.uid() = user_id);
 
 DROP POLICY IF EXISTS "Users can delete own collections" ON public.collections;
 CREATE POLICY "Users can delete own collections"

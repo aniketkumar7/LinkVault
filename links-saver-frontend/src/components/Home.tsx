@@ -24,9 +24,13 @@ import { FolderStylePicker } from './ui/FolderStylePicker'
 import { api } from '@/lib/api'
 import { toast } from '@/lib/toast'
 import { PushPin } from '@phosphor-icons/react'
+import { extractSharedUrl } from '@/lib/shareTarget'
+import type { IncomingShare } from '@/lib/shareTarget'
 
 interface Props {
   onOpenCollection: (collectionId: string, collectionName?: string) => void
+  incomingShare?: IncomingShare | null
+  onIncomingShareHandled?: () => void
 }
 
 type FolderSort = 'recent' | 'name' | 'size' | 'newest'
@@ -62,7 +66,7 @@ function greeting() {
   return hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening'
 }
 
-export function Home({ onOpenCollection }: Props) {
+export function Home({ onOpenCollection, incomingShare, onIncomingShareHandled }: Props) {
   const { user, signOut } = useAuth()
   const { data: collections = [], isLoading: collectionsLoading } = useCollections()
   const { data: stats, isLoading: statsLoading } = useStats()
@@ -95,8 +99,30 @@ export function Home({ onOpenCollection }: Props) {
   const [folderSort, setFolderSort] = useState<FolderSort>(() => (localStorage.getItem('folder-sort') as FolderSort) || 'recent')
   const [pastedUrl, setPastedUrl] = useState('')
   const [addLinkKey, setAddLinkKey] = useState(0)
+  const [sharedFiles, setSharedFiles] = useState<File[]>([])
   const searchRef = useRef<HTMLInputElement>(null)
   const searchTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+
+  useEffect(() => {
+    if (!incomingShare) return
+    const supportedFiles = incomingShare.files.filter(file =>
+      file.type.startsWith('image/') || file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')
+    )
+    if (supportedFiles.length) {
+      setSharedFiles(supportedFiles)
+      setShowBulkImport(true)
+    } else {
+      const sharedUrl = extractSharedUrl(incomingShare)
+      if (sharedUrl) {
+        setPastedUrl(sharedUrl)
+        setAddLinkKey(key => key + 1)
+        setShowAddLink(true)
+      } else {
+        toast('No supported link or document was shared')
+      }
+    }
+    onIncomingShareHandled?.()
+  }, [incomingShare, onIncomingShareHandled])
 
   const sortedCollections = useMemo(() => sortCollections(collections, folderSort), [collections, folderSort])
   const smartFolders = SMART_FOLDERS
@@ -347,7 +373,7 @@ export function Home({ onOpenCollection }: Props) {
       <CollectionManager open={showCollectionManager} onClose={() => setShowCollectionManager(false)} collections={collections} onChanged={invalidateCollections} />
       <AddCollectionModal key={showAddCollection ? 'new-open' : 'new-closed'} open={showAddCollection} onClose={() => setShowAddCollection(false)} onCreated={invalidateCollections} />
       <AddLinkForm key={addLinkKey} initialUrl={pastedUrl} open={showAddLink} onOpenChange={setShowAddLink} onLinkAdded={invalidateCollections} collections={collections} onCollectionCreated={invalidateCollections} />
-      {showBulkImport && <BulkImportModal onClose={() => setShowBulkImport(false)} onImported={invalidateCollections} collections={collections} />}
+      {showBulkImport && <BulkImportModal key="shared-import" initialFiles={sharedFiles} onClose={() => { setShowBulkImport(false); setSharedFiles([]) }} onImported={invalidateCollections} collections={collections} />}
       {showExport && <ExportModal collections={collections} onClose={() => setShowExport(false)} />}
       <ProfileDrawer open={showProfile} onClose={() => setShowProfile(false)} user={user} />
     </div>

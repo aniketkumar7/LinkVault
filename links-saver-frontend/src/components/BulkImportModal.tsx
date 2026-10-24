@@ -12,6 +12,7 @@ interface Props {
   onClose: () => void
   onImported: () => void
   collections: Collection[]
+  initialFiles?: File[]
 }
 
 const MORPH = { type: 'spring' as const, stiffness: 320, damping: 30, mass: 1 }
@@ -156,7 +157,7 @@ function extractUrlsFromHtml(html: string): string[] {
   return [...new Set([...links, ...extractUrlsFromText(html)])]
 }
 
-export function BulkImportModal({ onClose, onImported, collections }: Props) {
+export function BulkImportModal({ onClose, onImported, collections, initialFiles = [] }: Props) {
   const [tab, setTab] = useState<'paste' | 'file' | 'screenshots'>('file')
   const [urlsText, setUrlsText] = useState('')
   const [fileUrls, setFileUrls] = useState<string[]>([])
@@ -190,6 +191,7 @@ export function BulkImportModal({ onClose, onImported, collections }: Props) {
   const fileRef = useRef<HTMLInputElement>(null)
   const screenshotRef = useRef<HTMLInputElement>(null)
   const collectionRef = useRef<HTMLDivElement>(null)
+  const handledInitialFiles = useRef(false)
 
   const localCollections = useMemo(() => {
     const ids = new Set(collections.map(c => c.id))
@@ -286,11 +288,11 @@ export function BulkImportModal({ onClose, onImported, collections }: Props) {
     }
   }
 
-  async function handleExtract() {
-    if (screenshots.length === 0) return
+  async function handleExtract(imageFiles: File[] = screenshots) {
+    if (imageFiles.length === 0) return
     setExtracting(true)
     try {
-      const links = await api.extractFromScreenshots(screenshots, localCollections)
+      const links = await api.extractFromScreenshots(imageFiles, localCollections)
       if (links.length === 0) {
         toast('No URLs found in screenshots')
         return
@@ -311,8 +313,8 @@ export function BulkImportModal({ onClose, onImported, collections }: Props) {
     }
   }
 
-  async function handleFileExtract() {
-    const nextBatch = fileUrls.filter(url => !processedFileUrls.has(url)).slice(0, REVIEW_BATCH_SIZE)
+  async function handleFileExtract(sourceUrls: string[] = fileUrls) {
+    const nextBatch = sourceUrls.filter(url => !processedFileUrls.has(url)).slice(0, REVIEW_BATCH_SIZE)
     if (!nextBatch.length) { toast('All links in this file have been reviewed'); return }
     setExtracting(true)
     try {
@@ -432,18 +434,19 @@ export function BulkImportModal({ onClose, onImported, collections }: Props) {
     })
   }
 
-  async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
-    const files = Array.from(e.target.files || []).slice(0, 10)
+  async function handleFiles(inputFiles: File[], autoAnalyzeSharedFile = false) {
+    const files = inputFiles.slice(0, 10)
     const file = files[0]
     if (!file) return
     setSelectedFiles(files)
     setUploadingFiles(true)
     window.setTimeout(() => setUploadingFiles(false), 700)
-    if (file.type.startsWith('image/')) {
+    if (file.type.startsWith('image/') || /\.(png|jpe?g|webp|gif|bmp|heic)$/i.test(file.name)) {
       const images = files
       setScreenshots(images)
       setScreenshotPreviews(images.map(image => URL.createObjectURL(image)))
       setTab('screenshots')
+      if (autoAnalyzeSharedFile) void handleExtract(images)
       return
     }
     const sessionKey = `linkvault-reviewed:${file.name}:${file.size}:${file.lastModified}`
@@ -463,11 +466,24 @@ export function BulkImportModal({ onClose, onImported, collections }: Props) {
             : extractUrlsFromText(await file.text())
       setFileUrls(extracted)
       if (!extracted.length) toast('No valid URLs found in this file')
+      else if (autoAnalyzeSharedFile) void handleFileExtract(extracted)
     } catch {
       setFileUrls([])
       toast.error('Could not read this file')
     }
   }
+
+  function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
+    void handleFiles(Array.from(e.target.files || []))
+  }
+
+  useEffect(() => {
+    if (handledInitialFiles.current || initialFiles.length === 0) return
+    handledInitialFiles.current = true
+    void handleFiles(initialFiles, true)
+    // Process the payload once when the share-target modal mounts.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialFiles])
 
   async function handleImport() {
     if (urls.length === 0 || tooMany) return

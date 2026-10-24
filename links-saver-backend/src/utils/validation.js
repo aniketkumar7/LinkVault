@@ -15,7 +15,12 @@ function normalizeUrl(value) {
     const input = typeof value === 'string' ? value.trim() : '';
     if (!input) return '';
 
-    const url = new URL(input);
+    let url;
+    try {
+        url = new URL(input);
+    } catch {
+        return '';
+    }
     url.protocol = url.protocol.toLowerCase();
     url.hostname = url.hostname.toLowerCase();
     if ((url.protocol === 'https:' && url.port === '443') || (url.protocol === 'http:' && url.port === '80')) {
@@ -40,6 +45,10 @@ function validateLinkInput({ url, note }) {
 
     if (url.length > 2048) {
         return { valid: false, error: 'URL is too long' };
+    }
+
+    if (note !== undefined && typeof note !== 'string') {
+        return { valid: false, error: 'Note must be text' };
     }
 
     if (note && note.length > 5000) {
