@@ -4,6 +4,8 @@ import { toast } from '@/lib/toast'
 import { Folder } from './Folder'
 import { ColorPicker } from './ui/ColorPicker'
 import { readableText } from '@/lib/color'
+import type { ProfileAvatarConfig } from '@/lib/profile'
+import { FluidOrbAvatar } from './ui/FluidOrbAvatar'
 
 export function AddCollectionModal({
   open,
@@ -11,6 +13,7 @@ export function AddCollectionModal({
   onCreated,
   collection,
   bare = false,
+  avatar,
 }: {
   open: boolean
   onClose: () => void
@@ -18,6 +21,7 @@ export function AddCollectionModal({
   collection?: { id: string; name: string; color: string }
   /** Render only the form (no overlay/header), e.g. inside a drawer */
   bare?: boolean
+  avatar?: ProfileAvatarConfig
 }) {
   const [name, setName] = useState(collection?.name ?? '')
   const [color, setColor] = useState(collection?.color ?? '#f5cb5c')
@@ -91,15 +95,18 @@ export function AddCollectionModal({
         className="relative w-full max-w-sm animate-scale-in rounded-[28px] border p-5"
         style={{ background: 'var(--color-bg-card)', borderColor: 'var(--color-border)' }}>
         <div className="mb-2 flex items-center justify-between">
-          <div>
-            <p
-              className="text-[11px] uppercase tracking-[.18em]"
-              style={{ color: 'var(--color-text-muted)' }}>
-              Organize
-            </p>
-            <h2 className="text-xl font-semibold" style={{ color: 'var(--color-text-primary)' }}>
-              {collection ? 'Edit collection' : 'New collection'}
-            </h2>
+          <div className="flex min-w-0 items-center gap-3">
+            <span className="block size-9 shrink-0"><FluidOrbAvatar avatar={avatar} /></span>
+            <div>
+              <p
+                className="text-[11px] uppercase tracking-[.18em]"
+                style={{ color: 'var(--color-text-muted)' }}>
+                Organize
+              </p>
+              <h2 className="text-xl font-semibold" style={{ color: 'var(--color-text-primary)' }}>
+                {collection ? 'Edit collection' : 'New collection'}
+              </h2>
+            </div>
           </div>
           <button
             onClick={onClose}

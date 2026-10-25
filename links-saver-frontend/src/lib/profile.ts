@@ -11,6 +11,11 @@ export const PROFILE_AVATARS = [
   { id: 'frog', label: 'Frog' },
   { id: 'owl', label: 'Owl' },
   { id: 'chick', label: 'Chick' },
+  { id: 'lion', label: 'Lion' },
+  { id: 'tiger', label: 'Tiger' },
+  { id: 'elephant', label: 'Elephant' },
+  { id: 'rhino', label: 'Rhino' },
+  { id: 'monkey', label: 'Monkey' },
 ] as const
 
 export type ProfileAvatarId = (typeof PROFILE_AVATARS)[number]['id']
@@ -31,6 +36,7 @@ export type AvatarFurColor = (typeof AVATAR_FUR_COLORS)[number]['value']
 export const AVATAR_DEFAULT_FUR: Record<ProfileAvatarId, AvatarFurColor> = {
   penguin: '#F68330', fox: '#D96B79', cat: '#8A76C6', bear: '#94674D',
   bunny: '#D96B79', frog: '#5D9B7B', owl: '#4F87B8', chick: '#E7CFA6',
+  lion: '#F68330', tiger: '#F68330', elephant: '#4F87B8', rhino: '#45445E', monkey: '#94674D',
 }
 export const AVATAR_EYES = [
   { id: 'open', label: 'Open' },

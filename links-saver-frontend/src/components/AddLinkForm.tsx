@@ -5,6 +5,8 @@ import { api } from '@/lib/api'
 import type { Collection } from '@/lib/api'
 import { toast } from '@/lib/toast'
 import { normalizeUrl as canonicalizeUrl } from '@/lib/url'
+import type { ProfileAvatarConfig } from '@/lib/profile'
+import { FluidOrbAvatar } from './ui/FluidOrbAvatar'
 
 interface Props {
   onLinkAdded: () => void
@@ -14,12 +16,13 @@ interface Props {
   onOpenChange?: (open: boolean) => void
   /** Prefills the URL (e.g. paste-to-save); remount with a new key to apply */
   initialUrl?: string
+  avatar?: ProfileAvatarConfig
 }
 
 const MORPH = { type: 'spring' as const, stiffness: 320, damping: 30, mass: 1 }
 type ButtonRect = { x: number; y: number; w: number; h: number } | null
 
-export function AddLinkForm({ onLinkAdded, collections, onCollectionCreated, open, onOpenChange, initialUrl = '' }: Props) {
+export function AddLinkForm({ onLinkAdded, collections, onCollectionCreated, open, onOpenChange, initialUrl = '', avatar }: Props) {
   const [internalOpen, setInternalOpen] = useState(false)
   const isOpen = open ?? internalOpen
   const setOpenState = (next: boolean) => {
@@ -196,7 +199,7 @@ export function AddLinkForm({ onLinkAdded, collections, onCollectionCreated, ope
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             transition={{ duration: 0.22 }}
             onClick={handleClose}
-            className="fixed inset-0 z-40"
+            className="fixed inset-0 z-[70]"
             style={{ background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(3px)' }}
           />
         )}
@@ -205,7 +208,7 @@ export function AddLinkForm({ onLinkAdded, collections, onCollectionCreated, ope
       {/* Modal */}
       <AnimatePresence>
         {isOpen && effectiveOrigin && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center px-4" onClick={handleClose}>
+          <div className="fixed inset-0 z-[71] flex items-center justify-center px-4" onClick={handleClose}>
             <motion.div
               initial={{ x: initialOffsetX, y: initialOffsetY, scaleX: initialScaleX, scaleY: 0.18, borderRadius: 9999, opacity: 0.85 }}
               animate={{ x: 0, y: 0, scaleX: 1, scaleY: 1, borderRadius: 24, opacity: 1 }}
@@ -229,9 +232,12 @@ export function AddLinkForm({ onLinkAdded, collections, onCollectionCreated, ope
                   variants={{ hidden: { opacity: 0, y: -6 }, show: { opacity: 1, y: 0, transition: { duration: 0.2 } } }}
                   className="relative mb-5 flex items-center justify-left"
                 >
-                  <div>
-                    <span className="block text-[18px] font-bold" style={{ color: 'var(--color-text-primary)' }}>Save your link</span>
-                    <span className="mt-1 block text-xs" style={{ color: 'var(--color-text-muted)' }}>{multiMode ? 'Paste several links and save them together.' : 'Keep a useful link close at hand.'}</span>
+                  <div className="flex min-w-0 items-center gap-3 pr-10">
+                    <span className="block size-9 shrink-0"><FluidOrbAvatar avatar={avatar} /></span>
+                    <div className="min-w-0">
+                      <span className="block text-[18px] font-bold" style={{ color: 'var(--color-text-primary)' }}>Save your link</span>
+                      <span className="mt-1 block text-xs" style={{ color: 'var(--color-text-muted)' }}>{multiMode ? 'Paste several links and save them together.' : 'Keep a useful link close at hand.'}</span>
+                    </div>
                   </div>
                   <motion.button
                     onClick={handleClose}

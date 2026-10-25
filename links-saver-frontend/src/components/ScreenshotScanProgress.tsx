@@ -54,6 +54,12 @@ export function ScreenshotScanProgress({ previews, done = false }: Props) {
             <i />
           </div>
 
+          <div className="scan-document-dots" aria-hidden="true">
+            {Array.from({ length: 24 }, (_, index) => (
+              <i key={index} style={{ animationDelay: `${index * 55}ms` }} />
+            ))}
+          </div>
+
           {!done && <span className="scan-document-beam" />}
         </div>
 

@@ -377,9 +377,9 @@ export function Home({ onOpenCollection, incomingShare, onIncomingShareHandled }
       </div>
 
       <CollectionManager open={showCollectionManager} onClose={() => setShowCollectionManager(false)} collections={collections} onChanged={invalidateCollections} />
-      <AddCollectionModal key={showAddCollection ? 'new-open' : 'new-closed'} open={showAddCollection} onClose={() => setShowAddCollection(false)} onCreated={invalidateCollections} />
-      <AddLinkForm key={addLinkKey} initialUrl={pastedUrl} open={showAddLink} onOpenChange={setShowAddLink} onLinkAdded={invalidateCollections} collections={collections} onCollectionCreated={invalidateCollections} />
-      {showBulkImport && <BulkImportModal key="shared-import" initialFiles={sharedFiles} onClose={() => { setShowBulkImport(false); setSharedFiles([]) }} onImported={invalidateCollections} collections={collections} />}
+      <AddCollectionModal key={showAddCollection ? 'new-open' : 'new-closed'} open={showAddCollection} onClose={() => setShowAddCollection(false)} onCreated={invalidateCollections} avatar={avatar} />
+      <AddLinkForm key={addLinkKey} initialUrl={pastedUrl} open={showAddLink} onOpenChange={setShowAddLink} onLinkAdded={invalidateCollections} collections={collections} onCollectionCreated={invalidateCollections} avatar={avatar} />
+      {showBulkImport && <BulkImportModal key="shared-import" initialFiles={sharedFiles} onClose={() => { setShowBulkImport(false); setSharedFiles([]) }} onImported={invalidateCollections} collections={collections} avatar={avatar} />}
       {showExport && <ExportModal collections={collections} onClose={() => setShowExport(false)} />}
       <ProfileDrawer open={showProfile} onClose={() => setShowProfile(false)} user={user} />
     </div>

@@ -259,9 +259,34 @@ body {
 .scan-document-check { display: none; width: 20px; height: 20px; place-items: center; border-radius: 50%; background: var(--color-success); color: var(--color-bg-primary); }
 .scan-document-check svg { width: 14px; height: 14px; }
 
+.scan-document-dots {
+  position: absolute;
+  z-index: 2;
+  inset: 34px 10px 8px;
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  grid-template-rows: repeat(4, 1fr);
+  place-items: center;
+  pointer-events: none;
+}
+
+.scan-document-dots i {
+  width: 2.5px;
+  height: 2.5px;
+  border-radius: 50%;
+  background: var(--color-accent);
+  opacity: .18;
+  animation: scan-dot-pulse 1.65s ease-in-out infinite;
+}
+
+@keyframes scan-dot-pulse {
+  0%, 100% { opacity: .16; transform: scale(.75); }
+  50% { opacity: .9; transform: scale(1.35); }
+}
+
 .scan-document-beam {
   position: absolute;
-  z-index: 1;
+  z-index: 3;
   top: 22px;
   right: 7px;
   left: 7px;
@@ -281,10 +306,13 @@ body {
 .scan-document.is-done .scan-document-link svg { color: var(--color-success); }
 .scan-document.is-done .scan-document-check { display: grid; }
 .scan-document.is-done .scan-document-beam { display: none; }
+.scan-document.is-done .scan-document-dots i { animation: none; opacity: .18; transform: none; }
 .scan-document.reduce-motion .scan-document-beam { animation: none; opacity: .62; transform: translateY(52px); }
+.scan-document.reduce-motion .scan-document-dots i { animation: none; opacity: .38; }
 
 @media (prefers-reduced-motion: reduce) {
   .scan-document-beam { animation: none; opacity: .62; transform: translateY(52px); }
+  .scan-document-dots i { animation: none; opacity: .38; }
   .scan-document-link { transition: none; }
 }
 

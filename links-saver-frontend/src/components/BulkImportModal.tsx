@@ -8,12 +8,15 @@ import { normalizeUrl } from '@/lib/url'
 import { AnimatedFileUpload } from '@/components/AnimatedFileUpload'
 import { ScreenshotScanProgress } from '@/components/ScreenshotScanProgress'
 import { DotShader } from '@/components/ui/DotShader'
+import type { ProfileAvatarConfig } from '@/lib/profile'
+import { FluidOrbAvatar } from './ui/FluidOrbAvatar'
 
 interface Props {
   onClose: () => void
   onImported: () => void
   collections: Collection[]
   initialFiles?: File[]
+  avatar?: ProfileAvatarConfig
 }
 
 const MORPH = { type: 'spring' as const, stiffness: 320, damping: 30, mass: 1 }
@@ -158,7 +161,7 @@ function extractUrlsFromHtml(html: string): string[] {
   return [...new Set([...links, ...extractUrlsFromText(html)])]
 }
 
-export function BulkImportModal({ onClose, onImported, collections, initialFiles = [] }: Props) {
+export function BulkImportModal({ onClose, onImported, collections, initialFiles = [], avatar }: Props) {
   const [tab, setTab] = useState<'paste' | 'file' | 'screenshots'>('file')
   const [urlsText, setUrlsText] = useState('')
   const [fileUrls, setFileUrls] = useState<string[]>([])
@@ -529,11 +532,11 @@ export function BulkImportModal({ onClose, onImported, collections, initialFiles
         initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
         transition={{ duration: 0.22 }}
         onClick={onClose}
-        className="fixed inset-0 z-40"
+        className="fixed inset-0 z-[70]"
         style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(3px)' }}
       />
 
-      <div className="fixed inset-0 z-50 flex items-center justify-center px-4" onClick={onClose}>
+      <div className="fixed inset-0 z-[71] flex items-center justify-center px-4" onClick={onClose}>
         <motion.div
           initial={{ opacity: 0, scale: 0.96, y: 12 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -557,11 +560,14 @@ export function BulkImportModal({ onClose, onImported, collections, initialFiles
                 <ArrowLeft size={16} weight="bold" />
               </motion.button>
             )}
-            <div className={`${isScreenshotReview ? 'col-start-2 px-3' : 'col-start-1 col-span-2 pr-3'} min-w-0 text-left`}>
-              <span className="block text-[18px] font-bold" style={{ color: 'var(--color-text-primary)' }}>
-                {isScreenshotReview ? `Review ${extracted!.length} links` : 'Upload files to extract'}
-              </span>
-              {!isScreenshotReview && <span className="mt-1 block text-xs" style={{ color: 'var(--color-text-muted)' }}>Supports bookmarks, spreadsheets, PDFs, text files, and images.</span>}
+            <div className={`${isScreenshotReview ? 'col-start-2 px-3' : 'col-start-1 col-span-2 pr-3'} flex min-w-0 items-center gap-3 text-left`}>
+              <span className="block size-9 shrink-0"><FluidOrbAvatar avatar={avatar} /></span>
+              <div className="min-w-0">
+                <span className="block text-[18px] font-bold" style={{ color: 'var(--color-text-primary)' }}>
+                  {isScreenshotReview ? `Review ${extracted!.length} links` : 'Upload files to extract'}
+                </span>
+                {!isScreenshotReview && <span className="mt-1 block text-xs" style={{ color: 'var(--color-text-muted)' }}>Supports bookmarks, spreadsheets, PDFs, text files, and images.</span>}
+              </div>
             </div>
             <motion.button
               onClick={onClose}
