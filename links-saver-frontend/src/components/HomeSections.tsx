@@ -74,6 +74,7 @@ function ArrowButton({ direction, disabled, onClick }: { direction: 'prev' | 'ne
   return (
     <button
       type="button"
+      data-sound="interaction.subtle"
       onClick={onClick}
       disabled={disabled}
       aria-label={direction === 'prev' ? 'Scroll back' : 'Scroll forward'}

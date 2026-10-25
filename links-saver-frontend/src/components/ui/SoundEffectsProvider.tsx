@@ -39,6 +39,10 @@ function GlobalSoundFeedback() {
 
       const explicitRole = control.dataset.sound
       if (explicitRole === 'off' || explicitRole === 'managed') return
+      const label = [control.getAttribute('aria-label'), control.getAttribute('title'), control.textContent]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase()
 
       let role: SoundRole = 'interaction.tap'
       if (explicitRole && isSoundRole(explicitRole)) {
@@ -49,10 +53,18 @@ function GlobalSoundFeedback() {
         role = 'navigation.tab'
       } else if (control.hasAttribute('aria-haspopup')) {
         role = control.getAttribute('aria-expanded') === 'true' ? 'overlay.close' : 'overlay.open'
+      } else if (control.hasAttribute('aria-expanded')) {
+        role = control.getAttribute('aria-expanded') === 'true' ? 'overlay.collapse' : 'overlay.expand'
       } else if (control.matches('[aria-pressed], [role="switch"]')) {
         role = 'interaction.toggle'
       } else if (control.matches('button[type="submit"]')) {
         role = 'interaction.confirm'
+      } else if (label.includes('back') || label.includes('previous')) {
+        role = 'navigation.backward'
+      } else if (label.includes('close') || label.includes('dismiss') || label.includes('cancel')) {
+        role = 'overlay.close'
+      } else if (['favorite', 'favourite', 'pin', 'unpin', 'toggle', 'enable', 'disable'].some(word => label.includes(word))) {
+        role = 'interaction.toggle'
       }
 
       void playSound(role, { volume: 0.7 })
@@ -94,7 +106,7 @@ export function SoundEffectsProvider({ children }: { children: ReactNode }) {
     // Give immediate confirmation on the enabling gesture, even though the
     // provider is intentionally muted until this preference changes.
     if (next) {
-      const soundConfig = mergeConfig({ enabled: true, theme: 'soft', volume: 0.32, reducedMotion: 'force-on' })
+      const soundConfig = mergeConfig({ enabled: true, theme: 'soft', volume: 0.32, reducedMotion: 'force-on', categories: { interaction: true, overlay: true, navigation: true, notification: true, hero: true } })
       const source = resolveRole('interaction.toggle', soundConfig)
       if (source) void playAudio(source, { volume: soundConfig.volume * 0.55 })
     }
@@ -108,7 +120,7 @@ export function SoundEffectsProvider({ children }: { children: ReactNode }) {
 
   return (
     <SoundEffectsContext.Provider value={{ enabled, setEnabled }}>
-      <SensoryUIProvider config={{ enabled, theme: 'soft', volume: 0.32, reducedMotion: 'force-on' }}>
+      <SensoryUIProvider config={{ enabled, theme: 'soft', volume: 0.32, reducedMotion: 'force-on', categories: { interaction: true, overlay: true, navigation: true, notification: true, hero: true } }}>
         <GlobalSoundFeedback />
         {children}
       </SensoryUIProvider>

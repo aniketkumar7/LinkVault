@@ -169,7 +169,6 @@ export function Home({ onOpenCollection, incomingShare, onIncomingShareHandled }
   const profileName = displayName(user)
   const userFirstName = firstName(user)
   const [showProfile, setShowProfile] = useState(false)
-  const profileInitial = profileName.charAt(0).toUpperCase()
 
   useEffect(() => {
     if (!showProfileMenu) return
@@ -235,7 +234,7 @@ export function Home({ onOpenCollection, incomingShare, onIncomingShareHandled }
                 aria-haspopup="menu"
                 aria-expanded={showProfileMenu}
               >
-                <FluidOrbAvatar initial={profileInitial} label={`${profileName} profile`} />
+                <FluidOrbAvatar />
               </button>
 
               <AnimatePresence>
@@ -253,7 +252,7 @@ export function Home({ onOpenCollection, incomingShare, onIncomingShareHandled }
                 >
                   <div className="mb-3 px-3 py-2">
                     <div className="flex items-center gap-2.5">
-                      <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl text-xs font-bold" style={{ background: 'var(--color-accent-fill)', color: 'var(--color-on-accent)' }}>{profileInitial}</div>
+                      <div className="h-9 w-9 shrink-0"><FluidOrbAvatar className="rounded-xl" /></div>
                       <div className="min-w-0">
                         <p className="truncate text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>{profileName}</p>
                         <p className="mt-1 truncate text-[11px]" style={{ color: 'var(--color-text-muted)' }}>{user?.email}</p>

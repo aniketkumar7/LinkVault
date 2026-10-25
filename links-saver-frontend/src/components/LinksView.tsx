@@ -199,11 +199,11 @@ export function LinksView({ collections, initialCollectionId = '', initialFavori
 
           {/* Grid / list toggle */}
           <div className="flex h-10 items-center rounded-xl border p-0.5" style={{ background: 'var(--color-bg-tertiary)', borderColor: 'var(--color-border)' }}>
-            <button type="button" onClick={() => { setViewMode('grid'); localStorage.setItem('view-mode', 'grid') }}
+            <button type="button" data-sound="navigation.tab" onClick={() => { setViewMode('grid'); localStorage.setItem('view-mode', 'grid') }}
               className="flex h-full items-center rounded-lg px-2.5 text-xs"
               style={{ background: viewMode === 'grid' ? 'var(--color-bg-card)' : 'transparent', color: viewMode === 'grid' ? 'var(--color-accent)' : 'var(--color-text-muted)' }}
             >▦</button>
-            <button type="button" onClick={() => { setViewMode('list'); localStorage.setItem('view-mode', 'list') }}
+            <button type="button" data-sound="navigation.tab" onClick={() => { setViewMode('list'); localStorage.setItem('view-mode', 'list') }}
               className="flex h-full items-center rounded-lg px-2.5 text-xs"
               style={{ background: viewMode === 'list' ? 'var(--color-bg-card)' : 'transparent', color: viewMode === 'list' ? 'var(--color-accent)' : 'var(--color-text-muted)' }}
             >☰</button>

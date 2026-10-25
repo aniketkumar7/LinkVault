@@ -40,7 +40,6 @@ export function CollectionPage({ collectionId, onBack }: Props) {
     : collection && { name: collection.name, color: collection.color, count: collection.link_count ?? 0 }
   const profileName = displayName(user)
   const [showProfile, setShowProfile] = useState(false)
-  const profileInitial = profileName.charAt(0).toUpperCase()
 
   useEffect(() => {
     if (!showProfileMenu) return
@@ -61,6 +60,7 @@ export function CollectionPage({ collectionId, onBack }: Props) {
             <button
               type="button"
               onClick={onBack}
+              aria-label="Back to collections"
               className="flex items-center justify-center rounded-2xl border p-2.5 shrink-0"
               style={{ background: 'var(--color-bg-card)', borderColor: 'var(--color-border)' }}
             >
@@ -104,14 +104,14 @@ export function CollectionPage({ collectionId, onBack }: Props) {
                 aria-haspopup="menu"
                 aria-expanded={showProfileMenu}
               >
-                <FluidOrbAvatar initial={profileInitial} label={`${profileName} profile`} />
+                <FluidOrbAvatar />
               </button>
 
               {showProfileMenu && (
                 <motion.div initial={{ opacity: 0, y: -8, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ type: 'spring', stiffness: 420, damping: 26 }} className="absolute right-0 mt-2 w-60 origin-top-right rounded-2xl border p-3 shadow-2xl" style={{ background: 'color-mix(in srgb, var(--color-bg-card) 94%, transparent)', borderColor: 'var(--color-border)', backdropFilter: 'blur(18px)' }} onClick={e => e.stopPropagation()}>
                   <div className="mb-3 px-3 py-2">
                     <div className="flex items-center gap-2.5">
-                      <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl text-xs font-bold" style={{ background: 'var(--color-accent-fill)', color: 'var(--color-on-accent)' }}>{profileInitial}</div>
+                      <div className="h-9 w-9 shrink-0"><FluidOrbAvatar className="rounded-xl" /></div>
                       <div className="min-w-0">
                         <p className="truncate text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>{profileName}</p>
                         <p className="mt-1 truncate text-[11px]" style={{ color: 'var(--color-text-muted)' }}>{user?.email}</p>

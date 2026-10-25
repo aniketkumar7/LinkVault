@@ -57,12 +57,12 @@ function accentColor() {
   return [((parsed >> 16) & 255) / 255, ((parsed >> 8) & 255) / 255, (parsed & 255) / 255] as const
 }
 
-export function FluidOrbAvatar({ initial, label }: { initial: string; label: string }) {
+export function FluidOrbAvatar({ className = '' }: { className?: string }) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
 
   useEffect(() => {
     const canvas = canvasRef.current
-    const gl = canvas?.getContext('webgl', { alpha: true, antialias: false, powerPreference: 'low-power' })
+    const gl = canvas?.getContext('webgl', { alpha: true, antialias: true })
     if (!canvas || !gl) return
 
     const vertex = compile(gl, gl.VERTEX_SHADER, VERTEX_SHADER)
@@ -85,7 +85,7 @@ export function FluidOrbAvatar({ initial, label }: { initial: string; label: str
     const resolution = gl.getUniformLocation(program, 'u_resolution')
     const time = gl.getUniformLocation(program, 'u_time')
     gl.uniform3f(gl.getUniformLocation(program, 'u_color'), ...accentColor())
-    const pixels = Math.min(Math.round(canvas.clientWidth * (window.devicePixelRatio || 1)), 96)
+    const pixels = Math.round(canvas.clientWidth * Math.min(window.devicePixelRatio || 1, 2))
     canvas.width = pixels
     canvas.height = pixels
     gl.viewport(0, 0, pixels, pixels)
@@ -94,13 +94,9 @@ export function FluidOrbAvatar({ initial, label }: { initial: string; label: str
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
     const started = performance.now()
     let frame = 0
-    let lastFrame = 0
     const draw = (now: number) => {
-      if (now - lastFrame > 1000 / 24 || reducedMotion) {
-        lastFrame = now
-        gl.uniform1f(time, reducedMotion ? 0 : (now - started) / 1000)
-        gl.drawArrays(gl.TRIANGLES, 0, 6)
-      }
+      gl.uniform1f(time, reducedMotion ? 0 : (now - started) / 1000)
+      gl.drawArrays(gl.TRIANGLES, 0, 6)
       if (!reducedMotion) frame = requestAnimationFrame(draw)
     }
     draw(started)
@@ -115,10 +111,14 @@ export function FluidOrbAvatar({ initial, label }: { initial: string; label: str
   }, [])
 
   return (
-    <span className="relative grid size-full place-items-center overflow-hidden rounded-full" aria-label={label}>
-      <span className="absolute inset-0 rounded-full" style={{ background: 'var(--color-accent-fill)' }} aria-hidden="true" />
-      <canvas ref={canvasRef} className="absolute inset-0 z-0 size-full opacity-35" aria-hidden="true" />
-      <span className="relative z-10 grid size-full place-items-center rounded-full text-sm font-bold" style={{ color: 'var(--color-on-accent)' }} aria-hidden="true">{initial}</span>
+    <span
+      className={'relative block size-full overflow-hidden rounded-full ' + className}
+      style={{
+        background: 'radial-gradient(circle at 30% 26%, color-mix(in srgb, var(--color-accent) 60%, white), transparent 55%), var(--color-accent-fill)',
+      }}
+      aria-hidden="true"
+    >
+      <canvas ref={canvasRef} className="absolute inset-0 size-full rounded-full" />
     </span>
   )
 }

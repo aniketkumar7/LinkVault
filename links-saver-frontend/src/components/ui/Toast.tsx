@@ -42,7 +42,13 @@ export function ToastProvider() {
 
   useEffect(() => {
     if (!active) return
-    const role = active.kind === 'default' ? 'notification.info' : `notification.${active.kind}` as const
+    const bulkSaved = /(?:saved|imported)\s+\d+\s+links/i.test(active.message)
+    const oneLinkSaved = /link saved/i.test(active.message)
+    const role = active.kind === 'success' && bulkSaved
+      ? 'hero.milestone'
+      : active.kind === 'success' && oneLinkSaved
+        ? 'hero.complete'
+        : active.kind === 'default' ? 'notification.info' : `notification.${active.kind}` as const
     void playSound(role, { volume: 0.7 })
     const timer = window.setTimeout(() => {
       setItems(current => current.filter(item => item.id !== active.id))
