@@ -14,6 +14,7 @@ import { SMART_FOLDERS, smartKey } from '@/lib/smartFolders'
 import { SkeletonGrid } from './ui/Skeleton'
 import { FluidOrbAvatar } from './ui/FluidOrbAvatar'
 import { SoundEffectsSwitch } from './ui/SoundEffectsSwitch'
+import { NotificationCenter } from './ui/NotificationCenter'
 
 interface Props {
   collectionId: string
@@ -94,6 +95,8 @@ export function CollectionPage({ collectionId, onBack }: Props) {
             >
               <img src={theme === 'dark' ? '/icons/sun-smile.svg' : '/icons/moon-craters.svg'} alt="" aria-hidden="true" className="h-5 w-5" style={{ color: 'var(--color-text-secondary)' }} />
             </button>
+
+            <NotificationCenter />
 
             <div className="relative" data-profile-menu>
               <button

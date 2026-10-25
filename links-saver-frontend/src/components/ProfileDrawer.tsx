@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type { User } from '@supabase/supabase-js'
 import { CaretDown, Check } from '@phosphor-icons/react'
 import { supabase } from '@/lib/supabase'
+import { api } from '@/lib/api'
 import { toast } from '@/lib/toast'
 import {
   AVATAR_ACCESSORIES,
@@ -45,6 +46,7 @@ function ProfileForm({ user, onSaved }: { user: User | null; onSaved: () => void
     try {
       const { error } = await supabase.auth.updateUser({ data: profileMetadata(first, last, avatarConfig) })
       if (error) throw error
+      void api.recordProfileUpdate().catch(() => {})
       toast.success('Profile updated')
       onSaved()
     } catch (error) {

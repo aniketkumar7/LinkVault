@@ -3,6 +3,7 @@ import { NAME_MAX } from '@/lib/profile'
 import { motion } from 'framer-motion'
 import { ArrowLeft, ArrowUpRight, LinkSimple, Sparkle } from '@phosphor-icons/react'
 import { useAuth } from '@/hooks/useAuth'
+import { api } from '@/lib/api'
 import { toast } from '@/lib/toast'
 
 interface Props {
@@ -41,6 +42,7 @@ export function LoginPage({ onBack, isRecovery = false, onPasswordUpdated, initi
     try {
       if (isRecovery) {
         await updatePassword(password)
+        void api.recordPasswordUpdate().catch(() => {})
         setMessage({ type: 'success', text: 'Your password has been updated.' })
         toast.success('Password updated')
         onPasswordUpdated?.()

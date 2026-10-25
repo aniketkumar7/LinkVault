@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { useQueryClient } from '@tanstack/react-query'
 import { X, CaretDown, Check, UploadSimple, Image, ArrowLeft, Plus, FileText, CheckCircle } from '@phosphor-icons/react'
 import { api } from '@/lib/api'
 import type { Collection, BulkImportResult, ExtractedLink } from '@/lib/api'
@@ -162,6 +163,7 @@ function extractUrlsFromHtml(html: string): string[] {
 }
 
 export function BulkImportModal({ onClose, onImported, collections, initialFiles = [], avatar }: Props) {
+  const queryClient = useQueryClient()
   const [tab, setTab] = useState<'paste' | 'file' | 'screenshots'>('file')
   const [urlsText, setUrlsText] = useState('')
   const [fileUrls, setFileUrls] = useState<string[]>([])
@@ -186,6 +188,19 @@ export function BulkImportModal({ onClose, onImported, collections, initialFiles
   const [extraCollections, setExtraCollections] = useState<Collection[]>([])
   const [duplicateUrls, setDuplicateUrls] = useState<Set<string>>(new Set())
   const dupeCheckRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  async function recordImportNotification(result: BulkImportResult) {
+    try {
+      await api.createImportNotification({
+        saved: result.success.length,
+        failed: result.failed.length,
+        duplicates: result.duplicates.length,
+      })
+      await queryClient.invalidateQueries({ queryKey: ['notifications'] })
+    } catch {
+      // A notification is helpful, but must never turn a successful import into a failure.
+    }
+  }
   // Per-link collection overrides: url -> collectionId
   const [overrides, setOverrides] = useState<Record<string, string | null>>({})
   const [openOverrideDropdown, setOpenOverrideDropdown] = useState<string | null>(null)
@@ -193,7 +208,6 @@ export function BulkImportModal({ onClose, onImported, collections, initialFiles
   // suggested new collections: name -> created Collection (once user clicks create)
   const [createdSuggestions, setCreatedSuggestions] = useState<Record<string, Collection>>({})
   const fileRef = useRef<HTMLInputElement>(null)
-  const screenshotRef = useRef<HTMLInputElement>(null)
   const collectionRef = useRef<HTMLDivElement>(null)
   const handledInitialFiles = useRef(false)
 
@@ -258,14 +272,6 @@ export function BulkImportModal({ onClose, onImported, collections, initialFiles
     window.addEventListener('paste', onPasteScreenshot)
     return () => window.removeEventListener('paste', onPasteScreenshot)
   }, [])
-
-  function handleScreenshots(e: React.ChangeEvent<HTMLInputElement>) {
-    const files = Array.from(e.target.files || [])
-    if (!files.length) return
-    setScreenshots(prev => [...prev, ...files].slice(0, 10))
-    const newPreviews = files.map(f => URL.createObjectURL(f))
-    setScreenshotPreviews(prev => [...prev, ...newPreviews].slice(0, 10))
-  }
 
   function handleScreenshotFiles(files: File[]) {
     const limited = files.slice(0, 10 - screenshots.length)
@@ -365,6 +371,7 @@ export function BulkImportModal({ onClose, onImported, collections, initialFiles
           allResults.duplicates.push(...r.duplicates)
         }
       }
+      await recordImportNotification(allResults)
       setResult(allResults)
       if (allResults.success.length > 0) {
         toast.success(`Saved ${allResults.success.length} links`)
@@ -373,6 +380,7 @@ export function BulkImportModal({ onClose, onImported, collections, initialFiles
       if (allResults.duplicates.length > 0)
         toast(`${allResults.duplicates.length} duplicates skipped`)
     } catch {
+      if (allResults.success.length || allResults.failed.length) await recordImportNotification(allResults)
       toast.error('Save failed')
     } finally {
       setLoading(false)
@@ -506,6 +514,7 @@ export function BulkImportModal({ onClose, onImported, collections, initialFiles
         }
         setImportProgress(progress => progress ? { ...progress, completed: Math.min(progress.completed + batch.length, progress.total) } : null)
       }
+      await recordImportNotification(importResult)
       setResult(importResult)
       if (importResult.success.length > 0) {
         toast.success(`Imported ${importResult.success.length} links`)
@@ -655,67 +664,6 @@ export function BulkImportModal({ onClose, onImported, collections, initialFiles
               {tab === 'screenshots' && !isScreenshotReview && !extracting && (
                 <div className="flex flex-col gap-3">
                   <AnimatedFileUpload files={screenshots} accept="image/*" title="Drop screenshots here" subtitle="or click to browse · PNG, JPG, WEBP · up to 10 files" processing={extracting} onFilesSelected={handleScreenshotFiles} onRemove={removeScreenshot} />
-                  {/* Legacy preview markup retained below for now */}
-                  {false && <button
-                    onClick={() => screenshotRef.current?.click()}
-                    className="flex min-h-44 flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed px-4 py-6 transition-[border-color]"
-                    style={{ borderColor: screenshots.length ? 'var(--color-accent)' : 'var(--color-border)', background: 'var(--color-bg-tertiary)' }}
-                  >
-                    <Image size={28} style={{ color: screenshots.length ? 'var(--color-accent)' : 'var(--color-text-muted)' }} />
-                    <div className="text-center">
-                      <p className="text-sm font-medium" style={{ color: screenshots.length ? 'var(--color-text-primary)' : 'var(--color-text-muted)' }}>
-                        {screenshots.length ? `${screenshots.length} image${screenshots.length !== 1 ? 's' : ''} selected` : 'Click to upload screenshots'}
-                      </p>
-                      <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>PNG, JPG, WEBP — up to 10 images</p>
-                    </div>
-                  </button>}
-                  <input ref={screenshotRef} type="file" accept="image/*" multiple className="hidden" onChange={handleScreenshots} />
-
-                  {/* Previews */}
-                  {false && screenshotPreviews.length > 0 && (
-                    <div className="space-y-2" aria-label="Selected screenshots">
-                      {screenshotPreviews.map((_, i) => (
-                        <motion.div
-                          key={i}
-                          initial={{ opacity: 0, y: 6 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          className="relative flex items-center gap-3 overflow-hidden rounded-xl border px-3 py-2"
-                          style={{ background: 'var(--color-bg-tertiary)', borderColor: 'var(--color-border)' }}
-                        >
-                          <span
-                            className="relative grid size-11 shrink-0 place-items-center rounded-lg border"
-                            style={{ background: 'var(--color-bg-card)', borderColor: 'var(--color-border)', color: 'var(--color-accent)' }}
-                          >
-                            <Image size={21} weight="duotone" />
-                            <span className="absolute -bottom-1 -right-1 rounded bg-[var(--color-bg-card)] px-1 text-[8px] font-bold uppercase" style={{ color: 'var(--color-text-muted)' }}>
-                              {screenshots[i]?.name.split('.').pop()?.slice(0, 4) || 'img'}
-                            </span>
-                          </span>
-                          <div className="min-w-0 flex-1">
-                            <p className="truncate text-xs font-semibold" style={{ color: 'var(--color-text-primary)' }}>
-                              {screenshots[i]?.name || `Screenshot ${i + 1}`}
-                            </p>
-                            <p className="mt-0.5 text-[10px]" style={{ color: 'var(--color-text-muted)' }}>
-                              {screenshots[i] ? `${Math.max(1, Math.round(screenshots[i].size / 1024))} KB · Ready to extract` : 'Ready to extract'}
-                            </p>
-                            <span className="mt-1 block h-1 overflow-hidden rounded-full" style={{ background: 'var(--color-border)' }}>
-                              <motion.span className="block h-full rounded-full" style={{ background: 'var(--color-success)' }} initial={{ width: '0%' }} animate={{ width: '100%' }} transition={{ duration: 0.45 }} />
-                            </span>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => removeScreenshot(i)}
-                            className="shrink-0 rounded-md p-1.5 transition-colors hover:bg-[var(--color-bg-hover)]"
-                            style={{ color: 'var(--color-text-muted)' }}
-                            aria-label={`Remove ${screenshots[i]?.name || `screenshot ${i + 1}`}`}
-                          >
-                            <X size={15} weight="bold" />
-                          </button>
-                        </motion.div>
-                      ))}
-                    </div>
-                  )}
-
                   <div className="flex items-center justify-end gap-3 pt-1">
                     <motion.button
                       onClick={() => void handleExtract()}

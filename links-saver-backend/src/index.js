@@ -8,6 +8,7 @@ const authMiddleware = require('./middleware/auth');
 const linksRouter = require('./routes/links');
 const collectionsRouter = require('./routes/collections');
 const screenshotsRouter = require('./routes/screenshots');
+const notificationsRouter = require('./routes/notifications');
 const { rateLimit } = require('./middleware/rateLimit');
 
 const app = express();
@@ -33,6 +34,7 @@ app.get('/', (req, res) => {
 app.use('/api/links', authMiddleware, linksRouter);
 app.use('/api/collections', authMiddleware, collectionsRouter);
 app.use('/api/screenshots', authMiddleware, rateLimit({ windowMs: 60 * 60 * 1000, max: 20 }), screenshotsRouter);
+app.use('/api/notifications', authMiddleware, notificationsRouter);
 
 // Public routes (shared collections)
 app.get('/api/shared/:slug', async (req, res) => {

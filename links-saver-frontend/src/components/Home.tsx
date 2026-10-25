@@ -23,6 +23,7 @@ import { displayName, firstName, profileAvatarConfig } from '@/lib/profile'
 import { FolderStylePicker } from './ui/FolderStylePicker'
 import { FluidOrbAvatar } from './ui/FluidOrbAvatar'
 import { SoundEffectsSwitch } from './ui/SoundEffectsSwitch'
+import { NotificationCenter } from './ui/NotificationCenter'
 import { api } from '@/lib/api'
 import { toast } from '@/lib/toast'
 import { PushPin } from '@phosphor-icons/react'
@@ -106,6 +107,8 @@ export function Home({ onOpenCollection, incomingShare, onIncomingShareHandled }
   const searchRef = useRef<HTMLInputElement>(null)
   const searchTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
 
+  // This effect consumes a one-shot share payload from the service worker and opens the matching UI.
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (!incomingShare) return
     const supportedFiles = incomingShare.files.filter(file =>
@@ -126,6 +129,7 @@ export function Home({ onOpenCollection, incomingShare, onIncomingShareHandled }
     }
     onIncomingShareHandled?.()
   }, [incomingShare, onIncomingShareHandled])
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const sortedCollections = useMemo(() => sortCollections(collections, folderSort), [collections, folderSort])
   const smartFolders = SMART_FOLDERS
@@ -222,6 +226,8 @@ export function Home({ onOpenCollection, incomingShare, onIncomingShareHandled }
             >
               <img src={theme === 'dark' ? '/icons/sun-smile.svg' : '/icons/moon-craters.svg'} alt="" aria-hidden="true" className="h-5 w-5" style={{ color: 'var(--color-text-secondary)' }} />
             </button>
+
+            <NotificationCenter />
 
             <div className="relative" data-profile-menu>
               <button

@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { supabase } = require('../config/supabase');
+const { recordNotification } = require('../utils/notifications');
 const crypto = require('crypto');
 
 const DEFAULT_COLLECTIONS = [
@@ -172,6 +173,7 @@ router.post('/', async (req, res) => {
 
         if (error) throw error;
 
+        await recordNotification(req.user.id, 'collection_created', 'Collection created', data.name);
         res.status(201).json({ collection: data });
     } catch (error) {
         console.error('Error creating collection:', error);
@@ -205,6 +207,13 @@ router.patch('/:id', async (req, res) => {
         if (description !== undefined) updates.description = description?.trim() || null;
         if (color !== undefined) updates.color = color;
 
+        const { data: previous } = await supabase
+            .from('collections')
+            .select('name, description, color')
+            .eq('id', id)
+            .eq('user_id', req.user.id)
+            .maybeSingle();
+
         const { data, error } = await supabase
             .from('collections')
             .update(updates)
@@ -215,6 +224,8 @@ router.patch('/:id', async (req, res) => {
 
         if (error) throw error;
 
+        const changed = previous && Object.keys(updates).some(field => data[field] !== previous[field]);
+        if (changed) await recordNotification(req.user.id, 'collection_edited', 'Collection updated', data.name);
         res.json({ collection: data });
     } catch (error) {
         console.error('Error updating collection:', error);
@@ -246,6 +257,7 @@ router.post('/:id/share', async (req, res) => {
 
         if (error) throw error;
 
+        await recordNotification(req.user.id, 'collection_shared', 'Collection shared', data.name);
         res.json({ 
             collection: data,
             shareUrl: `/shared/${slug}`
@@ -277,6 +289,7 @@ router.delete('/:id/share', async (req, res) => {
 
         if (error) throw error;
 
+        await recordNotification(req.user.id, 'collection_unshared', 'Sharing stopped', data.name);
         res.json({ collection: data });
     } catch (error) {
         console.error('Error revoking share:', error);
@@ -286,10 +299,16 @@ router.delete('/:id/share', async (req, res) => {
 
 router.patch('/:id/pin', async (req, res) => {
     try {
-        const { data: current, error: findError } = await supabase.from('collections').select('is_pinned').eq('id', req.params.id).eq('user_id', req.user.id).single();
+        const { data: current, error: findError } = await supabase.from('collections').select('is_pinned, name').eq('id', req.params.id).eq('user_id', req.user.id).single();
         if (findError || !current) return res.status(404).json({ error: 'Collection not found' });
         const { data, error } = await supabase.from('collections').update({ is_pinned: !current.is_pinned }).eq('id', req.params.id).eq('user_id', req.user.id).select().single();
         if (error) throw error;
+        await recordNotification(
+            req.user.id,
+            data.is_pinned ? 'collection_pinned' : 'collection_unpinned',
+            data.is_pinned ? 'Collection pinned' : 'Collection unpinned',
+            data.name,
+        );
         res.json({ collection: data });
     } catch (error) {
         console.error('Error toggling collection pin:', error);
@@ -304,6 +323,18 @@ router.patch('/:id/pin', async (req, res) => {
 router.delete('/:id', async (req, res) => {
     try {
         const { id } = req.params;
+
+        const { data: collection } = await supabase
+            .from('collections')
+            .select('name')
+            .eq('id', id)
+            .eq('user_id', req.user.id)
+            .maybeSingle();
+        const { count: linkCount } = await supabase
+            .from('useful_links')
+            .select('id', { count: 'exact', head: true })
+            .eq('collection_id', id)
+            .eq('user_id', req.user.id);
 
         const { error: linksError } = await supabase
             .from('useful_links')
@@ -321,6 +352,10 @@ router.delete('/:id', async (req, res) => {
 
         if (error) throw error;
 
+        if (collection) {
+            const details = linkCount ? `${collection.name} and ${linkCount} saved link${linkCount === 1 ? '' : 's'}` : collection.name;
+            await recordNotification(req.user.id, 'collection_deleted', 'Collection deleted', details);
+        }
         res.json({ message: 'Collection deleted successfully' });
     } catch (error) {
         console.error('Error deleting collection:', error);

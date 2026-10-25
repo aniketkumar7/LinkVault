@@ -1,6 +1,11 @@
 import { supabase } from './supabase'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001'
+export const NOTIFICATIONS_UPDATED = 'bookmarky:notifications-updated'
+
+function announceNotificationUpdate() {
+  if (typeof window !== 'undefined') window.dispatchEvent(new Event(NOTIFICATIONS_UPDATED))
+}
 
 async function getAuthHeaders() {
   const { data: { session } } = await supabase.auth.getSession()
@@ -82,6 +87,19 @@ export interface BulkImportResult {
   duplicates: { url: string; id: string }[]
 }
 
+export interface AppNotification {
+  id: string
+  type: 'import' | 'link_added' | 'link_edited' | 'link_deleted'
+    | 'link_favorited' | 'link_unfavorited'
+    | 'collection_created' | 'collection_edited' | 'collection_deleted'
+    | 'collection_shared' | 'collection_unshared' | 'collection_pinned' | 'collection_unpinned'
+    | 'profile_updated' | 'password_updated'
+  title: string
+  message: string
+  created_at: string
+  read_at: string | null
+}
+
 // API Client
 export const api = {
   // Links
@@ -106,7 +124,9 @@ export const api = {
       body: JSON.stringify(input),
     })
     if (!res.ok) throw new Error((await res.json()).error || 'Failed to create link')
-    return (await res.json()).link
+    const link = (await res.json()).link
+    announceNotificationUpdate()
+    return link
   },
 
   async updateLink(id: string, updates: Partial<Omit<Link, 'id' | 'created_at' | 'url'>>): Promise<Link> {
@@ -117,13 +137,16 @@ export const api = {
       body: JSON.stringify(updates),
     })
     if (!res.ok) throw new Error((await res.json()).error || 'Failed to update link')
-    return (await res.json()).link
+    const link = (await res.json()).link
+    announceNotificationUpdate()
+    return link
   },
 
   async deleteLink(id: string): Promise<void> {
     const headers = await getAuthHeaders()
     const res = await fetch(`${API_URL}/api/links/${id}`, { method: 'DELETE', headers })
     if (!res.ok) throw new Error((await res.json()).error || 'Failed to delete link')
+    announceNotificationUpdate()
   },
 
   async toggleFavorite(id: string): Promise<Link> {
@@ -162,7 +185,9 @@ export const api = {
     const headers = await getAuthHeaders()
     const res = await fetch(`${API_URL}/api/links/${id}/refresh-metadata`, { method: 'POST', headers })
     if (!res.ok) throw new Error((await res.json()).error || 'Failed to refresh metadata')
-    return (await res.json()).link
+    const link = (await res.json()).link
+    announceNotificationUpdate()
+    return link
   },
 
   async getStats(): Promise<Stats> {
@@ -197,7 +222,9 @@ export const api = {
       body: JSON.stringify(input),
     })
     if (!res.ok) throw new Error((await res.json()).error || 'Failed to create collection')
-    return (await res.json()).collection
+    const collection = (await res.json()).collection
+    announceNotificationUpdate()
+    return collection
   },
 
   async updateCollection(id: string, updates: { name?: string; description?: string; color?: string }): Promise<Collection> {
@@ -208,33 +235,41 @@ export const api = {
       body: JSON.stringify(updates),
     })
     if (!res.ok) throw new Error((await res.json()).error || 'Failed to update collection')
-    return (await res.json()).collection
+    const collection = (await res.json()).collection
+    announceNotificationUpdate()
+    return collection
   },
 
   async deleteCollection(id: string): Promise<void> {
     const headers = await getAuthHeaders()
     const res = await fetch(`${API_URL}/api/collections/${id}`, { method: 'DELETE', headers })
     if (!res.ok) throw new Error((await res.json()).error || 'Failed to delete collection')
+    announceNotificationUpdate()
   },
 
   async shareCollection(id: string): Promise<{ shareUrl: string }> {
     const headers = await getAuthHeaders()
     const res = await fetch(`${API_URL}/api/collections/${id}/share`, { method: 'POST', headers })
     if (!res.ok) throw new Error((await res.json()).error || 'Failed to share collection')
-    return await res.json()
+    const result = await res.json()
+    announceNotificationUpdate()
+    return result
   },
 
   async unshareCollection(id: string): Promise<void> {
     const headers = await getAuthHeaders()
     const res = await fetch(`${API_URL}/api/collections/${id}/share`, { method: 'DELETE', headers })
     if (!res.ok) throw new Error((await res.json()).error || 'Failed to unshare collection')
+    announceNotificationUpdate()
   },
 
   async toggleCollectionPin(id: string): Promise<Collection> {
     const headers = await getAuthHeaders()
     const res = await fetch(`${API_URL}/api/collections/${id}/pin`, { method: 'PATCH', headers })
     if (!res.ok) throw new Error((await res.json()).error || 'Failed to update pin')
-    return (await res.json()).collection
+    const collection = (await res.json()).collection
+    announceNotificationUpdate()
+    return collection
   },
 
   async extractFromScreenshots(images: File[], collections: Collection[]): Promise<ExtractedLink[]> {
@@ -260,5 +295,71 @@ export const api = {
     })
     if (!res.ok) throw new Error((await res.json()).error || 'Failed to recommend collections')
     return (await res.json()).links
+  },
+
+  async getNotifications(): Promise<AppNotification[]> {
+    const headers = await getAuthHeaders()
+    const res = await fetch(`${API_URL}/api/notifications`, { headers })
+    if (!res.ok) throw new Error((await res.json()).error || 'Failed to fetch notifications')
+    return (await res.json()).notifications
+  },
+
+  async createImportNotification(counts: { saved: number; failed: number; duplicates: number }): Promise<AppNotification | null> {
+    const headers = await getAuthHeaders()
+    const res = await fetch(`${API_URL}/api/notifications/import`, {
+      method: 'POST', headers, body: JSON.stringify(counts),
+    })
+    if (!res.ok) throw new Error((await res.json()).error || 'Failed to create notification')
+    const notification = (await res.json()).notification
+    if (notification) announceNotificationUpdate()
+    return notification
+  },
+
+  async recordProfileUpdate(): Promise<void> {
+    const headers = await getAuthHeaders()
+    const res = await fetch(`${API_URL}/api/notifications/profile-update`, { method: 'POST', headers })
+    if (!res.ok) throw new Error((await res.json()).error || 'Failed to record profile update')
+    announceNotificationUpdate()
+  },
+
+  async recordPasswordUpdate(): Promise<void> {
+    const headers = await getAuthHeaders()
+    const res = await fetch(`${API_URL}/api/notifications/password-update`, { method: 'POST', headers })
+    if (!res.ok) throw new Error((await res.json()).error || 'Failed to record password update')
+    announceNotificationUpdate()
+  },
+
+  async markNotificationRead(id: string): Promise<void> {
+    const headers = await getAuthHeaders()
+    const res = await fetch(`${API_URL}/api/notifications/${id}/read`, { method: 'PATCH', headers })
+    if (!res.ok) throw new Error((await res.json()).error || 'Failed to mark notification as read')
+  },
+
+  async markAllNotificationsRead(): Promise<void> {
+    const headers = await getAuthHeaders()
+    const res = await fetch(`${API_URL}/api/notifications/read-all`, { method: 'PATCH', headers })
+    if (!res.ok) throw new Error((await res.json()).error || 'Failed to mark notifications as read')
+  },
+
+  async dismissNotification(id: string): Promise<void> {
+    const headers = await getAuthHeaders()
+    const res = await fetch(`${API_URL}/api/notifications/${id}`, { method: 'DELETE', headers })
+    if (!res.ok) throw new Error((await res.json()).error || 'Failed to dismiss notification')
+  },
+
+  async dismissAllNotifications(): Promise<string[]> {
+    const headers = await getAuthHeaders()
+    const res = await fetch(`${API_URL}/api/notifications/all`, { method: 'DELETE', headers })
+    if (!res.ok) throw new Error((await res.json()).error || 'Failed to clear notifications')
+    return (await res.json()).dismissed
+  },
+
+  async restoreNotifications(ids: string[]): Promise<void> {
+    if (!ids.length) return
+    const headers = await getAuthHeaders()
+    const res = await fetch(`${API_URL}/api/notifications/restore`, {
+      method: 'PATCH', headers, body: JSON.stringify({ ids }),
+    })
+    if (!res.ok) throw new Error((await res.json()).error || 'Failed to restore notifications')
   },
 }
