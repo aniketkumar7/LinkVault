@@ -11,157 +11,215 @@ interface Props {
   onClose: () => void
 }
 
-function hexToRgb(hex: string): [number, number, number] {
-  const h = hex.replace('#', '')
-  return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)]
+const BRAND: [number, number, number] = [243, 105, 49]
+const INK: [number, number, number] = [30, 33, 38]
+const MUTED: [number, number, number] = [103, 110, 119]
+const LINK_BLUE: [number, number, number] = [25, 83, 145]
+
+function normalizeWebUrl(value: string): string | null {
+  try {
+    const url = new URL(/^https?:\/\//i.test(value) ? value : `https://${value}`)
+    return url.protocol === 'http:' || url.protocol === 'https:' ? url.toString() : null
+  } catch {
+    return null
+  }
 }
 
-function alphaBlend(c: number, alpha: number, bg = 255): number {
-  return Math.round(c * alpha + bg * (1 - alpha))
+function loadLogoPng(): Promise<string | null> {
+  return new Promise(resolve => {
+    const image = new Image()
+    image.onload = () => {
+      try {
+        const canvas = document.createElement('canvas')
+        canvas.width = 256
+        canvas.height = 256
+        const context = canvas.getContext('2d')
+        if (!context) return resolve(null)
+        context.drawImage(image, 0, 0, canvas.width, canvas.height)
+        resolve(canvas.toDataURL('image/png'))
+      } catch {
+        resolve(null)
+      }
+    }
+    image.onerror = () => resolve(null)
+    image.src = new URL('/Logo.svg', window.location.origin).toString()
+  })
 }
 
-function generatePdf(links: Link[], collectionName: string, accentHex: string) {
-  const doc = new jsPDF({ unit: 'mm', format: 'a4' })
-  const W = 210
-  const H = 297
-  const M = 16           // margin
-  const CW = W - M * 2  // content width
-  const [ar, ag, ab] = hexToRgb(accentHex)
-  const tagBg: [number, number, number] = [alphaBlend(ar, 0.12), alphaBlend(ag, 0.12), alphaBlend(ab, 0.12)]
+function generatePdf(links: Link[], collectionName: string, collections: Collection[], logo: string | null) {
+  const doc = new jsPDF({ unit: 'mm', format: 'a4', compress: true })
+  const pageWidth = doc.internal.pageSize.getWidth()
+  const pageHeight = doc.internal.pageSize.getHeight()
+  const margin = 18
+  const contentWidth = pageWidth - margin * 2
+  const contentBottom = pageHeight - 22
+  const dateLabel = new Date().toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' })
+  const collectionNames = new Map(collections.map(collection => [collection.id, collection.name]))
+
+  doc.setProperties({
+    title: `${collectionName} · LinkVault`,
+    subject: `Exported links from ${collectionName}`,
+    author: 'LinkVault',
+    creator: 'LinkVault',
+  })
 
   let y = 0
-  let pageNum = 1
+  let pageNumber = 1
 
-  const drawHeader = () => {
-    // Top accent bar
-    doc.setFillColor(ar, ag, ab)
-    doc.rect(0, 0, W, 12, 'F')
-    doc.setTextColor(255, 255, 255)
-    doc.setFontSize(8.5)
+  const drawMasthead = (firstPage: boolean) => {
+    if (logo) {
+      doc.addImage(logo, 'PNG', margin, 11, 9, 9, undefined, 'FAST')
+    } else {
+      doc.setFillColor(...BRAND)
+      doc.roundedRect(margin, 11, 9, 9, 2, 2, 'F')
+      doc.setDrawColor(255, 255, 255)
+      doc.setLineWidth(0.7)
+      doc.line(margin + 2.1, 15.6, margin + 4.1, 13.5)
+      doc.line(margin + 4.1, 13.5, margin + 6.8, 16.3)
+    }
+
     doc.setFont('helvetica', 'bold')
-    doc.text('LINKVAULT', M, 8)
+    doc.setFontSize(11)
+    doc.setTextColor(...INK)
+    doc.text('LinkVault', margin + 12, 17)
     doc.setFont('helvetica', 'normal')
-    doc.text(collectionName.toUpperCase(), W / 2, 8, { align: 'center' })
-    doc.text(
-      new Date().toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' }),
-      W - M, 8, { align: 'right' }
-    )
-    y = 20
+    doc.setFontSize(8.5)
+    doc.setTextColor(...MUTED)
+    doc.text(firstPage ? 'LINK LIBRARY' : collectionName, pageWidth - margin, 16.5, { align: 'right' })
+
+    doc.setDrawColor(225, 228, 232)
+    doc.setLineWidth(0.25)
+    doc.line(margin, 25, pageWidth - margin, 25)
+
+    if (firstPage) {
+      doc.setFont('helvetica', 'bold')
+      doc.setFontSize(23)
+      doc.setTextColor(...INK)
+      const titleLines: string[] = doc.splitTextToSize(collectionName, contentWidth).slice(0, 2)
+      if (titleLines.length === 2) titleLines[1] = `${titleLines[1].slice(0, -1)}…`
+      titleLines.forEach((line, index) => doc.text(line, margin, 39 + index * 10))
+
+      const subtitleY = 39 + titleLines.length * 10 + 1
+      doc.setFont('helvetica', 'normal')
+      doc.setFontSize(9.5)
+      doc.setTextColor(...MUTED)
+      doc.text(`${links.length} saved link${links.length === 1 ? '' : 's'}  ·  Exported ${dateLabel}`, margin, subtitleY)
+
+      doc.setFillColor(...BRAND)
+      doc.roundedRect(margin, subtitleY + 7, 18, 1.1, 0.55, 0.55, 'F')
+      y = subtitleY + 17
+    } else {
+      y = 35
+    }
   }
 
   const drawFooter = () => {
-    doc.setFillColor(248, 248, 250)
-    doc.rect(0, H - 9, W, 9, 'F')
-    doc.setDrawColor(220, 220, 228)
-    doc.setLineWidth(0.2)
-    doc.line(M, H - 9, W - M, H - 9)
-    doc.setTextColor(170, 170, 185)
-    doc.setFontSize(7)
+    doc.setDrawColor(225, 228, 232)
+    doc.setLineWidth(0.25)
+    doc.line(margin, pageHeight - 17, pageWidth - margin, pageHeight - 17)
     doc.setFont('helvetica', 'normal')
-    doc.text('LinkVault — your personal link vault', M, H - 3.5)
-    doc.text(`Page ${pageNum}`, W - M, H - 3.5, { align: 'right' })
-    pageNum++
+    doc.setFontSize(8)
+    doc.setTextColor(...MUTED)
+    doc.text('Saved with LinkVault', margin, pageHeight - 10)
+    doc.text(`Page ${pageNumber}`, pageWidth - margin, pageHeight - 10, { align: 'right' })
   }
 
-  drawHeader()
+  const startNextPage = () => {
+    drawFooter()
+    doc.addPage()
+    pageNumber += 1
+    drawMasthead(false)
+  }
 
-  // Summary card
-  doc.setFillColor(alphaBlend(ar, 0.06), alphaBlend(ag, 0.06), alphaBlend(ab, 0.06))
-  doc.roundedRect(M, y, CW, 14, 3, 3, 'F')
-  doc.setDrawColor(ar, ag, ab)
-  doc.setLineWidth(0.4)
-  doc.line(M, y, M, y + 14)
-  doc.setTextColor(30, 30, 45)
-  doc.setFontSize(11)
-  doc.setFont('helvetica', 'bold')
-  doc.text(collectionName, M + 5, y + 6)
-  doc.setFont('helvetica', 'normal')
-  doc.setFontSize(8.5)
-  doc.setTextColor(120, 120, 140)
-  doc.text(`${links.length} link${links.length !== 1 ? 's' : ''} exported`, M + 5, y + 11)
-  y += 20
+  const drawClickableLine = (text: string, x: number, baseline: number, href: string | null, lineHeight: number) => {
+    doc.text(text, x, baseline)
+    if (!href) return
+    const textWidth = Math.min(doc.getTextWidth(text), contentWidth)
+    doc.link(x, baseline - lineHeight + 0.8, textWidth, lineHeight, { url: href })
+    doc.setDrawColor(...LINK_BLUE)
+    doc.setLineWidth(0.12)
+    doc.line(x, baseline + 0.45, x + textWidth, baseline + 0.45)
+  }
+
+  drawMasthead(true)
 
   for (const link of links) {
-    const title = (link.title?.trim() || 'Untitled link')
-    const desc = link.description?.trim() || ''
-    const tags = (link.tags ?? []).filter(Boolean).slice(0, 6)
-    const date = link.created_at
-      ? new Date(link.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+    const href = normalizeWebUrl(link.url)
+    const title = link.title?.trim() || (() => {
+      try { return new URL(href ?? link.url).hostname }
+      catch { return 'Untitled link' }
+    })()
+    const description = link.description?.trim() ?? ''
+    const tags = (link.tags ?? []).filter(Boolean).slice(0, 4)
+    const groupName = collectionName === 'All links'
+      ? collectionNames.get(link.collection_id ?? '') ?? 'Unsorted'
+      : ''
+    const savedDate = link.created_at
+      ? new Date(link.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
       : ''
 
-    doc.setFontSize(10)
-    const titleLines: string[] = doc.splitTextToSize(title, CW - 8)
-    doc.setFontSize(8)
-    const descLines: string[] = desc ? doc.splitTextToSize(desc, CW - 8).slice(0, 2) : []
-
-    const entryH = 4 + titleLines.length * 5.2 + 5 + (descLines.length > 0 ? descLines.length * 4.5 + 3 : 0) + (tags.length > 0 ? 7 : 0) + 6
-
-    if (y + entryH > H - 14) {
-      drawFooter()
-      doc.addPage()
-      drawHeader()
-    }
-
-    // Accent bullet
-    doc.setFillColor(ar, ag, ab)
-    doc.circle(M + 2, y + 3, 1.3, 'F')
-
-    // Title
-    doc.setTextColor(18, 18, 30)
-    doc.setFontSize(10)
     doc.setFont('helvetica', 'bold')
-    titleLines.forEach((line: string, i: number) => doc.text(line, M + 6, y + 3.5 + i * 5.2))
-    y += titleLines.length * 5.2
+    doc.setFontSize(12)
+    const titleLines: string[] = doc.splitTextToSize(title, contentWidth).slice(0, 3)
+    if (doc.splitTextToSize(title, contentWidth).length > 3) titleLines[2] = `${titleLines[2].slice(0, -1)}…`
 
-    // URL
-    doc.setTextColor(ar, ag, ab)
-    doc.setFontSize(7.5)
+    const displayUrl = href ?? link.url
     doc.setFont('helvetica', 'normal')
-    const maxUrl = CW - 8
-    let urlDisplay = link.url
-    while (doc.getTextWidth(urlDisplay) > maxUrl && urlDisplay.length > 10) {
-      urlDisplay = urlDisplay.slice(0, -4) + '…'
-    }
-    doc.text(urlDisplay, M + 6, y + 4)
-    y += 7
-
-    // Description
-    if (descLines.length > 0) {
-      doc.setTextColor(100, 100, 118)
-      doc.setFontSize(8.2)
-      descLines.forEach((line: string, i: number) => doc.text(line, M + 6, y + i * 4.5))
-      y += descLines.length * 4.5 + 2
+    doc.setFontSize(9)
+    const urlLines: string[] = doc.splitTextToSize(displayUrl, contentWidth)
+    if (urlLines.length > 3) {
+      urlLines.length = 3
+      urlLines[2] = `${urlLines[2].slice(0, -1)}…`
     }
 
-    // Tags + date
-    if (tags.length > 0 || date) {
-      let tx = M + 6
-      doc.setFontSize(7)
-      tags.forEach(tag => {
-        const label = `#${tag}`
-        const tw = doc.getTextWidth(label) + 5
-        doc.setFillColor(...tagBg)
-        doc.roundedRect(tx, y, tw, 5, 1.5, 1.5, 'F')
-        doc.setTextColor(ar, ag, ab)
-        doc.text(label, tx + 2.5, y + 3.5)
-        tx += tw + 2.5
-      })
-      if (date) {
-        doc.setTextColor(175, 175, 190)
-        doc.text(date, W - M, y + 3.5, { align: 'right' })
-      }
-      y += 8
+    const allDescriptionLines: string[] = description ? doc.splitTextToSize(description, contentWidth) : []
+    const descriptionLines = allDescriptionLines.slice(0, 3)
+    if (allDescriptionLines.length > 3 && descriptionLines.length) {
+      const last = descriptionLines.length - 1
+      descriptionLines[last] = `${descriptionLines[last].slice(0, -1)}…`
     }
 
-    // Divider
-    doc.setDrawColor(230, 230, 238)
-    doc.setLineWidth(0.15)
-    doc.line(M + 6, y, W - M, y)
-    y += 5
+    const metadataHeight = tags.length || groupName || savedDate ? 6 : 0
+    const entryHeight = titleLines.length * 5.8 + urlLines.length * 4.8 + descriptionLines.length * 4.7 + metadataHeight + 13
+    if (y + entryHeight > contentBottom) startNextPage()
+
+    const titleY = y + 4.2
+    doc.setFont('helvetica', 'bold')
+    doc.setFontSize(12)
+    doc.setTextColor(...INK)
+    titleLines.forEach((line, index) => drawClickableLine(line, margin, titleY + index * 5.8, href, 5.4))
+
+    const urlY = titleY + titleLines.length * 5.8 + 0.7
+    doc.setFont('helvetica', 'normal')
+    doc.setFontSize(9)
+    doc.setTextColor(...LINK_BLUE)
+    urlLines.forEach((line, index) => drawClickableLine(line, margin, urlY + index * 4.8, href, 4.5))
+
+    let nextY = urlY + urlLines.length * 4.8 + 1.2
+    if (descriptionLines.length) {
+      doc.setFontSize(9)
+      doc.setTextColor(74, 80, 88)
+      descriptionLines.forEach((line, index) => doc.text(line, margin, nextY + index * 4.7))
+      nextY += descriptionLines.length * 4.7 + 1.4
+    }
+
+    if (tags.length || groupName || savedDate) {
+      doc.setFontSize(7.7)
+      doc.setFont('helvetica', 'normal')
+      doc.setTextColor(...MUTED)
+      const metadata = [groupName, ...tags.map(tag => `#${tag}`)].filter(Boolean).join('   ·   ')
+      if (metadata) doc.text(doc.splitTextToSize(metadata, contentWidth - 27)[0] ?? '', margin, nextY + 3.5)
+      if (savedDate) doc.text(savedDate, pageWidth - margin, nextY + 3.5, { align: 'right' })
+      nextY += 6
+    }
+
+    doc.setDrawColor(230, 232, 235)
+    doc.setLineWidth(0.2)
+    doc.line(margin, nextY + 1, pageWidth - margin, nextY + 1)
+    y = nextY + 5
   }
 
   drawFooter()
-
   const slug = collectionName === 'All links'
     ? 'all'
     : collectionName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
@@ -172,18 +230,21 @@ export function ExportModal({ collections, onClose }: Props) {
   const [collectionId, setCollectionId] = useState('')
   const [loading, setLoading] = useState(false)
 
-  const selectedCol = collections.find(c => c.id === collectionId)
+  const selectedCol = collections.find(collection => collection.id === collectionId)
   const label = selectedCol?.name ?? 'All links'
-  const accentHex = selectedCol?.color ?? '#f5cb5c'
 
   const doPdf = async () => {
     setLoading(true)
     try {
       const links = await api.getLinks(collectionId ? { collection_id: collectionId } : undefined)
-      generatePdf(links, label, accentHex)
+      const logo = await loadLogoPng()
+      generatePdf(links, label, collections, logo)
       onClose()
-    } catch { toast.error('PDF export failed') }
-    finally { setLoading(false) }
+    } catch {
+      toast.error('PDF export failed')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -202,27 +263,30 @@ export function ExportModal({ collections, onClose }: Props) {
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.94, y: 16 }}
           transition={{ type: 'spring', stiffness: 380, damping: 30 }}
-          onClick={e => e.stopPropagation()}
+          onClick={event => event.stopPropagation()}
           className="w-full max-w-xs rounded-3xl border p-5"
           style={{ background: 'var(--color-bg-card)', borderColor: 'var(--color-border)' }}
         >
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-[16px] font-bold" style={{ color: 'var(--color-text-primary)' }}>Export PDF</h2>
-            <button onClick={onClose} className="flex h-7 w-7 items-center justify-center rounded-xl text-lg leading-none"
-              style={{ background: 'var(--color-bg-tertiary)', color: 'var(--color-text-muted)' }}>×</button>
+            <button onClick={onClose} className="flex h-7 w-7 items-center justify-center rounded-xl text-lg leading-none" style={{ background: 'var(--color-bg-tertiary)', color: 'var(--color-text-muted)' }} aria-label="Close export dialog">×</button>
           </div>
 
-          <div className="mb-4">
+          <div className="mb-3">
             <Select
               value={collectionId}
               onChange={setCollectionId}
               options={[
                 { value: '', label: 'All links' },
-                ...collections.map(col => ({ value: col.id, label: col.name, color: col.color })),
+                ...collections.map(collection => ({ value: collection.id, label: collection.name, color: collection.color })),
               ]}
               fullWidth
             />
           </div>
+
+          <p className="mb-4 text-xs leading-relaxed" style={{ color: 'var(--color-text-secondary)' }}>
+            Branded, multi-page PDF with clickable link titles and URLs.
+          </p>
 
           <button
             onClick={doPdf}
@@ -230,7 +294,7 @@ export function ExportModal({ collections, onClose }: Props) {
             className="w-full rounded-2xl py-3 text-sm font-bold disabled:opacity-60"
             style={{ background: 'var(--color-accent-fill)', color: 'var(--color-on-accent)' }}
           >
-            {loading ? 'Generating…' : 'Export'}
+            {loading ? 'Generating…' : 'Export PDF'}
           </button>
         </motion.div>
       </motion.div>

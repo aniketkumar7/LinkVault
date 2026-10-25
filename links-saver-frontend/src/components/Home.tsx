@@ -19,7 +19,7 @@ import { ExportModal } from './ExportModal'
 import { AddCollectionModal } from './AddCollectionModal'
 import { AccentPicker } from './ui/AccentPicker'
 import { ProfileDrawer } from './ProfileDrawer'
-import { displayName, firstName } from '@/lib/profile'
+import { displayName, firstName, profileAvatarConfig } from '@/lib/profile'
 import { FolderStylePicker } from './ui/FolderStylePicker'
 import { FluidOrbAvatar } from './ui/FluidOrbAvatar'
 import { SoundEffectsSwitch } from './ui/SoundEffectsSwitch'
@@ -70,6 +70,7 @@ function greeting() {
 
 export function Home({ onOpenCollection, incomingShare, onIncomingShareHandled }: Props) {
   const { user, signOut } = useAuth()
+  const avatar = profileAvatarConfig(user)
   const { data: collections = [], isLoading: collectionsLoading } = useCollections()
   const { data: stats, isLoading: statsLoading } = useStats()
   const queryClient = useQueryClient()
@@ -234,7 +235,7 @@ export function Home({ onOpenCollection, incomingShare, onIncomingShareHandled }
                 aria-haspopup="menu"
                 aria-expanded={showProfileMenu}
               >
-                <FluidOrbAvatar />
+                <FluidOrbAvatar avatar={avatar} />
               </button>
 
               <AnimatePresence>
@@ -252,7 +253,7 @@ export function Home({ onOpenCollection, incomingShare, onIncomingShareHandled }
                 >
                   <div className="mb-3 px-3 py-2">
                     <div className="flex items-center gap-2.5">
-                      <div className="h-9 w-9 shrink-0"><FluidOrbAvatar className="rounded-xl" /></div>
+                      <div className="h-9 w-9 shrink-0"><FluidOrbAvatar avatar={avatar} className="rounded-xl" /></div>
                       <div className="min-w-0">
                         <p className="truncate text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>{profileName}</p>
                         <p className="mt-1 truncate text-[11px]" style={{ color: 'var(--color-text-muted)' }}>{user?.email}</p>

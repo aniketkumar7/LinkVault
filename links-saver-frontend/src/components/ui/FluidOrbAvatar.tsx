@@ -1,170 +1,91 @@
-import { useEffect, useRef, useState } from 'react'
+import { DEFAULT_AVATAR_CONFIG, type ProfileAvatarConfig, type ProfileAvatarId } from '@/lib/profile'
 
-const VERTEX_SHADER = `
-attribute vec2 a_pos;
-void main() { gl_Position = vec4(a_pos, 0.0, 1.0); }
-`
-
-const FRAGMENT_SHADER = `
-precision mediump float;
-uniform vec2 u_resolution;
-uniform float u_time;
-uniform vec3 u_color;
-float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
-float noise(vec2 p) {
-  vec2 i = floor(p), f = fract(p), u = f * f * (3.0 - 2.0 * f);
-  return mix(mix(hash(i), hash(i + vec2(1.0, 0.0)), u.x), mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0)), u.x), u.y);
-}
-float fbm(vec2 p) {
-  float v = 0.0, a = 0.6;
-  for (int i = 0; i < 3; i++) { v += a * noise(p); p *= 2.0; a *= 0.5; }
-  return v;
-}
-void main() {
-  vec2 uv = gl_FragCoord.xy / u_resolution.xy;
-  float t = u_time * 0.34;
-  vec2 p = (uv - 0.5) * vec2(3.4, 4.2);
-  vec2 flow = vec2(
-    fbm(p + vec2(0.0, -t)),
-    fbm(p + vec2(2.8, 1.4) + vec2(t * 0.55, -t * 0.72))
-  );
-  float cloud = fbm(p * 1.35 + flow * 2.6 + vec2(0.0, -t * 1.5));
-  float detail = fbm(p * 2.1 + flow * 3.8 + vec2(t * 0.8, -t * 1.9));
-
-  // Curving, rising plumes make the movement read as smoke instead of a static gradient.
-  float spine = 0.5 + 0.13 * sin(uv.y * 7.4 - t * 2.0) + 0.045 * sin(uv.y * 17.0 + t * 1.4);
-  float plume = exp(-pow((uv.x - spine) / 0.27, 2.0));
-  float secondSpine = 0.5 - 0.2 * sin(uv.y * 5.6 + t * 1.35);
-  float secondPlume = exp(-pow((uv.x - secondSpine) / 0.19, 2.0));
-  float density = max(
-    smoothstep(0.38, 0.72, cloud) * plume,
-    smoothstep(0.46, 0.76, detail) * secondPlume * 0.72
-  );
-  density *= smoothstep(0.0, 0.16, uv.y) * (1.0 - smoothstep(0.84, 1.0, uv.y));
-
-  vec3 shadow = u_color * 0.22;
-  vec3 smoke = mix(shadow, u_color, smoothstep(0.28, 0.78, cloud));
-  smoke = mix(smoke, vec3(1.0, 0.91, 0.69), smoothstep(0.68, 0.88, detail) * 0.42);
-  float edge = 1.0 - smoothstep(0.66, 0.72, distance(uv, vec2(0.5)));
-  gl_FragColor = vec4(smoke, clamp(density * 0.92, 0.0, 0.86) * edge);
-}
-`
-
-function compile(gl: WebGLRenderingContext, type: number, source: string) {
-  const shader = gl.createShader(type)
-  if (!shader) return null
-  gl.shaderSource(shader, source)
-  gl.compileShader(shader)
-  if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-    gl.deleteShader(shader)
-    return null
-  }
-  return shader
+const backgrounds: Record<ProfileAvatarId, string> = {
+  penguin: '#FDE9DA', fox: '#FCE7DF', cat: '#ECE7FA', bear: '#F2E8DF',
+  bunny: '#F7E7F0', frog: '#E5F2DF', owl: '#E3EDF6', chick: '#F8F0D9',
 }
 
-function accentColor() {
-  const value = getComputedStyle(document.documentElement).getPropertyValue('--color-accent').trim()
-  const hex = value.startsWith('#') ? value.slice(1) : '8b5cf6'
-  const expanded = hex.length === 3 ? [...hex].map(part => part + part).join('') : hex
-  const parsed = Number.parseInt(expanded, 16)
-  if (Number.isNaN(parsed)) return [0.55, 0.36, 0.96] as const
-  return [((parsed >> 16) & 255) / 255, ((parsed >> 8) & 255) / 255, (parsed & 255) / 255] as const
-}
-
-export function FluidOrbAvatar({ className = '' }: { className?: string }) {
-  const canvasRef = useRef<HTMLCanvasElement>(null)
-  const [webglFailed, setWebglFailed] = useState(false)
-
-  useEffect(() => {
-    const canvas = canvasRef.current
-    const gl = canvas?.getContext('webgl', { alpha: true, antialias: true })
-    if (!canvas) return
-    if (!gl) {
-      setWebglFailed(true)
-      return
-    }
-
-    const vertex = compile(gl, gl.VERTEX_SHADER, VERTEX_SHADER)
-    const fragment = compile(gl, gl.FRAGMENT_SHADER, FRAGMENT_SHADER)
-    const program = gl.createProgram()
-    if (!vertex || !fragment || !program) {
-      setWebglFailed(true)
-      if (vertex) gl.deleteShader(vertex)
-      if (fragment) gl.deleteShader(fragment)
-      if (program) gl.deleteProgram(program)
-      return
-    }
-    gl.attachShader(program, vertex)
-    gl.attachShader(program, fragment)
-    gl.linkProgram(program)
-    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-      setWebglFailed(true)
-      gl.deleteProgram(program)
-      gl.deleteShader(vertex)
-      gl.deleteShader(fragment)
-      return
-    }
-    gl.useProgram(program)
-
-    const buffer = gl.createBuffer()
-    gl.bindBuffer(gl.ARRAY_BUFFER, buffer)
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, -1, 1, 1, -1, 1, 1]), gl.STATIC_DRAW)
-    const position = gl.getAttribLocation(program, 'a_pos')
-    gl.enableVertexAttribArray(position)
-    gl.vertexAttribPointer(position, 2, gl.FLOAT, false, 0, 0)
-
-    const resolution = gl.getUniformLocation(program, 'u_resolution')
-    const time = gl.getUniformLocation(program, 'u_time')
-    gl.uniform3f(gl.getUniformLocation(program, 'u_color'), ...accentColor())
-    const resize = () => {
-      const pixels = Math.round(canvas.clientWidth * Math.min(window.devicePixelRatio || 1, 2))
-      canvas.width = pixels
-      canvas.height = pixels
-      gl.viewport(0, 0, pixels, pixels)
-      gl.uniform2f(resolution, pixels, pixels)
-    }
-    resize()
-
-    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    const started = performance.now()
-    let frame = 0
-    const draw = (now: number) => {
-      gl.uniform1f(time, reducedMotion ? 0 : (now - started) / 1000)
-      gl.drawArrays(gl.TRIANGLES, 0, 6)
-      if (!reducedMotion) frame = requestAnimationFrame(draw)
-    }
-    draw(started)
-    const observer = new ResizeObserver(resize)
-    observer.observe(canvas)
-
-    return () => {
-      cancelAnimationFrame(frame)
-      observer.disconnect()
-      gl.deleteBuffer(buffer)
-      gl.deleteProgram(program)
-      gl.deleteShader(vertex)
-      gl.deleteShader(fragment)
-    }
-  }, [])
+export function FluidOrbAvatar({ avatar = DEFAULT_AVATAR_CONFIG, className = '' }: { avatar?: ProfileAvatarConfig; className?: string }) {
+  const { character: avatarId, furColor: body } = avatar
+  const bg = backgrounds[avatarId]
+  const ears = avatarId === 'fox' || avatarId === 'cat'
+  const roundedEars = avatarId === 'bear' || avatarId === 'owl'
 
   return (
-    <span
-      className={'relative block size-full overflow-hidden rounded-full ' + className}
-      style={{
-        background: 'radial-gradient(circle at 50% 14%, color-mix(in srgb, var(--color-accent) 55%, #fff), transparent 43%), linear-gradient(145deg, #24201a, #09090b 72%)',
-      }}
+    <svg
+      viewBox="0 0 100 100"
+      xmlns="http://www.w3.org/2000/svg"
+      className={`block size-full rounded-full ${className}`}
       aria-hidden="true"
+      focusable="false"
     >
-      <span
-        className="orb-smoke-fallback-layer absolute inset-0 overflow-hidden rounded-[inherit]"
-        style={{ opacity: webglFailed ? 1 : 0.56 }}
-        aria-hidden="true"
-      >
-          <i className="orb-smoke-fallback orb-smoke-fallback-a" />
-          <i className="orb-smoke-fallback orb-smoke-fallback-b" />
-          <i className="orb-smoke-fallback orb-smoke-fallback-c" />
-      </span>
-      <canvas ref={canvasRef} className="absolute inset-0 z-0 size-full rounded-[inherit]" />
-    </span>
+      <circle cx="50" cy="50" r="50" fill={bg} />
+      <g transform="translate(6 6) scale(.88)">
+        <ellipse cx="50" cy="91" rx="24" ry="3.4" fill="#2B2238" opacity=".1" />
+        <g className="link-saver-avatar-bob">
+          {ears && (
+            <g fill={body}>
+              <path d="M23 45 24 17Q25 12 30 17L45 31 42 40ZM77 45 76 17Q75 12 70 17L55 31 58 40Z" />
+              {avatarId === 'cat' && <path d="m29 33 1-10 8 9-5 3Zm42 0-1-10-8 9 5 3Z" fill="#F4B7C4" />}
+            </g>
+          )}
+          {roundedEars && <g fill={body}><circle cx="29" cy="31" r="12" /><circle cx="71" cy="31" r="12" /></g>}
+          {avatarId === 'bunny' && (
+            <g fill={body}>
+              <ellipse cx="39" cy="24" rx="9" ry="20" transform="rotate(-12 39 24)" />
+              <ellipse cx="61" cy="24" rx="9" ry="20" transform="rotate(12 61 24)" />
+              <ellipse cx="39" cy="23" rx="4" ry="13" fill="#F5C1D5" transform="rotate(-12 39 23)" />
+              <ellipse cx="61" cy="23" rx="4" ry="13" fill="#F5C1D5" transform="rotate(12 61 23)" />
+            </g>
+          )}
+          {avatarId === 'frog' && <g fill={body}><circle cx="34" cy="34" r="13" /><circle cx="66" cy="34" r="13" /></g>}
+          {avatarId === 'chick' && <path d="M45 24Q42 12 49 14Q49 20 55 17Q53 24 57 28Z" fill="#F2A53A" />}
+          <path
+            d={avatarId === 'penguin'
+              ? 'M50 16C70 16 80 36 80 58S70 88 50 88 20 80 20 58 30 16 50 16Z'
+              : 'M50 22C72 22 84 38 84 59S70 88 50 88 16 80 16 59 28 22 50 22Z'}
+            fill={body}
+          />
+          {avatarId === 'penguin' && <path d="M50 34C40 26 26 32 28 46C29 58 36 62 36 70C36 80 42 86 50 86C58 86 64 80 64 70C64 62 71 58 72 46C74 32 60 26 50 34Z" fill="#FFF7EE" />}
+          {avatarId === 'fox' && <path d="M23 58Q34 48 50 62Q66 48 77 58Q70 82 50 85Q30 82 23 58Z" fill="#FFF1E8" />}
+          {avatarId === 'cat' && <path d="M30 59Q39 54 47 61Q50 66 45 69Q39 70 35 66ZM70 59Q61 54 53 61Q50 66 55 69Q61 70 65 66Z" fill="#F8F3FC" />}
+          {(avatarId === 'bear' || avatarId === 'bunny') && <ellipse cx="50" cy="64" rx="19" ry="15" fill="#FFF4E9" />}
+          {avatarId === 'owl' && <g fill="#F7F2E8"><circle cx="38" cy="49" r="13" /><circle cx="62" cy="49" r="13" /></g>}
+          {avatarId === 'chick' && <ellipse cx="50" cy="65" rx="16" ry="18" fill="#FFF3C9" />}
+          {avatarId === 'frog' && <path d="M34 63Q50 77 66 63" fill="none" stroke="#355C43" strokeWidth="3" strokeLinecap="round" />}
+          <g className="link-saver-avatar-blink" fill="#2B2238">
+            {avatar.eyes === 'happy' ? (
+              <><path d="M34 51q4-6 8 0" fill="none" stroke="#2B2238" strokeWidth="3" strokeLinecap="round" /><path d="M58 51q4-6 8 0" fill="none" stroke="#2B2238" strokeWidth="3" strokeLinecap="round" /></>
+            ) : avatar.eyes === 'wink' ? (
+              <><ellipse cx="40" cy="49" rx="3.7" ry="4.6" /><path d="M57 51q4-6 8 0" fill="none" stroke="#2B2238" strokeWidth="3" strokeLinecap="round" /></>
+            ) : avatar.eyes === 'sleepy' ? (
+              <><path d="M34 50q4 4 8 0" fill="none" stroke="#2B2238" strokeWidth="3" strokeLinecap="round" /><path d="M58 50q4 4 8 0" fill="none" stroke="#2B2238" strokeWidth="3" strokeLinecap="round" /></>
+            ) : avatar.eyes === 'heart' ? (
+              <><path d="M40 53 35 48q-3-4 1-6 3-1 4 2 2-3 5-2 4 2 1 6Z" fill="#D94F72" /><path d="M60 53 55 48q-3-4 1-6 3-1 4 2 2-3 5-2 4 2 1 6Z" fill="#D94F72" /></>
+            ) : avatarId === 'frog' ? (
+              <><circle cx="34" cy="34" r="7" fill="#FFF" /><circle cx="66" cy="34" r="7" fill="#FFF" /><ellipse cx="35" cy="35" rx="3" ry="4" /><ellipse cx="65" cy="35" rx="3" ry="4" /></>
+            ) : avatarId === 'owl' ? (
+              <><circle cx="38" cy="49" r="4" /><circle cx="62" cy="49" r="4" /></>
+            ) : (
+              <><ellipse cx="40" cy="49" rx="3.7" ry="4.6" /><ellipse cx="60" cy="49" rx="3.7" ry="4.6" /></>
+            )}
+          </g>
+          {avatar.mouth === 'smile' ? (
+            <path d="M44 62q6 6 12 0" fill="none" stroke="#543B3B" strokeWidth="2.4" strokeLinecap="round" />
+          ) : avatar.mouth === 'open' ? (
+            <ellipse cx="50" cy="64" rx="4.2" ry="5.2" fill="#543B3B" />
+          ) : avatar.mouth === 'tongue' ? (
+            <g><path d="M44 62q6 6 12 0" fill="none" stroke="#543B3B" strokeWidth="2.4" strokeLinecap="round" /><ellipse cx="50" cy="67" rx="2.5" ry="3" fill="#E87988" /></g>
+          ) : (
+            <path d="M46 64h8" fill="none" stroke="#543B3B" strokeWidth="2.4" strokeLinecap="round" />
+          )}
+          {avatar.accessory === 'glasses' && <g fill="none" stroke="#2B2238" strokeWidth="2.4"><circle cx="40" cy="49" r="8" /><circle cx="60" cy="49" r="8" /><path d="M48 49h4m-24 0h4m24 0h4" strokeLinecap="round" /></g>}
+          {avatar.accessory === 'cap' && <g fill={body}><path d="M29 36q2-18 21-18t21 18Z" /><path d="M28 36q22-4 46 2-3 5-24 5-17 0-22-7Z" fill="#2B2238" opacity=".18" /></g>}
+          {avatar.accessory === 'bow' && <g fill="#D94F72"><path d="M50 27q-13-15-17-5 0 10 17 8Zm0 0q13-15 17-5 0 10-17 8Z" /><circle cx="50" cy="26" r="3.5" fill="#A93659" /></g>}
+          {avatarId === 'cat' && <g fill="none" stroke="#6E5C95" strokeWidth="1.4" strokeLinecap="round"><path d="m29 63-9-2m10 5-9 2m60-5 9-2m-10 5 9 2" /></g>}
+          {avatarId === 'penguin' && <g fill="#FFA63D"><ellipse cx="42" cy="88" rx="6" ry="2.6" /><ellipse cx="58" cy="88" rx="6" ry="2.6" /></g>}
+        </g>
+      </g>
+    </svg>
   )
 }

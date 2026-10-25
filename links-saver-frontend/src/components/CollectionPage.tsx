@@ -8,7 +8,7 @@ import { BulkImportModal } from './BulkImportModal'
 import { LinksView } from './LinksView'
 import { AccentPicker } from './ui/AccentPicker'
 import { ProfileDrawer } from './ProfileDrawer'
-import { displayName } from '@/lib/profile'
+import { displayName, profileAvatarConfig } from '@/lib/profile'
 import { FolderStylePicker } from './ui/FolderStylePicker'
 import { SMART_FOLDERS, smartKey } from '@/lib/smartFolders'
 import { SkeletonGrid } from './ui/Skeleton'
@@ -22,6 +22,7 @@ interface Props {
 
 export function CollectionPage({ collectionId, onBack }: Props) {
   const { user, signOut } = useAuth()
+  const avatar = profileAvatarConfig(user)
   const { data: collections = [], isLoading: collectionsLoading } = useCollections()
   const { data: stats } = useStats()
   const invalidateCollections = useInvalidateCollections()
@@ -104,14 +105,14 @@ export function CollectionPage({ collectionId, onBack }: Props) {
                 aria-haspopup="menu"
                 aria-expanded={showProfileMenu}
               >
-                <FluidOrbAvatar />
+                <FluidOrbAvatar avatar={avatar} />
               </button>
 
               {showProfileMenu && (
                 <motion.div initial={{ opacity: 0, y: -8, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ type: 'spring', stiffness: 420, damping: 26 }} className="absolute right-0 mt-2 w-60 origin-top-right rounded-2xl border p-3 shadow-2xl" style={{ background: 'color-mix(in srgb, var(--color-bg-card) 94%, transparent)', borderColor: 'var(--color-border)', backdropFilter: 'blur(18px)' }} onClick={e => e.stopPropagation()}>
                   <div className="mb-3 px-3 py-2">
                     <div className="flex items-center gap-2.5">
-                      <div className="h-9 w-9 shrink-0"><FluidOrbAvatar className="rounded-xl" /></div>
+                      <div className="h-9 w-9 shrink-0"><FluidOrbAvatar avatar={avatar} className="rounded-xl" /></div>
                       <div className="min-w-0">
                         <p className="truncate text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>{profileName}</p>
                         <p className="mt-1 truncate text-[11px]" style={{ color: 'var(--color-text-muted)' }}>{user?.email}</p>
