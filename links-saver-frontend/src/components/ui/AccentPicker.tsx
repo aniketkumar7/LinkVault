@@ -7,6 +7,9 @@ const ACCENTS = [
   { key: 'teal', label: 'Teal', swatch: '#62929e' },
   { key: 'navy', label: 'Navy', swatch: '#003459' },
   { key: 'rose', label: 'Rose', swatch: '#e0afa0' },
+  { key: 'lavender', label: 'Lavender', swatch: '#9983d7' },
+  { key: 'coral', label: 'Coral', swatch: '#e9937d' },
+  { key: 'mint', label: 'Mint', swatch: '#7fbf98' },
 ]
 
 export function AccentPicker() {
@@ -21,7 +24,7 @@ export function AccentPicker() {
   return (
     <div className="px-3 py-2">
       <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider" style={{ color: 'var(--color-text-muted)' }}>Theme</p>
-      <div className="flex items-center gap-2" role="radiogroup" aria-label="Accent color">
+      <div className="grid grid-cols-4 gap-2.5" role="radiogroup" aria-label="Accent color">
         {ACCENTS.map(a => (
           <button
             key={a.key}

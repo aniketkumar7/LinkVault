@@ -3,11 +3,15 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { jsPDF } from 'jspdf'
 import { api } from '@/lib/api'
 import type { Collection, Link } from '@/lib/api'
+import type { ProfileAvatarConfig } from '@/lib/profile'
 import { toast } from '@/lib/toast'
 import { Select } from '@/components/ui/Select'
+import { FluidOrbAvatar } from '@/components/ui/FluidOrbAvatar'
+import { renderToStaticMarkup } from 'react-dom/server'
 
 interface Props {
   collections: Collection[]
+  avatar: ProfileAvatarConfig
   onClose: () => void
 }
 
@@ -46,7 +50,42 @@ function loadLogoPng(): Promise<string | null> {
   })
 }
 
-function generatePdf(links: Link[], collectionName: string, collections: Collection[], logo: string | null) {
+function loadAvatarPng(avatar: ProfileAvatarConfig): Promise<string | null> {
+  try {
+    const markup = renderToStaticMarkup(<FluidOrbAvatar avatar={avatar} />)
+      .replace('<svg ', '<svg width="256" height="256" ')
+
+    return new Promise(resolve => {
+      const image = new Image()
+      image.onload = () => {
+        try {
+          const canvas = document.createElement('canvas')
+          canvas.width = 256
+          canvas.height = 256
+          const context = canvas.getContext('2d')
+          if (!context) return resolve(null)
+          context.drawImage(image, 0, 0, canvas.width, canvas.height)
+          resolve(canvas.toDataURL('image/png'))
+        } catch {
+          resolve(null)
+        }
+      }
+      image.onerror = () => resolve(null)
+      image.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(markup)}`
+    })
+  } catch {
+    return Promise.resolve(null)
+  }
+}
+
+function generatePdf(
+  links: Link[],
+  collectionName: string,
+  collections: Collection[],
+  logo: string | null,
+  avatar: string | null,
+  appUrl: string,
+) {
   const doc = new jsPDF({ unit: 'mm', format: 'a4', compress: true })
   const pageWidth = doc.internal.pageSize.getWidth()
   const pageHeight = doc.internal.pageSize.getHeight()
@@ -55,6 +94,7 @@ function generatePdf(links: Link[], collectionName: string, collections: Collect
   const contentBottom = pageHeight - 22
   const dateLabel = new Date().toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' })
   const collectionNames = new Map(collections.map(collection => [collection.id, collection.name]))
+  const appLabel = appUrl.replace(/^https?:\/\//, '').replace(/\/$/, '').replace(/^www\./, '')
 
   doc.setProperties({
     title: `${collectionName} · Bookmarky`,
@@ -92,10 +132,21 @@ function generatePdf(links: Link[], collectionName: string, collections: Collect
     doc.line(margin, 25, pageWidth - margin, 25)
 
     if (firstPage) {
+      const dotsLeft = pageWidth - margin - 43
+      const dotsTop = 30
+      doc.setFillColor(237, 231, 219)
+      for (let x = dotsLeft; x <= pageWidth - margin; x += 4.5) {
+        for (let dotY = dotsTop; dotY <= 72; dotY += 4.5) {
+          doc.circle(x, dotY, 0.34, 'F')
+        }
+      }
+      if (avatar) doc.addImage(avatar, 'PNG', pageWidth - margin - 34, 34, 29, 29, undefined, 'FAST')
+
       doc.setFont('helvetica', 'bold')
       doc.setFontSize(23)
       doc.setTextColor(...INK)
-      const titleLines: string[] = doc.splitTextToSize(collectionName, contentWidth).slice(0, 2)
+      const titleWidth = avatar ? contentWidth - 47 : contentWidth
+      const titleLines: string[] = doc.splitTextToSize(collectionName, titleWidth).slice(0, 2)
       if (titleLines.length === 2) titleLines[1] = `${titleLines[1].slice(0, -1)}…`
       titleLines.forEach((line, index) => doc.text(line, margin, 39 + index * 10))
 
@@ -103,7 +154,12 @@ function generatePdf(links: Link[], collectionName: string, collections: Collect
       doc.setFont('helvetica', 'normal')
       doc.setFontSize(9.5)
       doc.setTextColor(...MUTED)
-      doc.text(`${links.length} saved link${links.length === 1 ? '' : 's'}  ·  Exported ${dateLabel}`, margin, subtitleY)
+      const subtitle = `${links.length} saved link${links.length === 1 ? '' : 's'}  ·  Exported ${dateLabel}`
+      const subtitleLines: string[] = doc.splitTextToSize(subtitle, titleWidth)
+      const subtitleText = subtitleLines.length > 1
+        ? `${subtitleLines[0].slice(0, -1)}…`
+        : subtitle
+      doc.text(subtitleText, margin, subtitleY)
 
       doc.setFillColor(...BRAND)
       doc.roundedRect(margin, subtitleY + 7, 18, 1.1, 0.55, 0.55, 'F')
@@ -121,7 +177,14 @@ function generatePdf(links: Link[], collectionName: string, collections: Collect
     doc.setFontSize(8)
     doc.setTextColor(...MUTED)
     doc.text('Saved with Bookmarky', margin, pageHeight - 10)
-    doc.text(`Page ${pageNumber}`, pageWidth - margin, pageHeight - 10, { align: 'right' })
+    doc.text(`Page ${pageNumber}`, pageWidth / 2, pageHeight - 10, { align: 'center' })
+    doc.setTextColor(...LINK_BLUE)
+    doc.text(appLabel, pageWidth - margin, pageHeight - 10, { align: 'right' })
+    const appLabelWidth = doc.getTextWidth(appLabel)
+    doc.link(pageWidth - margin - appLabelWidth, pageHeight - 14, appLabelWidth, 5, { url: appUrl })
+    doc.setDrawColor(...LINK_BLUE)
+    doc.setLineWidth(0.12)
+    doc.line(pageWidth - margin - appLabelWidth, pageHeight - 9.55, pageWidth - margin, pageHeight - 9.55)
   }
 
   const startNextPage = () => {
@@ -226,7 +289,7 @@ function generatePdf(links: Link[], collectionName: string, collections: Collect
       doc.save(`bookmarky-${slug}-${new Date().toISOString().slice(0, 10)}.pdf`)
 }
 
-export function ExportModal({ collections, onClose }: Props) {
+export function ExportModal({ collections, avatar, onClose }: Props) {
   const [collectionId, setCollectionId] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -238,7 +301,8 @@ export function ExportModal({ collections, onClose }: Props) {
     try {
       const links = await api.getLinks(collectionId ? { collection_id: collectionId } : undefined)
       const logo = await loadLogoPng()
-      generatePdf(links, label, collections, logo)
+      const avatarPng = await loadAvatarPng(avatar)
+      generatePdf(links, label, collections, logo, avatarPng, window.location.origin)
       onClose()
     } catch {
       toast.error('PDF export failed')

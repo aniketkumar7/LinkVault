@@ -186,9 +186,7 @@ export function Home({ onOpenCollection, incomingShare, onIncomingShareHandled }
       <header className="dot-surface sticky top-0 z-50">
         <div className="page-gutter mx-auto flex w-full items-center justify-between gap-4 py-4">
           <div className="flex shrink-0 items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl border" style={{ background: 'var(--color-bg-card)', borderColor: 'var(--color-border)' }}>
-              <img src="/Logo.svg" alt="Bookmarky" className="h-8 w-8" />
-            </div>
+            <img src="/Logo.svg" alt="Bookmarky" className="h-10 w-10 shrink-0" />
             <h1 className="hidden text-lg font-semibold tracking-[-0.025em] sm:block sm:text-xl" style={{ color: 'var(--color-text-primary)' }}>Bookmarky</h1>
           </div>
 
@@ -380,7 +378,7 @@ export function Home({ onOpenCollection, incomingShare, onIncomingShareHandled }
       <AddCollectionModal key={showAddCollection ? 'new-open' : 'new-closed'} open={showAddCollection} onClose={() => setShowAddCollection(false)} onCreated={invalidateCollections} avatar={avatar} />
       <AddLinkForm key={addLinkKey} initialUrl={pastedUrl} open={showAddLink} onOpenChange={setShowAddLink} onLinkAdded={invalidateCollections} collections={collections} onCollectionCreated={invalidateCollections} avatar={avatar} />
       {showBulkImport && <BulkImportModal key="shared-import" initialFiles={sharedFiles} onClose={() => { setShowBulkImport(false); setSharedFiles([]) }} onImported={invalidateCollections} collections={collections} avatar={avatar} />}
-      {showExport && <ExportModal collections={collections} onClose={() => setShowExport(false)} />}
+      {showExport && <ExportModal collections={collections} avatar={avatar} onClose={() => setShowExport(false)} />}
       <ProfileDrawer open={showProfile} onClose={() => setShowProfile(false)} user={user} />
     </div>
   )

@@ -67,7 +67,9 @@ function AppInner() {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--color-bg-primary)' }} role="status" aria-live="polite">
         <div className="text-center">
-          <img className="bookmarky-loading-mark mx-auto mb-4 h-16 w-16 rounded-[18px] shadow-lg" src="/Logo.svg" alt="" aria-hidden="true" />
+          <div className="bookmarky-loading-stage mx-auto mb-4 grid size-[76px] place-items-center" aria-hidden="true">
+            <img className="bookmarky-loading-mark h-16 w-16" src="/Logo.svg" alt="" />
+          </div>
           <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>Getting your bookmarks ready...</p>
         </div>
       </div>
