@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef } from 'react'
+import { useState, useMemo, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useLinks, useDeleteWithUndo, useBatchActions, useToggleFavorite } from '@/hooks/useLinks'
 import type { LinkFilters, Collection } from '@/lib/api'
@@ -22,6 +22,7 @@ interface Props {
 export function LinksView({ collections, initialCollectionId = '', initialFavorite = false, onRefetchNeeded }: Props) {
   const [searchInput, setSearchInput] = useState('')
   const [search, setSearch] = useState('')
+  const [visibleCount, setVisibleCount] = useState(20)
   const [favoriteFilter, setFavoriteFilter] = useState(initialFavorite)
   const [collectionFilter, setCollectionFilter] = useState(initialCollectionId)
   const [sortField, setSortField] = useState<SortField>('created_at')
@@ -40,6 +41,7 @@ export function LinksView({ collections, initialCollectionId = '', initialFavori
   }), [favoriteFilter, collectionFilter, search, sortField, sortOrder])
 
   const { data: links = [], isLoading, error, refetch } = useLinks(filters)
+  const visibleLinks = links.slice(0, visibleCount)
   const { deleteWithUndo } = useDeleteWithUndo()
   const { batchDelete } = useBatchActions()
   const toggleFavorite = useToggleFavorite()
@@ -48,6 +50,24 @@ export function LinksView({ collections, initialCollectionId = '', initialFavori
   const hasFilters = Boolean(search || favoriteFilter || collectionFilter || !isDefaultSort)
 
   const searchTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+  const loadMoreRef = useRef<HTMLDivElement | null>(null)
+
+  useEffect(() => {
+    setVisibleCount(20)
+  }, [filters])
+
+  useEffect(() => {
+    if (visibleCount >= links.length || !loadMoreRef.current) return
+
+    const observer = new IntersectionObserver(([entry]) => {
+      if (!entry.isIntersecting) return
+      observer.disconnect()
+      setVisibleCount(count => Math.min(count + 20, links.length))
+    }, { rootMargin: '400px 0px' })
+
+    observer.observe(loadMoreRef.current)
+    return () => observer.disconnect()
+  }, [visibleCount, links.length])
 
   const handleSearch = (val: string) => {
     setSearchInput(val)
@@ -309,8 +329,8 @@ export function LinksView({ collections, initialCollectionId = '', initialFavori
         hasFilters ? <NoResultsEmpty onClearFilters={clearFilters} /> : <NoLinksEmpty />
       ) : viewMode === 'grid' ? (
         <div className="grid gap-3 grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
-          {links.map((link, index) => (
-            <div key={link.id} className="w-full min-w-0 animate-fade-in" style={{ animationDelay: `${index * 40}ms` }}>
+          {visibleLinks.map(link => (
+            <div key={link.id} className="w-full min-w-0 animate-fade-in">
               <LinkCard
                 link={link}
                 onDeleted={() => deleteWithUndo(link)}
@@ -327,12 +347,10 @@ export function LinksView({ collections, initialCollectionId = '', initialFavori
       ) : (
         /* ── List view ── */
         <div className="flex flex-col gap-1.5">
-          {links.map((link, index) => (
-            <motion.div
+          {visibleLinks.map(link => (
+            <div
               key={link.id}
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ type: 'spring', stiffness: 320, damping: 28, delay: index * 0.028 }}
+              className="animate-fade-in"
             >
               <LinkCard
                 link={link}
@@ -345,10 +363,12 @@ export function LinksView({ collections, initialCollectionId = '', initialFavori
                 onSelect={() => toggleSelect(link.id)}
                 onToggleFavorite={() => toggleFavorite.mutate(link.id)}
               />
-            </motion.div>
+            </div>
           ))}
         </div>
       )}
+
+      {visibleCount < links.length && <div ref={loadMoreRef} className="h-4" aria-hidden="true" />}
     </div>
   )
 }
