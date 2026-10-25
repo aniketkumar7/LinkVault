@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import type { CSSProperties } from 'react'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { Bell, FolderSimple, LinkSimple, ShieldCheck, ShareNetwork, UserCircle, UploadSimple, X } from '@phosphor-icons/react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
@@ -114,6 +115,8 @@ export function NotificationCenter() {
   const reduceMotion = useReducedMotion()
   const [open, setOpen] = useState(false)
   const rootRef = useRef<HTMLDivElement>(null)
+  const triggerRef = useRef<HTMLButtonElement>(null)
+  const [mobilePanelTop, setMobilePanelTop] = useState(0)
   const key = user ? queryKey(user.id) : ['notifications', 'signed-out'] as const
   const { data: notifications = [], isLoading, isError, refetch } = useQuery({
     queryKey: key,
@@ -142,6 +145,10 @@ export function NotificationCenter() {
 
   useEffect(() => {
     if (!open) return
+    const updateMobilePanelPosition = () => {
+      const trigger = triggerRef.current
+      if (trigger) setMobilePanelTop(Math.ceil(trigger.getBoundingClientRect().bottom + 8))
+    }
     const onPointerDown = (event: PointerEvent) => {
       if (!rootRef.current?.contains(event.target as Node)) setOpen(false)
     }
@@ -150,9 +157,11 @@ export function NotificationCenter() {
     }
     document.addEventListener('pointerdown', onPointerDown)
     document.addEventListener('keydown', onKeyDown)
+    window.addEventListener('resize', updateMobilePanelPosition)
     return () => {
       document.removeEventListener('pointerdown', onPointerDown)
       document.removeEventListener('keydown', onKeyDown)
+      window.removeEventListener('resize', updateMobilePanelPosition)
     }
   }, [open])
 
@@ -223,8 +232,13 @@ export function NotificationCenter() {
   return (
     <div className="relative" ref={rootRef}>
       <button
+        ref={triggerRef}
         type="button"
-        onClick={() => setOpen(value => !value)}
+        onClick={() => {
+          const trigger = triggerRef.current
+          if (trigger) setMobilePanelTop(Math.ceil(trigger.getBoundingClientRect().bottom + 8))
+          setOpen(value => !value)
+        }}
         aria-label={`Notifications${unreadCount ? `, ${unreadCount} unread` : ''}`}
         aria-haspopup="dialog"
         aria-expanded={open}
@@ -250,8 +264,8 @@ export function NotificationCenter() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: -5, scale: 0.99 }}
             transition={{ duration: reduceMotion ? 0.12 : 0.17, ease: [0.22, 1, 0.36, 1] }}
-            className="absolute right-0 z-[55] mt-2 flex max-h-[min(72vh,560px)] w-[min(390px,calc(100vw-24px))] origin-top-right flex-col overflow-hidden rounded-2xl border"
-            style={{ background: 'var(--color-bg-card)', borderColor: 'var(--color-border)', boxShadow: '0 8px 28px rgba(0,0,0,0.24)' }}
+            className="fixed left-3 right-3 top-[var(--notification-panel-top)] z-[55] flex max-h-[min(72vh,560px)] w-auto origin-top-right flex-col overflow-hidden rounded-2xl border sm:absolute sm:left-auto sm:right-0 sm:top-full sm:mt-2 sm:w-[min(390px,calc(100vw-24px))]"
+            style={{ '--notification-panel-top': `${mobilePanelTop}px`, background: 'var(--color-bg-card)', borderColor: 'var(--color-border)', boxShadow: '0 8px 28px rgba(0,0,0,0.24)' } as CSSProperties}
           >
             <header className="flex items-center justify-between gap-3 border-b px-4 py-3" style={{ borderColor: 'var(--color-border)' }}>
               <div className="min-w-0">

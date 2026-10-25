@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent } from 'react'
-import { AnimatePresence, motion } from 'framer-motion'
-import { DownloadSimple, SignOut, Stack, UserCircle } from '@phosphor-icons/react'
+import { motion } from 'framer-motion'
 import { useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '@/hooks/useAuth'
 import { queryKeys, useCollections, useStats } from '@/hooks/useLinks'
@@ -17,12 +16,10 @@ import { BulkImportModal } from './BulkImportModal'
 import { Folder } from './Folder'
 import { ExportModal } from './ExportModal'
 import { AddCollectionModal } from './AddCollectionModal'
-import { AccentPicker } from './ui/AccentPicker'
+import { AccountDrawer } from './AccountDrawer'
 import { ProfileDrawer } from './ProfileDrawer'
-import { displayName, firstName, profileAvatarConfig } from '@/lib/profile'
-import { FolderStylePicker } from './ui/FolderStylePicker'
+import { firstName, profileAvatarConfig } from '@/lib/profile'
 import { FluidOrbAvatar } from './ui/FluidOrbAvatar'
-import { SoundEffectsSwitch } from './ui/SoundEffectsSwitch'
 import { NotificationCenter } from './ui/NotificationCenter'
 import { api } from '@/lib/api'
 import { toast } from '@/lib/toast'
@@ -92,7 +89,7 @@ export function Home({ onOpenCollection, incomingShare, onIncomingShareHandled }
   }
   const { theme, triggerTransition } = useCircularTheme()
 
-  const [showProfileMenu, setShowProfileMenu] = useState(false)
+  const [showAccountDrawer, setShowAccountDrawer] = useState(false)
   const [showCollectionManager, setShowCollectionManager] = useState(false)
   const [showAddLink, setShowAddLink] = useState(false)
   const [showBulkImport, setShowBulkImport] = useState(false)
@@ -171,19 +168,8 @@ export function Home({ onOpenCollection, incomingShare, onIncomingShareHandled }
     return () => document.removeEventListener('paste', onPaste)
   }, [modalOpen])
 
-  const profileName = displayName(user)
   const userFirstName = firstName(user)
   const [showProfile, setShowProfile] = useState(false)
-
-  useEffect(() => {
-    if (!showProfileMenu) return
-    const closeOnOutsideClick = (event: PointerEvent) => {
-      const target = event.target as Element
-      if (!target.closest('[data-profile-menu]')) setShowProfileMenu(false)
-    }
-    document.addEventListener('pointerdown', closeOnOutsideClick)
-    return () => document.removeEventListener('pointerdown', closeOnOutsideClick)
-  }, [showProfileMenu])
 
   return (
     <div className="min-h-screen">
@@ -229,70 +215,18 @@ export function Home({ onOpenCollection, incomingShare, onIncomingShareHandled }
 
             <NotificationCenter />
 
-            <div className="relative" data-profile-menu>
+            <div>
               <button
                 type="button"
-                onClick={e => { e.stopPropagation(); setShowProfileMenu(v => !v) }}
+                onClick={() => setShowAccountDrawer(true)}
                 className="flex h-10 w-10 items-center justify-center rounded-2xl border text-sm font-semibold"
                 style={{ background: 'var(--color-accent-fill)', borderColor: 'var(--color-accent-fill)', color: 'var(--color-on-accent)' }}
-                aria-label="Open profile menu"
-                aria-haspopup="menu"
-                aria-expanded={showProfileMenu}
+                aria-label="Open profile and settings"
+                aria-haspopup="dialog"
+                aria-expanded={showAccountDrawer}
               >
                 <FluidOrbAvatar avatar={avatar} />
               </button>
-
-              <AnimatePresence>
-              {showProfileMenu && (
-                <motion.div
-                  initial={{ opacity: 0, y: -6, scale: 0.97 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: -4, scale: 0.98 }}
-                  transition={{ duration: 0.16, ease: [0.16, 1, 0.3, 1] }}
-                  role="menu"
-                  aria-label="Profile menu"
-                  className="absolute right-0 z-40 mt-2 w-64 origin-top-right rounded-2xl border p-3 shadow-2xl"
-                  style={{ background: 'color-mix(in srgb, var(--color-bg-card) 96%, transparent)', borderColor: 'var(--color-border)', backdropFilter: 'blur(18px)' }}
-                  onClick={e => e.stopPropagation()}
-                >
-                  <div className="mb-3 px-3 py-2">
-                    <div className="flex items-center gap-2.5">
-                      <div className="h-9 w-9 shrink-0"><FluidOrbAvatar avatar={avatar} className="rounded-xl" /></div>
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>{profileName}</p>
-                        <p className="mt-1 truncate text-[11px]" style={{ color: 'var(--color-text-muted)' }}>{user?.email}</p>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="mb-3 space-y-1 rounded-xl border p-2" style={{ borderColor: 'var(--color-border)', background: 'var(--color-bg-tertiary)' }}>
-                    <p className="px-2 pb-1 text-[10px] font-bold uppercase tracking-[0.14em]" style={{ color: 'var(--color-text-muted)' }}>Appearance</p>
-                    <AccentPicker />
-                    <FolderStylePicker />
-                  </div>
-                  <div className="mb-3 rounded-xl border" style={{ borderColor: 'var(--color-border)' }}>
-                    <SoundEffectsSwitch />
-                  </div>
-                  <div className="flex flex-col gap-1">
-                    <motion.button role="menuitem" whileHover={{ x: 3 }} whileTap={{ scale: 0.98 }} onClick={() => { setShowProfile(true); setShowProfileMenu(false) }} className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm transition-colors hover:bg-[var(--color-bg-tertiary)]" style={{ color: 'var(--color-text-secondary)' }}>
-                    <UserCircle size={18} weight="duotone" />
-                    <span>Edit profile</span>
-                  </motion.button>
-                    <motion.button role="menuitem" whileHover={{ x: 3 }} whileTap={{ scale: 0.98 }} onClick={() => { setShowCollectionManager(true); setShowProfileMenu(false) }} className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm transition-colors hover:bg-[var(--color-bg-tertiary)]" style={{ color: 'var(--color-text-secondary)' }}>
-                      <Stack size={18} weight="duotone" />
-                      <span>Manage collections</span>
-                    </motion.button>
-                    <motion.button role="menuitem" whileHover={{ x: 3 }} whileTap={{ scale: 0.98 }} onClick={() => { setShowExport(true); setShowProfileMenu(false) }} className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm transition-colors hover:bg-[var(--color-bg-tertiary)]" style={{ color: 'var(--color-text-secondary)' }}>
-                      <DownloadSimple size={18} weight="duotone" />
-                      <span>Export links</span>
-                    </motion.button>
-                    <motion.button role="menuitem" whileHover={{ x: 3 }} whileTap={{ scale: 0.98 }} onClick={() => { setShowProfileMenu(false); signOut() }} className="mt-1 flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-left" style={{ background: 'rgba(239,68,68,0.08)', color: 'var(--color-error)' }}>
-                      <SignOut size={18} weight="duotone" />
-                      <span>Sign out</span>
-                    </motion.button>
-                  </div>
-                </motion.div>
-              )}
-              </AnimatePresence>
             </div>
           </div>
         </div>
@@ -308,6 +242,11 @@ export function Home({ onOpenCollection, incomingShare, onIncomingShareHandled }
                 <h2 className="text-3xl font-bold tracking-[-0.03em] sm:text-4xl" style={{ color: 'var(--color-text-primary)' }}>
                   {greeting()}{userFirstName && <>, <span style={{ color: 'var(--color-accent)' }}>{userFirstName}</span></>}
                 </h2>
+                {stats && stats.savedLast7Days > 0 && (
+                  <p className="mt-2 text-sm" style={{ color: 'var(--color-text-secondary)' }}>
+                    You saved <span className="font-semibold" style={{ color: 'var(--color-accent)' }}>{stats.savedLast7Days}</span> link{stats.savedLast7Days === 1 ? '' : 's'} in the last 7 days
+                  </p>
+                )}
                 {!userFirstName && (
                   <button type="button" onClick={() => setShowProfile(true)} className="mt-2 text-sm font-medium hover:underline" style={{ color: 'var(--color-accent)' }}>
                     Add your name →
@@ -385,6 +324,17 @@ export function Home({ onOpenCollection, incomingShare, onIncomingShareHandled }
       <AddLinkForm key={addLinkKey} initialUrl={pastedUrl} open={showAddLink} onOpenChange={setShowAddLink} onLinkAdded={invalidateCollections} collections={collections} onCollectionCreated={invalidateCollections} avatar={avatar} />
       {showBulkImport && <BulkImportModal key="shared-import" initialFiles={sharedFiles} onClose={() => { setShowBulkImport(false); setSharedFiles([]) }} onImported={invalidateCollections} collections={collections} avatar={avatar} />}
       {showExport && <ExportModal collections={collections} avatar={avatar} onClose={() => setShowExport(false)} />}
+      <AccountDrawer
+        open={showAccountDrawer}
+        onClose={() => setShowAccountDrawer(false)}
+        user={user}
+        avatar={avatar}
+        totalLinks={stats?.total}
+        onEditProfile={() => setShowProfile(true)}
+        onManageCollections={() => setShowCollectionManager(true)}
+        onExportLinks={() => setShowExport(true)}
+        onSignOut={signOut}
+      />
       <ProfileDrawer open={showProfile} onClose={() => setShowProfile(false)} user={user} />
     </div>
   )

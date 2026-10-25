@@ -71,6 +71,7 @@ export interface Stats {
   total: number
   favorites: number
   unsorted: number
+  savedLast7Days: number
   tags: string[]
 }
 

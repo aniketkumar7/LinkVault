@@ -1,19 +1,16 @@
-import { useEffect, useState } from 'react'
-import { motion } from 'framer-motion'
+import { useState } from 'react'
 import { useAuth } from '@/hooks/useAuth'
 import { useCollections, useInvalidateCollections, useStats } from '@/hooks/useLinks'
 import { useCircularTheme } from './CircularThemeProvider'
 import { AddLinkForm } from './AddLinkForm'
 import { BulkImportModal } from './BulkImportModal'
 import { LinksView } from './LinksView'
-import { AccentPicker } from './ui/AccentPicker'
+import { AccountDrawer } from './AccountDrawer'
 import { ProfileDrawer } from './ProfileDrawer'
-import { displayName, profileAvatarConfig } from '@/lib/profile'
-import { FolderStylePicker } from './ui/FolderStylePicker'
+import { profileAvatarConfig } from '@/lib/profile'
 import { SMART_FOLDERS, smartKey } from '@/lib/smartFolders'
 import { SkeletonGrid } from './ui/Skeleton'
 import { FluidOrbAvatar } from './ui/FluidOrbAvatar'
-import { SoundEffectsSwitch } from './ui/SoundEffectsSwitch'
 import { NotificationCenter } from './ui/NotificationCenter'
 
 interface Props {
@@ -29,7 +26,7 @@ export function CollectionPage({ collectionId, onBack }: Props) {
   const invalidateCollections = useInvalidateCollections()
   const { theme, triggerTransition } = useCircularTheme()
 
-  const [showProfileMenu, setShowProfileMenu] = useState(false)
+  const [showAccountDrawer, setShowAccountDrawer] = useState(false)
   const [showAddLink, setShowAddLink] = useState(false)
   const [showBulkImport, setShowBulkImport] = useState(false)
 
@@ -40,18 +37,7 @@ export function CollectionPage({ collectionId, onBack }: Props) {
   const header = smartFolder
     ? { name: smartFolder.name, color: smartFolder.color, count: smartCount ?? 0 }
     : collection && { name: collection.name, color: collection.color, count: collection.link_count ?? 0 }
-  const profileName = displayName(user)
   const [showProfile, setShowProfile] = useState(false)
-
-  useEffect(() => {
-    if (!showProfileMenu) return
-    const closeOnOutsideClick = (event: PointerEvent) => {
-      const target = event.target as Element
-      if (!target.closest('[data-profile-menu]')) setShowProfileMenu(false)
-    }
-    document.addEventListener('pointerdown', closeOnOutsideClick)
-    return () => document.removeEventListener('pointerdown', closeOnOutsideClick)
-  }, [showProfileMenu])
 
   return (
     <div className="min-h-screen">
@@ -98,41 +84,18 @@ export function CollectionPage({ collectionId, onBack }: Props) {
 
             <NotificationCenter />
 
-            <div className="relative" data-profile-menu>
+            <div>
               <button
                 type="button"
-                onClick={e => { e.stopPropagation(); setShowProfileMenu(v => !v) }}
+                onClick={() => setShowAccountDrawer(true)}
                 className="flex h-10 w-10 items-center justify-center rounded-2xl border text-sm font-semibold"
                 style={{ background: 'var(--color-accent-fill)', borderColor: 'var(--color-accent-fill)', color: 'var(--color-on-accent)' }}
-                aria-label="Open profile menu"
-                aria-haspopup="menu"
-                aria-expanded={showProfileMenu}
+                aria-label="Open profile and settings"
+                aria-haspopup="dialog"
+                aria-expanded={showAccountDrawer}
               >
                 <FluidOrbAvatar avatar={avatar} />
               </button>
-
-              {showProfileMenu && (
-                <motion.div initial={{ opacity: 0, y: -8, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ type: 'spring', stiffness: 420, damping: 26 }} className="absolute right-0 mt-2 w-60 origin-top-right rounded-2xl border p-3 shadow-2xl" style={{ background: 'color-mix(in srgb, var(--color-bg-card) 94%, transparent)', borderColor: 'var(--color-border)', backdropFilter: 'blur(18px)' }} onClick={e => e.stopPropagation()}>
-                  <div className="mb-3 px-3 py-2">
-                    <div className="flex items-center gap-2.5">
-                      <div className="h-9 w-9 shrink-0"><FluidOrbAvatar avatar={avatar} className="rounded-xl" /></div>
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>{profileName}</p>
-                        <p className="mt-1 truncate text-[11px]" style={{ color: 'var(--color-text-muted)' }}>{user?.email}</p>
-                      </div>
-                    </div>
-                    <p className="mt-2 text-xs" style={{ color: 'var(--color-text-muted)' }}>{stats?.total ?? 0} links saved</p>
-                  </div>
-                  <div className="mb-2"><AccentPicker /><FolderStylePicker /></div>
-                  <div className="mb-2 rounded-xl border" style={{ borderColor: 'var(--color-border)' }}><SoundEffectsSwitch /></div>
-                  <motion.button whileHover={{ x: 3 }} whileTap={{ scale: 0.98 }} onClick={() => { setShowProfile(true); setShowProfileMenu(false) }} className="w-full rounded-xl px-3 py-2.5 text-left text-sm transition-colors hover:bg-[var(--color-bg-tertiary)]" style={{ color: 'var(--color-text-secondary)' }}>
-                    Edit profile
-                  </motion.button>
-                  <motion.button whileHover={{ x: 3 }} whileTap={{ scale: 0.98 }} onClick={() => { setShowProfileMenu(false); signOut() }} className="w-full rounded-xl px-3 py-2.5 text-sm text-left" style={{ background: 'rgba(239,68,68,0.08)', color: 'var(--color-error)' }}>
-                    Sign out
-                  </motion.button>
-                </motion.div>
-              )}
             </div>
           </div>
         </div>
@@ -163,6 +126,15 @@ export function CollectionPage({ collectionId, onBack }: Props) {
 
       <AddLinkForm open={showAddLink} onOpenChange={setShowAddLink} onLinkAdded={invalidateCollections} collections={collections} onCollectionCreated={invalidateCollections} avatar={avatar} />
       {showBulkImport && <BulkImportModal onClose={() => setShowBulkImport(false)} onImported={invalidateCollections} collections={collections} avatar={avatar} />}
+      <AccountDrawer
+        open={showAccountDrawer}
+        onClose={() => setShowAccountDrawer(false)}
+        user={user}
+        avatar={avatar}
+        totalLinks={stats?.total}
+        onEditProfile={() => setShowProfile(true)}
+        onSignOut={signOut}
+      />
       <ProfileDrawer open={showProfile} onClose={() => setShowProfile(false)} user={user} />
     </div>
   )

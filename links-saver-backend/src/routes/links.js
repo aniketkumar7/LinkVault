@@ -95,7 +95,7 @@ router.get('/stats', async (req, res) => {
     try {
         const { data, error } = await supabase
             .from('useful_links')
-            .select('is_favorite, collection_id')
+            .select('is_favorite, collection_id, created_at')
             .eq('user_id', req.user.id);
 
         if (error) throw error;
@@ -104,14 +104,17 @@ router.get('/stats', async (req, res) => {
             total: data.length,
             favorites: 0,
             unsorted: 0,
+            savedLast7Days: 0,
             tags: []
         };
 
         const tagSet = new Set();
+        const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
 
         data.forEach(link => {
             if (link.is_favorite) stats.favorites++;
             if (!link.collection_id) stats.unsorted++;
+            if (Date.parse(link.created_at) >= sevenDaysAgo) stats.savedLast7Days++;
         });
 
         stats.tags = [];
