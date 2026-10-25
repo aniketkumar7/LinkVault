@@ -1,10 +1,10 @@
-# LinkVault
+# Bookmarky
 
 Your personal link vault — save, organize, and never lose a useful link again.
 
 Save links from **YouTube videos**, **Medium articles**, **websites**, **documentation**, **social media**, **blogs**, **news articles**, and any URL you want to remember.
 
-![LinkVault](links-saver-frontend/public/Logo.png)
+![Bookmarky](links-saver-frontend/public/Logo.svg)
 
 ## Features
 

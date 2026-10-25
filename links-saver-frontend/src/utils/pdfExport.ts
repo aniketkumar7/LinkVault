@@ -75,7 +75,7 @@ export async function generatePDF({ links, collections, collectionId, collection
   // Brand name next to logo
   doc.setFontSize(28)
   doc.setTextColor(...white)
-  doc.text('LinkVault', logoX + logoSize + 8, logoY + 17)
+  doc.text('Bookmarky', logoX + logoSize + 8, logoY + 17)
   
   // Collection/Export title
   doc.setFontSize(14)
@@ -273,15 +273,15 @@ export async function generatePDF({ links, collections, collectionId, collection
     // Footer text
     doc.setFontSize(8)
     doc.setTextColor(...muted)
-    doc.text('LinkVault Export', margin, pageHeight - 8)
+    doc.text('Bookmarky Export', margin, pageHeight - 8)
     doc.text(`Page ${i - 1} of ${totalPages - 1}`, pageWidth / 2, pageHeight - 8, { align: 'center' })
     doc.text(new Date().toLocaleDateString(), pageWidth - margin, pageHeight - 8, { align: 'right' })
   }
   
   // Generate filename
   const filename = collectionId 
-    ? `linkvault-${title.toLowerCase().replace(/\s+/g, '-')}-${new Date().toISOString().split('T')[0]}.pdf`
-    : `linkvault-all-${new Date().toISOString().split('T')[0]}.pdf`
+    ? `bookmarky-${title.toLowerCase().replace(/\s+/g, '-')}-${new Date().toISOString().split('T')[0]}.pdf`
+    : `bookmarky-all-${new Date().toISOString().split('T')[0]}.pdf`
   
   // Save
   doc.save(filename)

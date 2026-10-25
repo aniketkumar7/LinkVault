@@ -6,7 +6,7 @@ import { Folder } from './Folder'
 interface Props { onGetStarted: () => void }
 
 const steps = [
-  { number: '01', title: 'Capture the moment', text: 'Paste a URL, add a thought, and keep moving. LinkVault fills in the useful details for you.' },
+  { number: '01', title: 'Capture the moment', text: 'Paste a URL, add a thought, and keep moving. Bookmarky fills in the useful details for you.' },
   { number: '02', title: 'Give it a place', text: 'Drop links into calm, colorful collections that make sense to the way you think.' },
   { number: '03', title: 'Find it when it matters', text: 'Search titles, notes, descriptions, and URLs instead of digging through old tabs.' },
 ]
@@ -29,8 +29,8 @@ export function LandingPage({ onGetStarted }: Props) {
   return <main className="landing-page min-h-screen overflow-hidden" style={{ color: 'var(--color-text-primary)' }}>
     <header className="relative z-20 mx-auto flex max-w-7xl items-center justify-between px-5 py-5 sm:px-8 lg:px-10">
       <a href="#top" className="flex items-center gap-2.5">
-        <img src="/Logo.svg" alt="LinkVault" className="h-9 w-9" />
-        <span className="font-brand text-2xl">LinkVault</span>
+        <img src="/Logo.svg" alt="" className="h-9 w-9" />
+        <span className="text-2xl font-semibold tracking-[-0.03em]">Bookmarky</span>
       </a>
       <div className="flex items-center gap-3">
         <button onClick={onGetStarted} className="rounded-full border px-4 py-2 text-sm font-semibold transition-transform hover:-translate-y-0.5" style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-primary)' }}>Sign in</button>
@@ -56,8 +56,8 @@ export function LandingPage({ onGetStarted }: Props) {
         <div className="absolute -right-20 top-0 h-72 w-72 rounded-full opacity-20 blur-3xl" style={{ background: 'var(--color-accent-fill)' }} />
         <div className="landing-workspace absolute left-1/2 top-1/2 w-full max-w-[620px] -translate-x-1/2 -translate-y-1/2 rotate-[2deg] p-3 sm:p-5">
           <div className="flex items-center justify-between border-b px-2 pb-4" style={{ borderColor: 'var(--color-border)' }}>
-            <div className="flex items-center gap-2"><img src="/Logo.svg" className="h-5 w-5" alt="" /><span className="font-brand text-lg">LinkVault</span></div>
-            <div className="flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs" style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-muted)' }}><MagnifyingGlass size={13} /> Search your vault</div>
+            <div className="flex items-center gap-2"><img src="/Logo.svg" className="h-5 w-5" alt="" /><span className="text-lg font-semibold tracking-[-0.025em]">Bookmarky</span></div>
+            <div className="flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs" style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-muted)' }}><MagnifyingGlass size={13} /> Search bookmarks</div>
           </div>
           <div className="p-2 pt-5 sm:p-5">
             <div className="mb-4 flex items-end justify-between"><div><p className="text-[10px] uppercase tracking-[.18em]" style={{ color: 'var(--color-accent)' }}>Your collections</p><h2 className="mt-1 text-xl font-semibold">A home for the things worth keeping</h2></div><span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>12 links</span></div>
@@ -77,7 +77,7 @@ export function LandingPage({ onGetStarted }: Props) {
         <div className="mb-14 max-w-2xl">
           <p className="text-xs font-bold uppercase tracking-[.2em]" style={{ color: 'var(--color-accent)' }}>Four ways in</p>
           <h2 className="mt-4 max-w-xl text-4xl font-semibold leading-tight tracking-[-.045em] sm:text-5xl">Catch the idea before it disappears.</h2>
-          <p className="mt-5 max-w-lg text-lg leading-8" style={{ color: 'var(--color-text-secondary)' }}>LinkVault meets you wherever the link is—from a tab you’re reading to a screenshot you just took.</p>
+          <p className="mt-5 max-w-lg text-lg leading-8" style={{ color: 'var(--color-text-secondary)' }}>Bookmarky meets you wherever the link is—from a tab you’re reading to a screenshot you just took.</p>
         </div>
         <div className="grid gap-3 lg:grid-cols-4">
           {[
@@ -103,15 +103,15 @@ export function LandingPage({ onGetStarted }: Props) {
 
     <section className="mx-auto max-w-7xl px-5 py-24 sm:px-8 lg:px-10 lg:py-32">
       <div className="grid gap-12 lg:grid-cols-[.75fr_1.25fr] lg:gap-24">
-        <div><p className="text-xs font-bold uppercase tracking-[.2em]" style={{ color: 'var(--color-accent)' }}>A better habit</p><h2 className="mt-5 max-w-sm text-4xl font-semibold leading-tight tracking-[-.04em]">Your saved links should remember why you saved them.</h2><p className="mt-5 max-w-sm leading-7" style={{ color: 'var(--color-text-secondary)' }}>LinkVault keeps the link and the thought beside it, so your future self doesn’t have to reconstruct the moment.</p></div>
+        <div><p className="text-xs font-bold uppercase tracking-[.2em]" style={{ color: 'var(--color-accent)' }}>A better habit</p><h2 className="mt-5 max-w-sm text-4xl font-semibold leading-tight tracking-[-.04em]">Your saved links should remember why you saved them.</h2><p className="mt-5 max-w-sm leading-7" style={{ color: 'var(--color-text-secondary)' }}>Bookmarky keeps the link and the thought beside it, so your future self doesn’t have to reconstruct the moment.</p></div>
         <div className="divide-y" style={{ borderColor: 'var(--color-border)' }}>{steps.map((step, index) => <button key={step.number} onClick={() => setActiveStep(index)} className="grid w-full grid-cols-[48px_1fr_24px] gap-4 py-6 text-left transition-opacity" style={{ borderColor: 'var(--color-border)', opacity: activeStep === index ? 1 : .58 }}><span className="font-mono text-xs" style={{ color: 'var(--color-accent)' }}>{step.number}</span><span><strong className="text-xl font-semibold">{step.title}</strong><span className="mt-2 block max-w-lg text-sm leading-6" style={{ color: 'var(--color-text-secondary)' }}>{step.text}</span></span><ArrowUpRight size={20} className="mt-1" /></button>)}</div>
       </div>
     </section>
 
     <section className="mx-5 mb-8 overflow-hidden rounded-[28px] sm:mx-8 lg:mx-auto lg:max-w-7xl">
-      <div className="relative px-6 py-16 sm:px-12 lg:px-20"><div className="absolute inset-0" style={{ background: 'linear-gradient(120deg, var(--color-bg-card), color-mix(in srgb, var(--color-accent) 12%, var(--color-bg-card)))' }} /><div className="relative max-w-xl"><Stack size={28} weight="duotone" style={{ color: 'var(--color-accent)' }} /><h2 className="mt-5 text-4xl font-semibold tracking-[-.04em]">Make room for the next good idea.</h2><p className="mt-4 max-w-md leading-7" style={{ color: 'var(--color-text-secondary)' }}>Start with one collection. Add the links you keep reopening. Let the rest become easy.</p><button onClick={onGetStarted} className="mt-8 rounded-full px-6 py-3.5 text-sm font-bold text-on-accent" style={{ background: 'var(--color-accent-fill)' }}>Open your vault <ArrowUpRight size={17} className="ml-2 inline" /></button></div></div>
+      <div className="relative px-6 py-16 sm:px-12 lg:px-20"><div className="absolute inset-0" style={{ background: 'linear-gradient(120deg, var(--color-bg-card), color-mix(in srgb, var(--color-accent) 12%, var(--color-bg-card)))' }} /><div className="relative max-w-xl"><Stack size={28} weight="duotone" style={{ color: 'var(--color-accent)' }} /><h2 className="mt-5 text-4xl font-semibold tracking-[-.04em]">Make room for the next good idea.</h2><p className="mt-4 max-w-md leading-7" style={{ color: 'var(--color-text-secondary)' }}>Start with one collection. Add the links you keep reopening. Let the rest become easy.</p><button onClick={onGetStarted} className="mt-8 rounded-full px-6 py-3.5 text-sm font-bold text-on-accent" style={{ background: 'var(--color-accent-fill)' }}>Open your bookmarks <ArrowUpRight size={17} className="ml-2 inline" /></button></div></div>
     </section>
 
-    <footer className="mx-auto flex max-w-7xl flex-col gap-3 px-5 py-8 text-sm sm:flex-row sm:items-center sm:justify-between sm:px-8 lg:px-10" style={{ color: 'var(--color-text-muted)' }}><span className="font-brand text-xl" style={{ color: 'var(--color-text-secondary)' }}>LinkVault</span><span>Save links. Remember why. Find them later.</span></footer>
+    <footer className="mx-auto flex max-w-7xl flex-col gap-3 px-5 py-8 text-sm sm:flex-row sm:items-center sm:justify-between sm:px-8 lg:px-10" style={{ color: 'var(--color-text-muted)' }}><span className="text-xl font-semibold tracking-[-0.025em]" style={{ color: 'var(--color-text-secondary)' }}>Bookmarky</span><span>Save links. Remember why. Find them later.</span></footer>
   </main>
 }

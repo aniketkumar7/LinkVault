@@ -1,7 +1,16 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
-  <title id="title">LinkVault</title>
-  <desc id="desc">A rounded orange geometric link mark</desc>
-  <path fill="#f68330" d="M512 70H364c-58 5-88 35-103 57l-7 12-.8 1.5-.3-.2-.8 1.3C145 88 0 127 0 127l162 172-83 143h218l72-124v-.2z"/>
-  <path fill="#f35e32" d="m253 141-91 158 135 143 72-124c-11-97-59-150-116-177"/>
-  <path fill="none" stroke="#fff" stroke-opacity=".14" stroke-width="3" stroke-linejoin="round" d="M512 70H364c-58 5-88 35-103 57l-7 12-.8 1.5-.3-.2-.8 1.3C145 88 0 127 0 127l162 172-83 143h218l72-124v-.2z"/>
+  <title id="title">Bookmarky</title>
+  <desc id="desc">A friendly golden bookmark character for saving useful links</desc>
+  <rect width="512" height="512" rx="116" fill="#242423"/>
+  <rect x="1" y="1" width="510" height="510" rx="115" fill="none" stroke="#FFFFFF" stroke-opacity=".07" stroke-width="2"/>
+  <path d="M154 98a20 20 0 0 1 20-20h164a20 20 0 0 1 20 20v328l-102-72-102 72V98Z" fill="#F5CB5C"/>
+  <path d="M318 79h20a20 20 0 0 1 20 20v20h-28a12 12 0 0 1-12-12V79Z" fill="#E2B33F"/>
+  <path d="M318 79v28a12 12 0 0 0 12 12" fill="none" stroke="#D4A438" stroke-linecap="round" stroke-width="3"/>
+  <ellipse cx="222" cy="231" rx="13" ry="17" fill="#242423"/>
+  <ellipse cx="290" cy="231" rx="13" ry="17" fill="#242423"/>
+  <circle cx="226" cy="225" r="4" fill="#FFF8E8"/>
+  <circle cx="294" cy="225" r="4" fill="#FFF8E8"/>
+  <path d="M224 278c18 24 46 24 64 0" fill="none" stroke="#242423" stroke-linecap="round" stroke-width="12"/>
+  <ellipse cx="192" cy="266" rx="12" ry="7" fill="#E88A69" opacity=".62"/>
+  <ellipse cx="320" cy="266" rx="12" ry="7" fill="#E88A69" opacity=".62"/>
 </svg>

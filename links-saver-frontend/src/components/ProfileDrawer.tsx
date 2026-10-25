@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { User } from '@supabase/supabase-js'
-import { Check } from '@phosphor-icons/react'
+import { CaretDown, Check } from '@phosphor-icons/react'
 import { supabase } from '@/lib/supabase'
 import { toast } from '@/lib/toast'
 import {
@@ -35,6 +35,7 @@ function ProfileForm({ user, onSaved }: { user: User | null; onSaved: () => void
   const [first, setFirst] = useState<string>(meta.first_name ?? legacy[0] ?? '')
   const [last, setLast] = useState<string>(meta.last_name ?? legacy.slice(1).join(' '))
   const [avatarConfig, setAvatarConfig] = useState<ProfileAvatarConfig>(() => profileAvatarConfig(user))
+  const [customizeAvatar, setCustomizeAvatar] = useState(false)
   const [saving, setSaving] = useState(false)
 
   const save = async (event: React.FormEvent) => {
@@ -90,17 +91,28 @@ function ProfileForm({ user, onSaved }: { user: User | null; onSaved: () => void
         </div>
       </fieldset>
       <fieldset className="space-y-2">
-        <legend className="mb-2 text-sm font-medium" style={{ color: 'var(--color-text-secondary)' }}>Customize your buddy</legend>
-
+        <legend className="mb-2 text-sm font-medium" style={{ color: 'var(--color-text-secondary)' }}>Your buddy</legend>
         <div className="flex items-center gap-3 rounded-xl p-2.5" style={{ background: 'var(--color-bg-tertiary)' }}>
           <span className="block h-14 w-14 shrink-0"><FluidOrbAvatar avatar={avatarConfig} /></span>
           <div className="min-w-0">
             <p className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>{PROFILE_AVATARS.find(option => option.id === avatarConfig.character)?.label}</p>
-            <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Your avatar preview</p>
+            <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Your profile avatar</p>
           </div>
+          <button
+            type="button"
+            aria-expanded={customizeAvatar}
+            aria-controls="avatar-customization"
+            onClick={() => setCustomizeAvatar(open => !open)}
+            className="ml-auto inline-flex shrink-0 items-center gap-1.5 rounded-lg px-2.5 py-2 text-xs font-semibold"
+            style={{ color: 'var(--color-accent)', background: 'color-mix(in srgb, var(--color-accent-fill) 10%, transparent)' }}
+          >
+            {customizeAvatar ? 'Done' : 'Customize'}
+            <CaretDown size={14} className={customizeAvatar ? 'rotate-180 transition-transform' : 'transition-transform'} />
+          </button>
         </div>
 
-        <div className="space-y-2 pt-1">
+        {customizeAvatar && <div id="avatar-customization" className="space-y-3 pt-2">
+        <div className="space-y-2">
           <p className="text-xs font-medium" style={{ color: 'var(--color-text-secondary)' }}>Fur color</p>
           <div className="flex flex-wrap gap-2.5">
             {AVATAR_FUR_COLORS.map(color => {
@@ -126,6 +138,7 @@ function ProfileForm({ user, onSaved }: { user: User | null; onSaved: () => void
         <OptionChips label="Eyes" options={AVATAR_EYES} value={avatarConfig.eyes} onChange={eyes => setAvatarConfig(current => ({ ...current, eyes }))} />
         <OptionChips label="Smile" options={AVATAR_MOUTHS} value={avatarConfig.mouth} onChange={mouth => setAvatarConfig(current => ({ ...current, mouth }))} />
         <OptionChips label="Accessory" options={AVATAR_ACCESSORIES} value={avatarConfig.accessory} onChange={accessory => setAvatarConfig(current => ({ ...current, accessory }))} />
+        </div>}
       </fieldset>
       <div className="grid grid-cols-2 gap-3">
         <label className="block">

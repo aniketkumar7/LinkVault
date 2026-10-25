@@ -1,7 +1,7 @@
 {
   "id": "/",
-  "name": "LinkVault - Save Your Links",
-  "short_name": "LinkVault",
+  "name": "Bookmarky - Save Your Links",
+  "short_name": "Bookmarky",
   "description": "Save and organize links, documents, and screenshots.",
   "start_url": "/",
   "scope": "/",

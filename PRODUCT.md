@@ -10,7 +10,7 @@ People saving useful links from across the web who need to quickly organize and 
 
 ## Product Purpose
 
-LinkVault captures links with metadata and helps users keep them in meaningful collections. Success means a saved link is accurately categorized with minimal manual work and stays easy to find later.
+Bookmarky captures links with metadata and helps users keep them in meaningful collections. Success means a saved link is accurately categorized with minimal manual work and stays easy to find later.
 
 ## Brand Personality
 

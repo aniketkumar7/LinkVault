@@ -11,7 +11,7 @@ interface Props {
   onClose: () => void
 }
 
-const BRAND: [number, number, number] = [243, 105, 49]
+const BRAND: [number, number, number] = [245, 203, 92]
 const INK: [number, number, number] = [30, 33, 38]
 const MUTED: [number, number, number] = [103, 110, 119]
 const LINK_BLUE: [number, number, number] = [25, 83, 145]
@@ -57,10 +57,10 @@ function generatePdf(links: Link[], collectionName: string, collections: Collect
   const collectionNames = new Map(collections.map(collection => [collection.id, collection.name]))
 
   doc.setProperties({
-    title: `${collectionName} · LinkVault`,
+    title: `${collectionName} · Bookmarky`,
     subject: `Exported links from ${collectionName}`,
-    author: 'LinkVault',
-    creator: 'LinkVault',
+    author: 'Bookmarky',
+    creator: 'Bookmarky',
   })
 
   let y = 0
@@ -81,7 +81,7 @@ function generatePdf(links: Link[], collectionName: string, collections: Collect
     doc.setFont('helvetica', 'bold')
     doc.setFontSize(11)
     doc.setTextColor(...INK)
-    doc.text('LinkVault', margin + 12, 17)
+    doc.text('Bookmarky', margin + 12, 17)
     doc.setFont('helvetica', 'normal')
     doc.setFontSize(8.5)
     doc.setTextColor(...MUTED)
@@ -120,7 +120,7 @@ function generatePdf(links: Link[], collectionName: string, collections: Collect
     doc.setFont('helvetica', 'normal')
     doc.setFontSize(8)
     doc.setTextColor(...MUTED)
-    doc.text('Saved with LinkVault', margin, pageHeight - 10)
+    doc.text('Saved with Bookmarky', margin, pageHeight - 10)
     doc.text(`Page ${pageNumber}`, pageWidth - margin, pageHeight - 10, { align: 'right' })
   }
 
@@ -223,7 +223,7 @@ function generatePdf(links: Link[], collectionName: string, collections: Collect
   const slug = collectionName === 'All links'
     ? 'all'
     : collectionName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
-  doc.save(`linkvault-${slug}-${new Date().toISOString().slice(0, 10)}.pdf`)
+      doc.save(`bookmarky-${slug}-${new Date().toISOString().slice(0, 10)}.pdf`)
 }
 
 export function ExportModal({ collections, onClose }: Props) {

@@ -82,7 +82,7 @@ export function LoginPage({ onBack, isRecovery = false, onPasswordUpdated, initi
 
       <div className="relative grid w-full max-w-6xl overflow-hidden rounded-[30px] border shadow-2xl lg:grid-cols-[.9fr_1.1fr]" style={{ borderColor: 'var(--color-border)', background: 'var(--color-bg-card)' }}>
         <motion.aside initial={{ opacity: 0, x: -24 }} animate={{ opacity: 1, x: 0 }} className="relative hidden overflow-hidden p-10 lg:flex lg:min-h-[680px] lg:flex-col lg:justify-between" style={{ background: 'linear-gradient(145deg, color-mix(in srgb, var(--color-accent) 18%, var(--color-bg-secondary)), var(--color-bg-secondary))' }}>
-          <div className="relative z-10"><img src="/Logo.svg" alt="LinkVault" className="h-16 w-16" /><h2 className="mt-8 max-w-sm text-5xl font-semibold leading-[.98] tracking-[-.05em]">Keep the links that keep you moving.</h2><p className="mt-6 max-w-sm text-base leading-7" style={{ color: 'var(--color-text-secondary)' }}>One calm place for articles, videos, tools, screenshots, and the ideas hiding inside your documents.</p></div>
+          <div className="relative z-10"><img src="/Logo.svg" alt="Bookmarky" className="h-16 w-16" /><h2 className="mt-8 max-w-sm text-5xl font-semibold leading-[.98] tracking-[-.05em]">Keep the links that keep you moving.</h2><p className="mt-6 max-w-sm text-base leading-7" style={{ color: 'var(--color-text-secondary)' }}>One calm place for articles, videos, tools, screenshots, and the ideas hiding inside your documents.</p></div>
           <div className="relative z-10 space-y-3"><div className="flex items-center gap-3 rounded-2xl border p-3" style={{ borderColor: 'var(--color-border)', background: 'rgba(0,0,0,.12)' }}><span className="grid h-9 w-9 place-items-center rounded-xl" style={{ background: 'var(--color-accent-fill)', color: 'var(--color-on-accent)' }}><LinkSimple size={18} weight="bold" /></span><div><p className="text-sm font-semibold">Capture the thought</p><p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Save the link and why it mattered.</p></div><ArrowUpRight size={17} className="ml-auto" /></div><div className="flex items-center gap-2 text-xs" style={{ color: 'var(--color-text-muted)' }}><Sparkle size={14} style={{ color: 'var(--color-accent)' }} /> Built for curious people with too many tabs.</div></div>
           <svg className="pointer-events-none absolute -bottom-20 -right-24 h-96 w-96 opacity-30" viewBox="0 0 400 400" fill="none"><circle cx="200" cy="200" r="140" stroke="var(--color-accent)" strokeOpacity=".35" strokeDasharray="4 10"><animateTransform attributeName="transform" type="rotate" from="0 200 200" to="360 200 200" dur="24s" repeatCount="indefinite" /></circle><circle cx="200" cy="200" r="92" stroke="var(--color-accent)" strokeOpacity=".25" strokeDasharray="2 8" /></svg>
         </motion.aside>
@@ -106,8 +106,8 @@ export function LoginPage({ onBack, isRecovery = false, onPasswordUpdated, initi
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
             </svg>
           </div>
-          <h1 className="font-brand text-4xl tracking-tight" style={{ color: 'var(--color-text-primary)' }}>
-            LinkVault
+          <h1 className="text-4xl font-semibold tracking-[-0.03em]" style={{ color: 'var(--color-text-primary)' }}>
+            Bookmarky
           </h1>
           <p className="mt-2" style={{ color: 'var(--color-text-secondary)' }}>
             {isForgotPassword ? 'We’ll help you get back in' : isSignUp ? 'Create your account' : 'Welcome back'}

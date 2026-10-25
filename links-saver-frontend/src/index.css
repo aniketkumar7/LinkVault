@@ -36,7 +36,6 @@
   --shadow-glow: 0 0 40px -12px rgba(245,203,92,0.3);
   /* Font */
   --font-sans: "Gudea", "Inter", system-ui, sans-serif;
-  --font-brand: "Kaushan Script", cursive;
 }
 
 /* Base styles */
@@ -142,6 +141,22 @@ body {
 }
 
 /* Animations */
+@keyframes bookmarky-loading-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+
+.bookmarky-loading-mark {
+  display: block;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.22);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .bookmarky-loading-mark {
+    animation: bookmarky-loading-bob 2.2s ease-in-out infinite;
+  }
+}
+
 @keyframes fade-in {
   from { opacity: 0; }
   to { opacity: 1; }
@@ -600,9 +615,6 @@ select {
 .capture-primary { color: var(--color-on-accent); background: var(--color-accent-fill); }
 .capture-secondary { color: var(--color-text-secondary); background: var(--color-bg-tertiary); }
 
-@keyframes toast-progress { from { transform: scaleX(1); } to { transform: scaleX(0); } }
-.toast-progress { transform-origin: left; animation: toast-progress 4s linear forwards; opacity: .35; }
-
 button:not(:disabled),
 a,
 [role="button"],
@@ -716,6 +728,18 @@ button:disabled {
   96% { transform: scaleY(.1); }
 }
 
+@keyframes link-saver-mane-breathe {
+  50% { transform: scale(1.018); }
+}
+
+@keyframes link-saver-elephant-ear-breathe {
+  50% { transform: scaleX(1.045); }
+}
+
+@keyframes link-saver-elephant-trunk-sway {
+  50% { transform: rotate(3deg); }
+}
+
 @media (prefers-reduced-motion: no-preference) {
   .link-saver-avatar-bob {
     animation: link-saver-avatar-bob 3.2s ease-in-out infinite;
@@ -726,4 +750,14 @@ button:disabled {
     transform-origin: center;
     animation: link-saver-avatar-blink 4.6s infinite;
   }
+
+  .link-saver-lion-mane,
+  .link-saver-elephant-ears {
+    transform-box: fill-box;
+    transform-origin: center;
+  }
+
+  .link-saver-lion-mane { animation: link-saver-mane-breathe 3.8s ease-in-out infinite; }
+  .link-saver-elephant-ears { animation: link-saver-elephant-ear-breathe 3.1s ease-in-out infinite; }
+  .link-saver-elephant-trunk { transform-box: fill-box; transform-origin: 50% 0%; animation: link-saver-elephant-trunk-sway 2.8s ease-in-out infinite; }
 }

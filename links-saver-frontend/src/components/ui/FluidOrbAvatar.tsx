@@ -9,8 +9,8 @@ const backgrounds: Record<ProfileAvatarId, string> = {
 export function FluidOrbAvatar({ avatar = DEFAULT_AVATAR_CONFIG, className = '' }: { avatar?: ProfileAvatarConfig; className?: string }) {
   const { character: avatarId, furColor: body } = avatar
   const bg = backgrounds[avatarId]
-  const ears = avatarId === 'fox' || avatarId === 'cat' || avatarId === 'rhino'
-  const roundedEars = avatarId === 'bear' || avatarId === 'owl' || avatarId === 'tiger' || avatarId === 'monkey'
+  const ears = avatarId === 'fox' || avatarId === 'cat'
+  const roundedEars = avatarId === 'bear' || avatarId === 'owl' || avatarId === 'monkey'
 
   return (
     <svg
@@ -31,8 +31,17 @@ export function FluidOrbAvatar({ avatar = DEFAULT_AVATAR_CONFIG, className = '' 
             </g>
           )}
           {roundedEars && <g fill={body}><circle cx="29" cy="31" r="12" /><circle cx="71" cy="31" r="12" /></g>}
-          {avatarId === 'lion' && <g><circle cx="50" cy="55" r="38" fill="#B96D2D" /><circle cx="29" cy="34" r="9" fill={body} /><circle cx="71" cy="34" r="9" fill={body} /></g>}
-          {avatarId === 'elephant' && <g fill={body}><ellipse cx="20" cy="52" rx="16" ry="23" /><ellipse cx="80" cy="52" rx="16" ry="23" /></g>}
+          {avatarId === 'lion' && (
+            <g className="link-saver-lion-mane">
+              <path d="M50 10c8 0 13 6 18 10 8-2 15 3 15 12 8 4 10 12 6 20 6 7 4 16-3 21 2 10-4 17-14 16-5 9-13 11-22 6-8 6-17 4-22-4-10 2-17-4-16-14-8-5-10-14-5-22-6-8-3-17 4-22-1-9 5-15 14-14 6-8 15-10 25-5Z" fill="#A95627" />
+              <circle cx="30" cy="35" r="10" fill={body} stroke="#85431F" strokeWidth="2" />
+              <circle cx="70" cy="35" r="10" fill={body} stroke="#85431F" strokeWidth="2" />
+              <circle cx="30" cy="35" r="4" fill="#F7C693" />
+              <circle cx="70" cy="35" r="4" fill="#F7C693" />
+            </g>
+          )}
+          {avatarId === 'elephant' && <g className="link-saver-elephant-ears"><ellipse cx="17" cy="52" rx="18" ry="25" fill="#7298B2" /><ellipse cx="83" cy="52" rx="18" ry="25" fill="#7298B2" /><ellipse cx="18" cy="52" rx="11" ry="17" fill={body} /><ellipse cx="82" cy="52" rx="11" ry="17" fill={body} /></g>}
+          {avatarId === 'rhino' && <g fill={body}><path d="M25 38q-4-18 8-20 10 3 9 19Z" /><path d="M75 38q4-18-8-20-10 3-9 19Z" /></g>}
           {avatarId === 'bunny' && (
             <g fill={body}>
               <ellipse cx="39" cy="24" rx="9" ry="20" transform="rotate(-12 39 24)" />
@@ -43,22 +52,24 @@ export function FluidOrbAvatar({ avatar = DEFAULT_AVATAR_CONFIG, className = '' 
           )}
           {avatarId === 'frog' && <g fill={body}><circle cx="34" cy="34" r="13" /><circle cx="66" cy="34" r="13" /></g>}
           {avatarId === 'chick' && <path d="M45 24Q42 12 49 14Q49 20 55 17Q53 24 57 28Z" fill="#F2A53A" />}
-          {avatarId === 'rhino' && <path d="M43 29 50 12 57 30Z" fill="#DDE1EA" stroke="#778092" strokeWidth="1.4" strokeLinejoin="round" />}
           <path
             d={avatarId === 'penguin'
               ? 'M50 16C70 16 80 36 80 58S70 88 50 88 20 80 20 58 30 16 50 16Z'
               : 'M50 22C72 22 84 38 84 59S70 88 50 88 16 80 16 59 28 22 50 22Z'}
             fill={body}
           />
+          {avatarId === 'tiger' && <g><circle cx="29" cy="32" r="11" fill="#49352E" /><circle cx="71" cy="32" r="11" fill="#49352E" /><circle cx="29" cy="32" r="6.5" fill={body} /><circle cx="71" cy="32" r="6.5" fill={body} /></g>}
           {avatarId === 'penguin' && <path d="M50 34C40 26 26 32 28 46C29 58 36 62 36 70C36 80 42 86 50 86C58 86 64 80 64 70C64 62 71 58 72 46C74 32 60 26 50 34Z" fill="#FFF7EE" />}
           {avatarId === 'fox' && <path d="M23 58Q34 48 50 62Q66 48 77 58Q70 82 50 85Q30 82 23 58Z" fill="#FFF1E8" />}
           {avatarId === 'cat' && <path d="M30 59Q39 54 47 61Q50 66 45 69Q39 70 35 66ZM70 59Q61 54 53 61Q50 66 55 69Q61 70 65 66Z" fill="#F8F3FC" />}
           {(avatarId === 'bear' || avatarId === 'bunny') && <ellipse cx="50" cy="64" rx="19" ry="15" fill="#FFF4E9" />}
           {avatarId === 'owl' && <g fill="#F7F2E8"><circle cx="38" cy="49" r="13" /><circle cx="62" cy="49" r="13" /></g>}
           {avatarId === 'chick' && <ellipse cx="50" cy="65" rx="16" ry="18" fill="#FFF3C9" />}
-          {avatarId === 'lion' && <g fill="#FFE2A8"><ellipse cx="40" cy="61" rx="12" ry="10" /><ellipse cx="60" cy="61" rx="12" ry="10" /></g>}
-          {avatarId === 'tiger' && <g fill="none" stroke="#49352E" strokeWidth="4" strokeLinecap="round"><path d="m27 43 9 5m-8 5 8 2m37-12-9 5m8 5-8 2" /></g>}
-          {avatarId === 'elephant' && <path d="M47 53Q45 69 50 75Q57 80 59 70L57 62" fill="none" stroke="#DDE7ED" strokeWidth="8" strokeLinecap="round" strokeLinejoin="round" />}
+          {(avatarId === 'lion' || avatarId === 'tiger') && <g fill="#FFF1D5"><ellipse cx="40" cy="62" rx="13" ry="10" /><ellipse cx="60" cy="62" rx="13" ry="10" /></g>}
+          {avatarId === 'rhino' && <ellipse cx="50" cy="62" rx="24" ry="15" fill="#B9B9CA" />}
+          {avatarId === 'elephant' && <g className="link-saver-elephant-trunk"><path d="M50 53c-1 12-4 21 1 27 3 5 12 3 11-3l-2-8" fill="none" stroke="#597D97" strokeWidth="15" strokeLinecap="round" strokeLinejoin="round" /><path d="M50 54c-1 12-3 20 2 25 3 3 8 2 8-3l-1-6" fill="none" stroke={body} strokeWidth="10" strokeLinecap="round" strokeLinejoin="round" /><path d="M32 68q-7 8-11 1m47-1q7 8 11 1" fill="none" stroke="#FFF3D9" strokeWidth="4" strokeLinecap="round" /></g>}
+          {avatarId === 'tiger' && <g fill="none" stroke="#49352E" strokeWidth="4.2" strokeLinecap="round" strokeLinejoin="round"><path d="M50 23 46 34m4-11 4 11m-4-8v13M25 43l11 5m-12 4 10 2m41-11-11 5m12 4-10 2" /></g>}
+          {avatarId === 'rhino' && <g stroke="#77798D" strokeWidth="1.3" strokeLinejoin="round"><path d="m43 53 7-19 8 19Z" fill="#E7E6EF" /><path d="m57 61 5-11 6 13Z" fill="#D9D9E5" /></g>}
           {avatarId === 'monkey' && <ellipse cx="50" cy="59" rx="22" ry="23" fill="#E5C39C" />}
           {avatarId === 'frog' && <path d="M34 63Q50 77 66 63" fill="none" stroke="#355C43" strokeWidth="3" strokeLinecap="round" />}
           <g className="link-saver-avatar-blink" fill="#2B2238">
@@ -78,10 +89,16 @@ export function FluidOrbAvatar({ avatar = DEFAULT_AVATAR_CONFIG, className = '' 
               <><ellipse cx="40" cy="49" rx="3.7" ry="4.6" /><ellipse cx="60" cy="49" rx="3.7" ry="4.6" /></>
             )}
           </g>
-          {avatar.mouth === 'smile' ? (
-            <path d="M44 62q6 6 12 0" fill="none" stroke="#543B3B" strokeWidth="2.4" strokeLinecap="round" />
+          {(avatarId === 'lion' || avatarId === 'tiger' || avatarId === 'rhino') && <path d="M44 59q6 6 12 0" fill="#49352E" />}
+          {avatarId === 'elephant' ? (
+            avatar.mouth === 'flat' ? <path d="M54 77h6" fill="none" stroke="#2B2238" strokeWidth="2" strokeLinecap="round" />
+              : avatar.mouth === 'open' ? <ellipse cx="57" cy="77" rx="2.5" ry="3.2" fill="#2B2238" />
+                : avatar.mouth === 'tongue' ? <g><path d="M53 75q4 3 8 0" fill="none" stroke="#2B2238" strokeWidth="2" strokeLinecap="round" /><ellipse cx="57" cy="78" rx="2" ry="2.2" fill="#E87988" /></g>
+                  : <path d="M53 75q4 3 8 0" fill="none" stroke="#2B2238" strokeWidth="2" strokeLinecap="round" />
+          ) : avatar.mouth === 'smile' ? (
+            <path d={avatarId === 'lion' || avatarId === 'tiger' || avatarId === 'rhino' ? 'M44 68q6 6 12 0' : 'M44 62q6 6 12 0'} fill="none" stroke="#543B3B" strokeWidth="2.4" strokeLinecap="round" />
           ) : avatar.mouth === 'open' ? (
-            <ellipse cx="50" cy="64" rx="4.2" ry="5.2" fill="#543B3B" />
+            <ellipse cx="50" cy={avatarId === 'lion' || avatarId === 'tiger' || avatarId === 'rhino' ? 69 : 64} rx="4.2" ry="5.2" fill="#543B3B" />
           ) : avatar.mouth === 'tongue' ? (
             <g><path d="M44 62q6 6 12 0" fill="none" stroke="#543B3B" strokeWidth="2.4" strokeLinecap="round" /><ellipse cx="50" cy="67" rx="2.5" ry="3" fill="#E87988" /></g>
           ) : (

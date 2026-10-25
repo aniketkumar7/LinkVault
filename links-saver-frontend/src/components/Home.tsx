@@ -187,9 +187,9 @@ export function Home({ onOpenCollection, incomingShare, onIncomingShareHandled }
         <div className="page-gutter mx-auto flex w-full items-center justify-between gap-4 py-4">
           <div className="flex shrink-0 items-center gap-3">
             <div className="flex h-11 w-11 items-center justify-center rounded-2xl border" style={{ background: 'var(--color-bg-card)', borderColor: 'var(--color-border)' }}>
-              <img src="/Logo.svg" alt="LinkVault" className="h-8 w-8" />
+              <img src="/Logo.svg" alt="Bookmarky" className="h-8 w-8" />
             </div>
-            <h1 className="hidden font-brand text-lg sm:block sm:text-xl" style={{ color: 'var(--color-text-primary)' }}>LinkVault</h1>
+            <h1 className="hidden text-lg font-semibold tracking-[-0.025em] sm:block sm:text-xl" style={{ color: 'var(--color-text-primary)' }}>Bookmarky</h1>
           </div>
 
           <div className="relative min-w-0 flex-1 md:max-w-md">
