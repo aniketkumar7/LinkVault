@@ -6,6 +6,7 @@ import type { Collection, BulkImportResult, ExtractedLink } from '@/lib/api'
 import { toast } from '@/lib/toast'
 import { normalizeUrl } from '@/lib/url'
 import { AnimatedFileUpload } from '@/components/AnimatedFileUpload'
+import { ScreenshotScanProgress } from '@/components/ScreenshotScanProgress'
 import { DotShader } from '@/components/ui/DotShader'
 
 interface Props {
@@ -608,7 +609,9 @@ export function BulkImportModal({ onClose, onImported, collections, initialFiles
             </div>
           ) : (
             <div className="flex min-h-0 flex-1 flex-col gap-3">
-              {extracting && <ExtractionProgress />}
+              {extracting && (tab === 'screenshots'
+                ? <ScreenshotScanProgress previews={screenshotPreviews} done={extracted !== null} />
+                : <ExtractionProgress />)}
               {/* Paste tab */}
               {tab === 'paste' && !extracting && (
                   <div className="flex flex-col gap-1">

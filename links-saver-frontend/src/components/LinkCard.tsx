@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { motion, AnimatePresence, useMotionValue, useSpring, useTransform } from 'framer-motion'
+import { useEffect, useRef, useState } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { X, CaretDown, Check, Plus } from '@phosphor-icons/react'
 import { api } from '@/lib/api'
 import type { Link, Collection } from '@/lib/api'
@@ -49,23 +49,31 @@ export function LinkCard({
   const [editOpen, setEditOpen] = useState(false)
   const [editCollectionId, setEditCollectionId] = useState(link.collection_id || '')
   const [saving, setSaving] = useState(false)
+  const [menuOpen, setMenuOpen] = useState(false)
   const [collectionDropOpen, setCollectionDropOpen] = useState(false)
   const [newCollectionName, setNewCollectionName] = useState('')
+  const menuRef = useRef<HTMLDivElement>(null)
+  const menuTriggerRef = useRef<HTMLButtonElement>(null)
   const selectedCollection = collections.find(c => c.id === editCollectionId)
 
-  // 3D tilt — spring-smoothed mouse tracking (grid / desktop only)
-  const mx = useMotionValue(0)
-  const my = useMotionValue(0)
-  const sX = useSpring(mx, { stiffness: 160, damping: 20 })
-  const sY = useSpring(my, { stiffness: 160, damping: 20 })
-  const rotX = useTransform(sY, [-0.5, 0.5], [4, -4])
-  const rotY = useTransform(sX, [-0.5, 0.5], [-4, 4])
-  // Moving specular glare
-  const glare = useTransform([sX, sY], ([x, y]) => {
-    const gx = ((x as number) + 0.5) * 100
-    const gy = ((y as number) + 0.5) * 100
-    return `radial-gradient(circle at ${gx}% ${gy}%, rgba(255,255,255,0.055) 0%, transparent 58%)`
-  })
+  useEffect(() => {
+    if (!menuOpen) return
+    const closeOnOutsideClick = (event: PointerEvent) => {
+      if (!menuRef.current?.contains(event.target as Node)) setMenuOpen(false)
+    }
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setMenuOpen(false)
+        menuTriggerRef.current?.focus()
+      }
+    }
+    document.addEventListener('pointerdown', closeOnOutsideClick)
+    document.addEventListener('keydown', closeOnEscape)
+    return () => {
+      document.removeEventListener('pointerdown', closeOnOutsideClick)
+      document.removeEventListener('keydown', closeOnEscape)
+    }
+  }, [menuOpen])
 
   const vw = typeof window !== 'undefined' ? window.innerWidth : 1024
   const targetW = Math.min(480, vw - 32)
@@ -129,12 +137,69 @@ export function LinkCard({
   }
 
   const collectionObj = collections.find(c => c.id === link.collection_id)
-  const tags: string[] = []
+  const tags = link.tags || []
   const domain = getDomain(link.url)
   const title = link.title?.trim() || 'Untitled link'
   const desc = link.description?.trim() || ''
   const date = formatDate(link.updated_at || link.created_at)
   const inputStyle = { background: 'var(--color-bg-tertiary)', color: 'var(--color-text-primary)' }
+
+  const moreMenu = (
+    <div ref={menuRef} className={viewMode === 'grid' ? 'absolute right-2.5 top-2.5 z-30' : 'relative'}>
+      <button
+        ref={menuTriggerRef}
+        type="button"
+        aria-label="More link actions"
+        aria-haspopup="menu"
+        aria-expanded={menuOpen}
+        onClick={event => { event.stopPropagation(); setMenuOpen(open => !open) }}
+        className="flex size-9 items-center justify-center rounded-xl border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]"
+        style={{
+          background: viewMode === 'grid' ? 'rgba(0,0,0,0.58)' : 'var(--color-bg-tertiary)',
+          borderColor: viewMode === 'grid' ? 'rgba(255,255,255,0.18)' : 'var(--color-border)',
+          color: viewMode === 'grid' ? '#fff' : 'var(--color-text-secondary)',
+        }}
+      >
+        <svg className="size-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <circle cx="12" cy="5" r="1.6" /><circle cx="12" cy="12" r="1.6" /><circle cx="12" cy="19" r="1.6" />
+        </svg>
+      </button>
+      <AnimatePresence>
+        {menuOpen && (
+          <motion.div
+            role="menu"
+            initial={{ opacity: 0, y: -4, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -4, scale: 0.98 }}
+            transition={{ duration: 0.16, ease: 'easeOut' }}
+            className="absolute right-0 top-full z-30 mt-2 w-44 origin-top-right rounded-xl border p-1"
+            style={{ background: 'var(--color-bg-card)', borderColor: 'var(--color-border)', boxShadow: '0 6px 12px rgba(0,0,0,0.2)' }}
+            onClick={event => event.stopPropagation()}
+          >
+            {[
+              { label: copied ? 'Copied URL' : 'Copy URL', icon: COPY, action: handleCopy, danger: false },
+              { label: 'Edit link', icon: EDIT, action: openEdit, danger: false },
+              { label: 'Delete link', icon: TRASH, action: () => setShowDeleteDialog(true), danger: true },
+            ].map(item => (
+              <button
+                key={item.label}
+                type="button"
+                role="menuitem"
+                onClick={() => { setMenuOpen(false); item.action() }}
+                className="flex h-10 w-full items-center gap-2.5 rounded-lg px-3 text-left text-sm transition-colors hover:bg-[var(--color-bg-tertiary)]"
+                style={{ color: item.danger ? 'var(--color-error)' : 'var(--color-text-primary)' }}
+              >
+                <svg className="size-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d={item.icon} />
+                </svg>
+                {item.label}
+              </button>
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  )
 
   // ── List row ────────────────────────────────────────────────────────────────
   const listRow = (
@@ -206,6 +271,8 @@ export function LinkCard({
         <motion.button type="button" onClick={e => { e.stopPropagation(); handleFav() }} whileTap={{ scale: 0.78 }} transition={{ type: 'spring', stiffness: 500, damping: 28 }}
           className="flex h-7 w-7 items-center justify-center rounded-xl"
           style={{ background: link.is_favorite ? 'rgba(251,191,36,0.14)' : 'var(--color-bg-tertiary)', color: link.is_favorite ? '#fbbf24' : 'var(--color-text-muted)' }}
+          title={link.is_favorite ? 'Remove from favorites' : 'Add to favorites'}
+          aria-label={link.is_favorite ? 'Remove from favorites' : 'Add to favorites'}
         >
           <svg className="h-3.5 w-3.5" fill={link.is_favorite ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={STAR} /></svg>
         </motion.button>
@@ -217,59 +284,25 @@ export function LinkCard({
           <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={OPEN} /></svg>
           Open
         </motion.a>
-        <motion.button type="button" onClick={e => { e.stopPropagation(); openEdit() }} whileTap={{ scale: 0.82 }}
-          className="flex h-7 w-7 items-center justify-center rounded-xl"
-          style={{ background: 'rgba(59,130,246,0.12)', color: '#3b82f6' }}
-        >
-          <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={EDIT} /></svg>
-        </motion.button>
-        <motion.button type="button" onClick={e => { e.stopPropagation(); setShowDeleteDialog(true) }} whileTap={{ scale: 0.82 }}
-          className="flex h-7 w-7 items-center justify-center rounded-xl"
-          style={{ background: 'rgba(239,68,68,0.08)', color: 'var(--color-error)' }}
-        >
-          <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={TRASH} /></svg>
-        </motion.button>
+        {!selectable && moreMenu}
       </div>
     </motion.div>
   )
 
   // ── Grid card ────────────────────────────────────────────────────────────────
   const gridCard = (
-    <motion.article
-      className="relative flex w-full flex-col overflow-hidden rounded-2xl"
-      // 3D perspective via transformTemplate
-      transformTemplate={(_vals, t) => `perspective(900px) ${t}`}
-      style={{
-        rotateX: rotX,
-        rotateY: rotY,
-        background: 'var(--color-bg-card)',
-        border: selected
-          ? '1px solid color-mix(in srgb, var(--color-accent) 40%, transparent)'
-          : '1px solid var(--color-border)',
-        boxShadow: selected
-          ? 'inset 0 1px rgba(255,255,255,0.06), 0 0 0 1px color-mix(in srgb, var(--color-accent) 15%, transparent)'
-          : 'inset 0 1px rgba(255,255,255,0.06)',
-      }}
-      whileHover={{ y: -5 }}
-      whileTap={{ scale: 0.97 }}
-      transition={{ type: 'spring', stiffness: 260, damping: 25 }}
-      onMouseMove={e => {
-        const r = e.currentTarget.getBoundingClientRect()
-        mx.set((e.clientX - r.left) / r.width - 0.5)
-        my.set((e.clientY - r.top) / r.height - 0.5)
-      }}
-      onMouseLeave={() => { mx.set(0); my.set(0) }}
+    <article
+      className={`group relative flex w-full flex-col overflow-visible rounded-2xl border transition-colors duration-200 ${selected ? 'ring-2 ring-[color-mix(in_srgb,var(--color-accent)_28%,transparent)]' : 'hover:border-[var(--color-accent)]'}`}
+      style={{ background: 'var(--color-bg-card)', borderColor: selected ? 'var(--color-accent)' : 'var(--color-border)' }}
     >
-      {/* Moving specular glare */}
-      <motion.div className="pointer-events-none absolute inset-0 z-10 rounded-2xl" style={{ background: glare }} />
 
       {/* Image */}
-      <div className="relative overflow-hidden">
+      <div className="relative overflow-hidden rounded-t-2xl">
         {link.image_url ? (
-          <LazyImage src={link.image_url} alt={title} className="h-32 w-full sm:h-[170px]" />
+          <LazyImage src={link.image_url} alt={title} className="h-40 w-full" />
         ) : (
           <div
-            className="flex h-32 w-full items-center justify-center sm:h-[170px]"
+            className="flex h-40 w-full items-center justify-center"
             style={{ background: 'linear-gradient(135deg, var(--color-bg-tertiary) 0%, var(--color-bg-hover) 100%)' }}
           >
             {link.favicon_url
@@ -279,26 +312,18 @@ export function LinkCard({
           </div>
         )}
 
-        {/* Always-visible glass pill: favicon + domain + date + fav */}
+        {/* Source identity */}
         <div
-          className="absolute bottom-3 left-3 flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-[11px] font-medium"
+          className="absolute bottom-3 left-3 flex max-w-[calc(100%-24px)] items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs font-medium"
           style={{
-            background: 'rgba(0,0,0,0.58)',
-            backdropFilter: 'blur(12px)',
-            border: '1px solid rgba(255,255,255,0.1)',
-            maxWidth: 'calc(100% - 20px)',
+            background: 'rgba(0,0,0,0.72)',
+            color: '#fff',
           }}
         >
           {link.favicon_url && (
             <img src={link.favicon_url} alt="" className="h-3 w-3 shrink-0 rounded-sm object-contain" onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
           )}
-          <span className="truncate" style={{ color: 'rgba(255,255,255,0.82)' }}>{domain}</span>
-          {date && (
-            <>
-              <span style={{ color: 'rgba(255,255,255,0.3)', flexShrink: 0 }}>·</span>
-              <span className="shrink-0" style={{ color: 'rgba(255,255,255,0.55)' }}>{date}</span>
-            </>
-          )}
+          <span className="truncate">{domain}</span>
         </div>
 
         {/* Select button */}
@@ -321,94 +346,59 @@ export function LinkCard({
           </button>
         )}
         <motion.button type="button" onClick={e => { e.stopPropagation(); handleFav() }} whileTap={{ scale: 0.78 }}
-          className="absolute left-2.5 top-2.5 flex h-8 w-8 items-center justify-center rounded-xl"
-          style={{ background: link.is_favorite ? 'rgba(251,191,36,0.92)' : 'rgba(0,0,0,0.48)', color: link.is_favorite ? '#422006' : 'rgba(255,255,255,0.9)', backdropFilter: 'blur(6px)' }}
+          className="absolute left-2.5 top-2.5 flex h-9 w-9 items-center justify-center rounded-xl border"
+          style={{ background: link.is_favorite ? 'rgba(251,191,36,0.94)' : 'rgba(0,0,0,0.58)', borderColor: link.is_favorite ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.18)', color: link.is_favorite ? '#422006' : '#fff' }}
           title={link.is_favorite ? 'Unfavorite' : 'Favorite'}
+          aria-label={link.is_favorite ? 'Remove from favorites' : 'Add to favorites'}
         >
           <svg className="h-4 w-4" fill={link.is_favorite ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={STAR} /></svg>
         </motion.button>
       </div>
 
+      {!selectable && moreMenu}
+
       {/* Card body */}
-      <div className="flex flex-1 flex-col px-2.5 pb-1.5 pt-2 sm:px-3.5 sm:pb-2 sm:pt-3">
-        <h3
-          className="line-clamp-2 min-h-[40px] text-sm font-semibold leading-5 sm:text-[15px]"
-          style={{ color: 'var(--color-text-primary)' }}
-        >
+      <div className="flex flex-1 flex-col px-4 pb-4 pt-3">
+        <h3 className="line-clamp-2 text-[15px] font-semibold leading-5 tracking-tight" style={{ color: 'var(--color-text-primary)' }}>
           {title}
         </h3>
 
-        <p
-          className="mt-1 min-h-[40px] line-clamp-2 text-xs leading-5 sm:line-clamp-3 sm:text-[13px]"
-          style={{ color: 'var(--color-text-secondary)' }}
-        >
-          {desc || '\u00a0'}
-        </p>
+        {desc && <p className="mt-2 line-clamp-3 text-[13px] leading-5" style={{ color: 'var(--color-text-secondary)' }}>{desc}</p>}
 
         {(tags.length > 0 || collectionObj) && (
-          <div className="flex min-h-[20px] flex-wrap gap-1 pt-0.5">
+          <div className="mt-3 flex flex-wrap gap-1.5">
             {collectionObj && (
-              <span className="flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[9px] sm:text-[10px] font-medium" style={{ background: 'var(--color-bg-tertiary)', color: 'var(--color-text-muted)' }}>
+              <span className="flex items-center gap-1.5 rounded-lg px-2 py-1 text-[11px] font-medium" style={{ background: 'var(--color-bg-tertiary)', color: 'var(--color-text-secondary)' }}>
                 <span className="h-1.5 w-1.5 rounded-full" style={{ background: collectionObj.color }} />
                 {collectionObj.name}
               </span>
             )}
-            {tags.map(tag => (
-              <span key={tag} className="rounded-full px-1.5 py-0.5 text-[9px] sm:text-[10px] font-medium" style={{ background: 'color-mix(in srgb, var(--color-accent) 8%, transparent)', color: 'var(--color-accent)' }}>#{tag}</span>
+            {tags.slice(0, 2).map(tag => (
+              <span key={tag} className="rounded-lg px-2 py-1 text-[11px] font-medium" style={{ background: 'color-mix(in srgb, var(--color-accent) 8%, transparent)', color: 'var(--color-accent)' }}>#{tag}</span>
             ))}
+            {tags.length > 2 && <span className="rounded-lg px-2 py-1 text-[11px]" style={{ background: 'var(--color-bg-tertiary)', color: 'var(--color-text-muted)' }}>+{tags.length - 2}</span>}
           </div>
         )}
       </div>
 
       {/* Action strip — always visible */}
-      <div className="flex items-center justify-between border-t px-2.5 py-2 sm:px-3.5" style={{ borderColor: 'var(--color-border)' }}>
-        <div className="flex items-center gap-0.5 sm:gap-1">
-          <motion.button type="button" onClick={e => { e.stopPropagation(); handleCopy() }}
-            whileTap={{ scale: 0.76 }} transition={{ type: 'spring', stiffness: 500, damping: 26 }}
-            className="flex h-8 w-8 items-center justify-center rounded-xl"
-            style={{ background: 'var(--color-bg-tertiary)', color: 'var(--color-text-muted)' }}
-            title="Copy URL"
-            aria-label={copied ? 'URL copied' : 'Copy URL'}
-          >
-            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={copied ? CHECK : COPY} />
-            </svg>
-          </motion.button>
-
-          <motion.a href={link.url} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}
-            whileTap={{ scale: 0.76 }} transition={{ type: 'spring', stiffness: 500, damping: 26 }}
-            className="flex h-8 items-center gap-1.5 rounded-xl px-3 text-xs font-semibold transition-transform hover:scale-[1.02]"
-            style={{ background: 'var(--color-accent-fill)', color: 'var(--color-on-accent)', boxShadow: '0 6px 18px -8px var(--color-accent)' }}
-            title="Open link"
-          >
-            <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={OPEN} /></svg>
-            Open
-          </motion.a>
+      <div className="mt-auto flex items-center justify-between gap-3 border-t px-4 py-3" style={{ borderColor: 'var(--color-border)' }}>
+        <div className="flex min-w-0 items-center gap-2 text-xs" style={{ color: 'var(--color-text-muted)' }}>
+          {collectionObj && <span className="size-2 shrink-0 rounded-full" style={{ background: collectionObj.color }} />}
+          <span className="truncate">{collectionObj?.name || 'Unsorted'}</span>
+          {date && <><span aria-hidden="true">·</span><span className="shrink-0">{date}</span></>}
         </div>
-
-        <div className="flex items-center gap-0.5 sm:gap-1">
-          <motion.button type="button" onClick={e => { e.stopPropagation(); openEdit() }}
-            whileTap={{ scale: 0.76 }} transition={{ type: 'spring', stiffness: 500, damping: 26 }}
-            className="flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-xl"
-            style={{ background: 'rgba(59,130,246,0.12)', color: '#3b82f6' }}
-            title="Edit"
-            aria-label="Edit link"
-          >
-            <svg className="h-3.5 w-3.5 sm:h-4 sm:w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={EDIT} /></svg>
-          </motion.button>
-
-          <motion.button type="button" onClick={e => { e.stopPropagation(); setShowDeleteDialog(true) }}
-            whileTap={{ scale: 0.76 }} transition={{ type: 'spring', stiffness: 500, damping: 26 }}
-            className="flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-xl"
-            style={{ background: 'rgba(239,68,68,0.08)', color: 'var(--color-error)' }}
-            title="Delete"
-            aria-label="Delete link"
-          >
-            <svg className="h-3.5 w-3.5 sm:h-4 sm:w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={TRASH} /></svg>
-          </motion.button>
-        </div>
+        <motion.a href={link.url} target="_blank" rel="noopener noreferrer" onClick={event => event.stopPropagation()}
+          whileTap={{ scale: 0.97 }}
+          className="flex h-9 shrink-0 items-center gap-2 rounded-xl px-3 text-xs font-semibold"
+          style={{ background: 'var(--color-accent-fill)', color: 'var(--color-on-accent)' }}
+          title="Open link"
+        >
+          Open link
+          <svg className="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={OPEN} /></svg>
+        </motion.a>
       </div>
-    </motion.article>
+    </article>
   )
 
   // ── Edit modal (shared) ───────────────────────────────────────────────────
