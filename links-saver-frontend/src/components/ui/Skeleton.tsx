@@ -36,7 +36,7 @@ export function SkeletonGrid({ count = 10, viewMode = 'grid' }: { count?: number
     return <div className="flex flex-col gap-1.5">{items.map((_, i) => <SkeletonRow key={i} />)}</div>
   }
   return (
-    <div className="grid gap-3 grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
+    <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
       {items.map((_, i) => <SkeletonCard key={i} />)}
     </div>
   )
