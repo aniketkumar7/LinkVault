@@ -155,14 +155,16 @@ export function FluidOrbAvatar({ className = '' }: { className?: string }) {
       }}
       aria-hidden="true"
     >
-      {webglFailed && (
-        <span className="absolute inset-0 overflow-hidden rounded-[inherit]" aria-hidden="true">
+      <span
+        className="orb-smoke-fallback-layer absolute inset-0 overflow-hidden rounded-[inherit]"
+        style={{ opacity: webglFailed ? 1 : 0.56 }}
+        aria-hidden="true"
+      >
           <i className="orb-smoke-fallback orb-smoke-fallback-a" />
           <i className="orb-smoke-fallback orb-smoke-fallback-b" />
           <i className="orb-smoke-fallback orb-smoke-fallback-c" />
-        </span>
-      )}
-      <canvas ref={canvasRef} className="absolute inset-0 size-full rounded-[inherit]" />
+      </span>
+      <canvas ref={canvasRef} className="absolute inset-0 z-0 size-full rounded-[inherit]" />
     </span>
   )
 }

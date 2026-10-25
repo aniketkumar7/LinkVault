@@ -177,6 +177,117 @@ body {
   }
 }
 
+@keyframes document-scan-pass {
+  0% { opacity: 0; transform: translateY(0); }
+  12% { opacity: 0.9; }
+  78% { opacity: 0.78; }
+  100% { opacity: 0; transform: translateY(104px); }
+}
+
+.scan-stage::before {
+  position: absolute;
+  width: 220px;
+  height: 180px;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, color-mix(in srgb, var(--color-accent) 12%, transparent), transparent 68%);
+  content: '';
+  pointer-events: none;
+}
+
+.scan-document {
+  position: relative;
+  width: 148px;
+  height: 164px;
+  overflow: hidden;
+  padding: 13px;
+  border: 1px solid color-mix(in srgb, var(--color-border) 75%, var(--color-accent));
+  border-radius: 13px;
+  background: linear-gradient(150deg, var(--color-bg-card), var(--color-bg-secondary));
+  box-shadow: 0 7px 8px rgba(0, 0, 0, .2);
+}
+
+.scan-document-header {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.scan-document-icon {
+  display: grid;
+  width: 26px;
+  height: 26px;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--color-accent) 14%, var(--color-bg-tertiary));
+  color: var(--color-accent);
+}
+
+.scan-document-icon svg { width: 18px; height: 18px; }
+.scan-document-heading { display: grid; flex: 1; gap: 5px; }
+.scan-document-heading i,
+.scan-document-copy i,
+.scan-document-link i {
+  display: block;
+  height: 4px;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--color-text-secondary) 24%, transparent);
+}
+.scan-document-heading i:first-child { width: 66%; height: 5px; background: color-mix(in srgb, var(--color-text-primary) 48%, transparent); }
+.scan-document-heading i:last-child { width: 88%; height: 3px; }
+.scan-document-copy { display: grid; gap: 7px; padding: 13px 1px 11px; }
+.scan-document-copy i { height: 3px; }
+
+.scan-document-link {
+  display: flex;
+  height: 30px;
+  align-items: center;
+  gap: 6px;
+  padding: 0 7px;
+  border: 1px solid color-mix(in srgb, var(--color-border) 82%, transparent);
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--color-bg-tertiary) 72%, transparent);
+  transition: border-color 260ms ease, background-color 260ms ease, transform 260ms ease;
+}
+
+.scan-document-link svg { width: 14px; height: 14px; flex: 0 0 auto; color: var(--color-text-muted); }
+.scan-document-link i:first-of-type { width: 57px; height: 4px; }
+.scan-document-link i:last-of-type { width: 22px; height: 4px; opacity: .55; }
+.scan-document-check { display: none; width: 20px; height: 20px; place-items: center; border-radius: 50%; background: var(--color-success); color: var(--color-bg-primary); }
+.scan-document-check svg { width: 14px; height: 14px; }
+
+.scan-document-beam {
+  position: absolute;
+  z-index: 1;
+  top: 22px;
+  right: 7px;
+  left: 7px;
+  height: 30px;
+  border-top: 1px solid color-mix(in srgb, var(--color-accent) 88%, white);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--color-accent) 17%, transparent), transparent);
+  box-shadow: 0 -2px 9px color-mix(in srgb, var(--color-accent) 24%, transparent);
+  animation: document-scan-pass 2.8s cubic-bezier(.45, 0, .2, 1) infinite;
+  pointer-events: none;
+}
+
+.scan-document.is-done .scan-document-link {
+  transform: translateY(-1px);
+  border-color: color-mix(in srgb, var(--color-success) 62%, var(--color-border));
+  background: color-mix(in srgb, var(--color-success) 10%, var(--color-bg-tertiary));
+}
+.scan-document.is-done .scan-document-link svg { color: var(--color-success); }
+.scan-document.is-done .scan-document-check { display: grid; }
+.scan-document.is-done .scan-document-beam { display: none; }
+.scan-document.reduce-motion .scan-document-beam { animation: none; opacity: .62; transform: translateY(52px); }
+
+@media (prefers-reduced-motion: reduce) {
+  .scan-document-beam { animation: none; opacity: .62; transform: translateY(52px); }
+  .scan-document-link { transition: none; }
+}
+
 .animate-slide-up {
   animation: slide-up 0.3s ease-out;
 }
@@ -590,6 +701,11 @@ button:disabled {
   filter: blur(9px);
   opacity: 0.76;
   will-change: transform;
+}
+
+.orb-smoke-fallback-layer {
+  z-index: 1;
+  pointer-events: none;
 }
 
 .orb-smoke-fallback-a {
