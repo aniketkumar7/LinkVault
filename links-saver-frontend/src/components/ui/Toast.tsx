@@ -43,12 +43,12 @@ export function ToastProvider() {
   useEffect(() => {
     if (!active) return
     const role = active.kind === 'default' ? 'notification.info' : `notification.${active.kind}` as const
-    void playSound(role)
+    void playSound(role, { volume: 0.7 })
     const timer = window.setTimeout(() => {
       setItems(current => current.filter(item => item.id !== active.id))
     }, 4000)
     return () => window.clearTimeout(timer)
-  }, [active?.id, playSound])
+  }, [active, playSound])
 
   const dismiss = (id: number) => setItems(current => current.filter(item => item.id !== id))
 

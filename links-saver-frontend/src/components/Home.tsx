@@ -183,7 +183,7 @@ export function Home({ onOpenCollection, incomingShare, onIncomingShareHandled }
 
   return (
     <div className="min-h-screen">
-      <header className="dot-surface sticky top-0 z-30">
+      <header className="dot-surface sticky top-0 z-50">
         <div className="page-gutter mx-auto flex w-full items-center justify-between gap-4 py-4">
           <div className="flex shrink-0 items-center gap-3">
             <div className="flex h-11 w-11 items-center justify-center rounded-2xl border" style={{ background: 'var(--color-bg-card)', borderColor: 'var(--color-border)' }}>
@@ -217,6 +217,7 @@ export function Home({ onOpenCollection, incomingShare, onIncomingShareHandled }
           <div className="flex items-center gap-2">
             <button
               onClick={e => triggerTransition(e)}
+              data-sound="interaction.toggle"
               className="rounded-2xl border p-2.5"
               style={{ background: 'var(--color-bg-card)', borderColor: 'var(--color-border)' }}
               title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
@@ -412,6 +413,7 @@ function FolderTile({ index, name, color, count, onOpen, isPinned = false, onPin
     <div className="relative w-full" onPointerDown={startLongPress} onPointerUp={endLongPress} onPointerCancel={endLongPress} onPointerLeave={endLongPress}>
     <motion.button
       type="button"
+      data-sound="navigation.forward"
       onClick={() => { if (!menuOpen) onOpen() }}
       onContextMenu={openPinMenu}
       initial={{ opacity: 0, y: 20 }}

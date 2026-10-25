@@ -54,7 +54,7 @@ export function CollectionPage({ collectionId, onBack }: Props) {
 
   return (
     <div className="min-h-screen">
-      <header className="dot-surface sticky top-0 z-30">
+      <header className="dot-surface sticky top-0 z-50">
         <div className="page-gutter mx-auto flex items-center justify-between gap-4 py-4">
           {/* Left: back + collection name */}
           <div className="flex items-center gap-3 min-w-0">
@@ -86,6 +86,7 @@ export function CollectionPage({ collectionId, onBack }: Props) {
           <div className="flex items-center gap-2 shrink-0">
             <button
               onClick={e => triggerTransition(e)}
+              data-sound="interaction.toggle"
               className="rounded-2xl border p-2.5"
               style={{ background: 'var(--color-bg-card)', borderColor: 'var(--color-border)' }}
               title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
@@ -99,6 +100,9 @@ export function CollectionPage({ collectionId, onBack }: Props) {
                 onClick={e => { e.stopPropagation(); setShowProfileMenu(v => !v) }}
                 className="flex h-10 w-10 items-center justify-center rounded-2xl border text-sm font-semibold"
                 style={{ background: 'var(--color-accent-fill)', borderColor: 'var(--color-accent-fill)', color: 'var(--color-on-accent)' }}
+                aria-label="Open profile menu"
+                aria-haspopup="menu"
+                aria-expanded={showProfileMenu}
               >
                 <FluidOrbAvatar initial={profileInitial} label={`${profileName} profile`} />
               </button>

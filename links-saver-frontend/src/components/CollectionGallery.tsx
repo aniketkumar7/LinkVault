@@ -17,6 +17,7 @@ export function CollectionGallery({ collections, onSelect, onManage }: Props) {
           <motion.button
             key={collection.id}
             type="button"
+            data-sound="navigation.forward"
             onClick={() => onSelect(collection.id)}
             initial={{ opacity: 0, y: 18 }}
             animate={{ opacity: 1, y: 0 }}

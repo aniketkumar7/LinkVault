@@ -115,9 +115,10 @@ export function FluidOrbAvatar({ initial, label }: { initial: string; label: str
   }, [])
 
   return (
-    <span className="relative grid size-full place-items-center overflow-hidden rounded-2xl" aria-label={label}>
-      <span className="absolute inset-0 grid place-items-center rounded-2xl text-sm font-semibold" style={{ background: 'var(--color-accent-fill)', color: 'var(--color-on-accent)' }} aria-hidden="true">{initial}</span>
-      <canvas ref={canvasRef} className="absolute inset-0 size-full" aria-hidden="true" />
+    <span className="relative grid size-full place-items-center overflow-hidden rounded-full" aria-label={label}>
+      <span className="absolute inset-0 rounded-full" style={{ background: 'var(--color-accent-fill)' }} aria-hidden="true" />
+      <canvas ref={canvasRef} className="absolute inset-0 z-0 size-full opacity-35" aria-hidden="true" />
+      <span className="relative z-10 grid size-full place-items-center rounded-full text-sm font-bold" style={{ color: 'var(--color-on-accent)' }} aria-hidden="true">{initial}</span>
     </span>
   )
 }

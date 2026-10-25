@@ -28,7 +28,7 @@ function Switch({
     [sound, volume, playSound, onCheckedChange]
   );
 
-  return <BaseSwitch onCheckedChange={handleCheckedChange} {...props} />;
+  return <BaseSwitch onCheckedChange={handleCheckedChange} {...props} data-sound="managed" />;
 }
 
 export { Switch };

@@ -296,7 +296,7 @@ export function LinkCard({
           <svg className="h-3.5 w-3.5" fill={link.is_favorite ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={STAR} /></svg>
         </motion.button>
         <motion.a href={link.url} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} whileTap={{ scale: 0.82 }}
-          className="flex h-8 items-center gap-1.5 rounded-lg px-2 text-xs font-medium text-[var(--color-text-secondary)] transition-colors hover:text-[var(--color-text-primary)] hover:underline hover:underline-offset-4"
+          className="flex h-8 items-center gap-1.5 rounded-lg px-2 text-xs font-medium text-[var(--color-accent)] transition-colors hover:text-[var(--color-accent-hover)] hover:underline hover:underline-offset-4"
           title="Open link"
         >
           <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={OPEN} /></svg>
@@ -407,7 +407,7 @@ export function LinkCard({
         </div>
         <motion.a href={link.url} target="_blank" rel="noopener noreferrer" onClick={event => event.stopPropagation()}
           whileTap={{ scale: 0.97 }}
-          className="flex h-9 shrink-0 items-center gap-2 rounded-lg px-2 text-xs font-medium text-[var(--color-text-secondary)] transition-colors hover:text-[var(--color-text-primary)] hover:underline hover:underline-offset-4"
+          className="flex h-9 shrink-0 items-center gap-2 rounded-lg px-2 text-xs font-medium text-[var(--color-accent)] transition-colors hover:text-[var(--color-accent-hover)] hover:underline hover:underline-offset-4"
           title="Open link"
         >
           Open link
