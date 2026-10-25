@@ -11,6 +11,7 @@ import { ProfileDrawer } from './ProfileDrawer'
 import { displayName } from '@/lib/profile'
 import { FolderStylePicker } from './ui/FolderStylePicker'
 import { SMART_FOLDERS, smartKey } from '@/lib/smartFolders'
+import { SkeletonGrid } from './ui/Skeleton'
 
 interface Props {
   collectionId: string
@@ -19,7 +20,7 @@ interface Props {
 
 export function CollectionPage({ collectionId, onBack }: Props) {
   const { user, signOut } = useAuth()
-  const { data: collections = [] } = useCollections()
+  const { data: collections = [], isLoading: collectionsLoading } = useCollections()
   const { data: stats } = useStats()
   const invalidateCollections = useInvalidateCollections()
   const { theme, triggerTransition } = useCircularTheme()
@@ -127,13 +128,21 @@ export function CollectionPage({ collectionId, onBack }: Props) {
       </header>
 
       <main className="page-gutter mx-auto pt-6 pb-32">
-        <LinksView
-          key={collectionId}
-          collections={collections}
-          initialCollectionId={smart ? (smart === 'unsorted' ? 'none' : '') : collection?.id || collectionId}
-          initialFavorite={smart === 'favorites'}
-          onRefetchNeeded={invalidateCollections}
-        />
+        {smart || collection ? (
+          <LinksView
+            key={collectionId}
+            collections={collections}
+            initialCollectionId={smart ? (smart === 'unsorted' ? 'none' : '') : collection!.id}
+            initialFavorite={smart === 'favorites'}
+            onRefetchNeeded={invalidateCollections}
+          />
+        ) : collectionsLoading ? (
+          <SkeletonGrid count={5} />
+        ) : (
+          <p className="py-12 text-center text-sm" style={{ color: 'var(--color-text-muted)' }}>
+            This collection could not be found. Go back and open it again.
+          </p>
+        )}
       </main>
 
       <div className="capture-dock">

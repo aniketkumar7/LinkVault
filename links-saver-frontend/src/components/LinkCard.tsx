@@ -145,7 +145,7 @@ export function LinkCard({
   const inputStyle = { background: 'var(--color-bg-tertiary)', color: 'var(--color-text-primary)' }
 
   const moreMenu = (
-    <div ref={menuRef} className={viewMode === 'grid' ? 'absolute right-2.5 top-2.5 z-30' : 'relative'}>
+    <div ref={menuRef} className="relative">
       <button
         ref={menuTriggerRef}
         type="button"
@@ -177,7 +177,6 @@ export function LinkCard({
             onClick={event => event.stopPropagation()}
           >
             {[
-              { label: copied ? 'Copied URL' : 'Copy URL', icon: COPY, action: handleCopy, danger: false },
               { label: 'Edit link', icon: EDIT, action: openEdit, danger: false },
               { label: 'Delete link', icon: TRASH, action: () => setShowDeleteDialog(true), danger: true },
             ].map(item => (
@@ -199,6 +198,26 @@ export function LinkCard({
         )}
       </AnimatePresence>
     </div>
+  )
+
+  const copyButton = (
+    <motion.button
+      type="button"
+      onClick={event => { event.stopPropagation(); void handleCopy() }}
+      whileTap={{ scale: 0.9 }}
+      className="flex size-9 shrink-0 items-center justify-center rounded-xl border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]"
+      style={{
+        background: viewMode === 'grid' ? 'rgba(0,0,0,0.58)' : 'var(--color-bg-tertiary)',
+        borderColor: viewMode === 'grid' ? 'rgba(255,255,255,0.18)' : 'var(--color-border)',
+        color: copied && viewMode === 'grid' ? 'var(--color-accent)' : viewMode === 'grid' ? '#fff' : 'var(--color-text-secondary)',
+      }}
+      title={copied ? 'Link copied' : 'Copy link'}
+      aria-label={copied ? 'Link copied' : 'Copy link'}
+    >
+      <svg className="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d={copied ? CHECK : COPY} />
+      </svg>
+    </motion.button>
   )
 
   // ── List row ────────────────────────────────────────────────────────────────
@@ -284,7 +303,7 @@ export function LinkCard({
           <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={OPEN} /></svg>
           Open
         </motion.a>
-        {!selectable && moreMenu}
+        {!selectable && <div className="flex shrink-0 items-center gap-1">{copyButton}{moreMenu}</div>}
       </div>
     </motion.div>
   )
@@ -355,7 +374,12 @@ export function LinkCard({
         </motion.button>
       </div>
 
-      {!selectable && moreMenu}
+      {!selectable && (
+        <div className="absolute right-2.5 top-2.5 z-30 flex items-center gap-1.5">
+          {copyButton}
+          {moreMenu}
+        </div>
+      )}
 
       {/* Card body */}
       <div className="flex flex-1 flex-col px-4 pb-4 pt-3">
@@ -365,14 +389,8 @@ export function LinkCard({
 
         {desc && <p className="mt-2 line-clamp-3 text-[13px] leading-5" style={{ color: 'var(--color-text-secondary)' }}>{desc}</p>}
 
-        {(tags.length > 0 || collectionObj) && (
+        {tags.length > 0 && (
           <div className="mt-3 flex flex-wrap gap-1.5">
-            {collectionObj && (
-              <span className="flex items-center gap-1.5 rounded-lg px-2 py-1 text-[11px] font-medium" style={{ background: 'var(--color-bg-tertiary)', color: 'var(--color-text-secondary)' }}>
-                <span className="h-1.5 w-1.5 rounded-full" style={{ background: collectionObj.color }} />
-                {collectionObj.name}
-              </span>
-            )}
             {tags.slice(0, 2).map(tag => (
               <span key={tag} className="rounded-lg px-2 py-1 text-[11px] font-medium" style={{ background: 'color-mix(in srgb, var(--color-accent) 8%, transparent)', color: 'var(--color-accent)' }}>#{tag}</span>
             ))}

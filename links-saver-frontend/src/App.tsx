@@ -47,8 +47,8 @@ function AppInner() {
     setTrigger(t => t + 1)
   }
 
-  const openCollection = (id: string, name?: string) => {
-    window.history.pushState({}, '', collectionPath(id, name))
+  const openCollection = (id: string) => {
+    window.history.pushState({}, '', collectionPath(id))
     navigate(() => setOpenCollectionId(id))
   }
 

@@ -23,7 +23,7 @@ export function routeToCollectionId(pathname: string): string | null {
   return match ? decodeURIComponent(match[1]) : null
 }
 
-export function collectionPath(id: string, name?: string) {
+export function collectionPath(id: string) {
   const key = smartKey(id)
-  return key ? `/${key}` : `/collections/${encodeURIComponent(name || id)}`
+  return key ? `/${key}` : `/collections/${encodeURIComponent(id)}`
 }
