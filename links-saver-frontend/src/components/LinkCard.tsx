@@ -49,7 +49,6 @@ export function LinkCard({
   const [editOpen, setEditOpen] = useState(false)
   const [editCollectionId, setEditCollectionId] = useState(link.collection_id || '')
   const [saving, setSaving] = useState(false)
-  const [refreshing, setRefreshing] = useState(false)
   const [collectionDropOpen, setCollectionDropOpen] = useState(false)
   const [newCollectionName, setNewCollectionName] = useState('')
   const selectedCollection = collections.find(c => c.id === editCollectionId)
@@ -122,13 +121,6 @@ export function LinkCard({
     setCopied(true)
     toast.success('Copied!')
     setTimeout(() => setCopied(false), 2000)
-  }
-
-  const handleRefreshMetadata = async () => {
-    setRefreshing(true)
-    try { await api.refreshMetadata(link.id); onUpdated(); toast.success('Preview refreshed') }
-    catch { toast.error('Could not refresh preview') }
-    finally { setRefreshing(false) }
   }
 
   const handleFav = () => {
@@ -218,10 +210,12 @@ export function LinkCard({
           <svg className="h-3.5 w-3.5" fill={link.is_favorite ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={STAR} /></svg>
         </motion.button>
         <motion.a href={link.url} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} whileTap={{ scale: 0.82 }}
-          className="flex h-7 w-7 items-center justify-center rounded-xl"
+          className="flex h-8 items-center gap-1.5 rounded-xl px-3 text-xs font-semibold"
           style={{ background: 'var(--color-accent-fill)', color: 'var(--color-on-accent)' }}
+          title="Open link"
         >
           <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={OPEN} /></svg>
+          Open
         </motion.a>
         <motion.button type="button" onClick={e => { e.stopPropagation(); openEdit() }} whileTap={{ scale: 0.82 }}
           className="flex h-7 w-7 items-center justify-center rounded-xl"
@@ -242,7 +236,7 @@ export function LinkCard({
   // ── Grid card ────────────────────────────────────────────────────────────────
   const gridCard = (
     <motion.article
-      className="relative flex w-full flex-col overflow-hidden rounded-[20px]"
+      className="relative flex w-full flex-col overflow-hidden rounded-2xl"
       // 3D perspective via transformTemplate
       transformTemplate={(_vals, t) => `perspective(900px) ${t}`}
       style={{
@@ -267,15 +261,15 @@ export function LinkCard({
       onMouseLeave={() => { mx.set(0); my.set(0) }}
     >
       {/* Moving specular glare */}
-      <motion.div className="pointer-events-none absolute inset-0 z-10 rounded-[20px]" style={{ background: glare }} />
+      <motion.div className="pointer-events-none absolute inset-0 z-10 rounded-2xl" style={{ background: glare }} />
 
       {/* Image */}
       <div className="relative overflow-hidden">
         {link.image_url ? (
-          <LazyImage src={link.image_url} alt={title} className="h-24 w-full sm:h-[170px]" />
+          <LazyImage src={link.image_url} alt={title} className="h-32 w-full sm:h-[170px]" />
         ) : (
           <div
-            className="flex h-24 w-full items-center justify-center sm:h-[170px]"
+            className="flex h-32 w-full items-center justify-center sm:h-[170px]"
             style={{ background: 'linear-gradient(135deg, var(--color-bg-tertiary) 0%, var(--color-bg-hover) 100%)' }}
           >
             {link.favicon_url
@@ -287,7 +281,7 @@ export function LinkCard({
 
         {/* Always-visible glass pill: favicon + domain + date + fav */}
         <div
-          className="absolute bottom-2.5 left-2.5 flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium"
+          className="absolute bottom-3 left-3 flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-[11px] font-medium"
           style={{
             background: 'rgba(0,0,0,0.58)',
             backdropFilter: 'blur(12px)',
@@ -338,17 +332,17 @@ export function LinkCard({
       {/* Card body */}
       <div className="flex flex-1 flex-col px-2.5 pb-1.5 pt-2 sm:px-3.5 sm:pb-2 sm:pt-3">
         <h3
-          className="line-clamp-1 min-h-[17px] text-[12px] font-semibold leading-[1.4] sm:line-clamp-2 sm:min-h-[38px] sm:text-[13.5px]"
+          className="line-clamp-2 min-h-[40px] text-sm font-semibold leading-5 sm:text-[15px]"
           style={{ color: 'var(--color-text-primary)' }}
         >
-          {refreshing ? <span className="block h-4 w-3/4 rounded shimmer" /> : title}
+          {title}
         </h3>
 
         <p
-          className="mt-1 min-h-[34px] line-clamp-2 text-[11px] leading-[1.6] sm:min-h-[58px] sm:line-clamp-3 sm:text-[12px]"
+          className="mt-1 min-h-[40px] line-clamp-2 text-xs leading-5 sm:line-clamp-3 sm:text-[13px]"
           style={{ color: 'var(--color-text-secondary)' }}
         >
-          {refreshing ? <span className="block h-3 w-full rounded shimmer" /> : (desc || '\u00a0')}
+          {desc || '\u00a0'}
         </p>
 
         {(tags.length > 0 || collectionObj) && (
@@ -367,19 +361,14 @@ export function LinkCard({
       </div>
 
       {/* Action strip — always visible */}
-      <div className="flex items-center justify-between px-2 pb-2 pt-0.5 sm:px-3 sm:pb-3 sm:pt-1">
+      <div className="flex items-center justify-between border-t px-2.5 py-2 sm:px-3.5" style={{ borderColor: 'var(--color-border)' }}>
         <div className="flex items-center gap-0.5 sm:gap-1">
-          <motion.button type="button" onClick={e => { e.stopPropagation(); handleRefreshMetadata() }} disabled={refreshing}
-            whileTap={{ scale: 0.76 }} className="flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-xl disabled:opacity-50"
-            style={{ background: 'var(--color-bg-tertiary)', color: 'var(--color-text-muted)' }} title="Refresh preview"
-          >
-            <svg className={`h-3.5 w-3.5 sm:h-4 sm:w-4 ${refreshing ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h5M20 20v-5h-5M5.5 15a7 7 0 0011.9 1.9L20 15M4 9l2.6-1.9A7 7 0 0118.5 9" /></svg>
-          </motion.button>
           <motion.button type="button" onClick={e => { e.stopPropagation(); handleCopy() }}
             whileTap={{ scale: 0.76 }} transition={{ type: 'spring', stiffness: 500, damping: 26 }}
             className="flex h-8 w-8 items-center justify-center rounded-xl"
             style={{ background: 'var(--color-bg-tertiary)', color: 'var(--color-text-muted)' }}
             title="Copy URL"
+            aria-label={copied ? 'URL copied' : 'Copy URL'}
           >
             <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={copied ? CHECK : COPY} />
@@ -388,11 +377,12 @@ export function LinkCard({
 
           <motion.a href={link.url} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}
             whileTap={{ scale: 0.76 }} transition={{ type: 'spring', stiffness: 500, damping: 26 }}
-            className="flex h-8 w-8 items-center justify-center rounded-xl transition-transform hover:scale-105"
+            className="flex h-8 items-center gap-1.5 rounded-xl px-3 text-xs font-semibold transition-transform hover:scale-[1.02]"
             style={{ background: 'var(--color-accent-fill)', color: 'var(--color-on-accent)', boxShadow: '0 6px 18px -8px var(--color-accent)' }}
             title="Open link"
           >
-            <svg className="h-3.5 w-3.5 sm:h-4 sm:w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={OPEN} /></svg>
+            <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={OPEN} /></svg>
+            Open
           </motion.a>
         </div>
 
@@ -402,6 +392,7 @@ export function LinkCard({
             className="flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-xl"
             style={{ background: 'rgba(59,130,246,0.12)', color: '#3b82f6' }}
             title="Edit"
+            aria-label="Edit link"
           >
             <svg className="h-3.5 w-3.5 sm:h-4 sm:w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={EDIT} /></svg>
           </motion.button>
@@ -411,6 +402,7 @@ export function LinkCard({
             className="flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-xl"
             style={{ background: 'rgba(239,68,68,0.08)', color: 'var(--color-error)' }}
             title="Delete"
+            aria-label="Delete link"
           >
             <svg className="h-3.5 w-3.5 sm:h-4 sm:w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={TRASH} /></svg>
           </motion.button>
