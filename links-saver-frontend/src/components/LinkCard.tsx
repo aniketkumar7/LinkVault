@@ -153,10 +153,10 @@ export function LinkCard({
         aria-haspopup="menu"
         aria-expanded={menuOpen}
         onClick={event => { event.stopPropagation(); setMenuOpen(open => !open) }}
-        className="flex size-9 items-center justify-center rounded-xl border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]"
+        className="flex size-9 items-center justify-center rounded-xl border transition-[background,color,opacity] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] md:opacity-60 md:group-hover:opacity-100 md:focus-within:opacity-100"
         style={{
-          background: viewMode === 'grid' ? 'rgba(0,0,0,0.58)' : 'var(--color-bg-tertiary)',
-          borderColor: viewMode === 'grid' ? 'rgba(255,255,255,0.18)' : 'var(--color-border)',
+          background: viewMode === 'grid' ? 'rgba(0,0,0,0.28)' : 'var(--color-bg-tertiary)',
+          borderColor: viewMode === 'grid' ? 'transparent' : 'var(--color-border)',
           color: viewMode === 'grid' ? '#fff' : 'var(--color-text-secondary)',
         }}
       >
@@ -205,10 +205,10 @@ export function LinkCard({
       type="button"
       onClick={event => { event.stopPropagation(); void handleCopy() }}
       whileTap={{ scale: 0.9 }}
-      className="flex size-9 shrink-0 items-center justify-center rounded-xl border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]"
+      className="flex size-9 shrink-0 items-center justify-center rounded-xl border transition-[background,color,opacity] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] md:opacity-60 md:group-hover:opacity-100 md:focus-within:opacity-100"
       style={{
-        background: viewMode === 'grid' ? 'rgba(0,0,0,0.58)' : 'var(--color-bg-tertiary)',
-        borderColor: viewMode === 'grid' ? 'rgba(255,255,255,0.18)' : 'var(--color-border)',
+        background: viewMode === 'grid' ? 'rgba(0,0,0,0.28)' : 'var(--color-bg-tertiary)',
+        borderColor: viewMode === 'grid' ? 'transparent' : 'var(--color-border)',
         color: copied && viewMode === 'grid' ? 'var(--color-accent)' : viewMode === 'grid' ? '#fff' : 'var(--color-text-secondary)',
       }}
       title={copied ? 'Link copied' : 'Copy link'}
@@ -288,16 +288,15 @@ export function LinkCard({
       {/* Actions — always visible */}
       <div className="flex items-center gap-1 shrink-0">
         <motion.button type="button" onClick={e => { e.stopPropagation(); handleFav() }} whileTap={{ scale: 0.78 }} transition={{ type: 'spring', stiffness: 500, damping: 28 }}
-          className="flex h-7 w-7 items-center justify-center rounded-xl"
-          style={{ background: link.is_favorite ? 'rgba(251,191,36,0.14)' : 'var(--color-bg-tertiary)', color: link.is_favorite ? '#fbbf24' : 'var(--color-text-muted)' }}
+          className="flex h-7 w-7 items-center justify-center rounded-lg transition-colors hover:bg-[var(--color-bg-tertiary)]"
+          style={{ background: link.is_favorite ? 'rgba(251,191,36,0.12)' : 'transparent', color: link.is_favorite ? '#fbbf24' : 'var(--color-text-muted)' }}
           title={link.is_favorite ? 'Remove from favorites' : 'Add to favorites'}
           aria-label={link.is_favorite ? 'Remove from favorites' : 'Add to favorites'}
         >
           <svg className="h-3.5 w-3.5" fill={link.is_favorite ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={STAR} /></svg>
         </motion.button>
         <motion.a href={link.url} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} whileTap={{ scale: 0.82 }}
-          className="flex h-8 items-center gap-1.5 rounded-xl px-3 text-xs font-semibold"
-          style={{ background: 'var(--color-accent-fill)', color: 'var(--color-on-accent)' }}
+          className="flex h-8 items-center gap-1.5 rounded-lg px-2 text-xs font-medium text-[var(--color-text-secondary)] transition-colors hover:text-[var(--color-text-primary)] hover:underline hover:underline-offset-4"
           title="Open link"
         >
           <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={OPEN} /></svg>
@@ -365,8 +364,8 @@ export function LinkCard({
           </button>
         )}
         <motion.button type="button" onClick={e => { e.stopPropagation(); handleFav() }} whileTap={{ scale: 0.78 }}
-          className="absolute left-2.5 top-2.5 flex h-9 w-9 items-center justify-center rounded-xl border"
-          style={{ background: link.is_favorite ? 'rgba(251,191,36,0.94)' : 'rgba(0,0,0,0.58)', borderColor: link.is_favorite ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.18)', color: link.is_favorite ? '#422006' : '#fff' }}
+          className="absolute left-2.5 top-2.5 flex h-9 w-9 items-center justify-center rounded-xl border border-transparent transition-[background,color,opacity] md:opacity-70 md:group-hover:opacity-100 md:focus-visible:opacity-100"
+          style={{ background: link.is_favorite ? 'rgba(251,191,36,0.18)' : 'rgba(0,0,0,0.28)', color: link.is_favorite ? '#fbbf24' : 'rgba(255,255,255,0.88)' }}
           title={link.is_favorite ? 'Unfavorite' : 'Favorite'}
           aria-label={link.is_favorite ? 'Remove from favorites' : 'Add to favorites'}
         >
@@ -408,8 +407,7 @@ export function LinkCard({
         </div>
         <motion.a href={link.url} target="_blank" rel="noopener noreferrer" onClick={event => event.stopPropagation()}
           whileTap={{ scale: 0.97 }}
-          className="flex h-9 shrink-0 items-center gap-2 rounded-xl px-3 text-xs font-semibold"
-          style={{ background: 'var(--color-accent-fill)', color: 'var(--color-on-accent)' }}
+          className="flex h-9 shrink-0 items-center gap-2 rounded-lg px-2 text-xs font-medium text-[var(--color-text-secondary)] transition-colors hover:text-[var(--color-text-primary)] hover:underline hover:underline-offset-4"
           title="Open link"
         >
           Open link

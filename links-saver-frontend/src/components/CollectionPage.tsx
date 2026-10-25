@@ -12,6 +12,8 @@ import { displayName } from '@/lib/profile'
 import { FolderStylePicker } from './ui/FolderStylePicker'
 import { SMART_FOLDERS, smartKey } from '@/lib/smartFolders'
 import { SkeletonGrid } from './ui/Skeleton'
+import { FluidOrbAvatar } from './ui/FluidOrbAvatar'
+import { SoundEffectsSwitch } from './ui/SoundEffectsSwitch'
 
 interface Props {
   collectionId: string
@@ -98,7 +100,7 @@ export function CollectionPage({ collectionId, onBack }: Props) {
                 className="flex h-10 w-10 items-center justify-center rounded-2xl border text-sm font-semibold"
                 style={{ background: 'var(--color-accent-fill)', borderColor: 'var(--color-accent-fill)', color: 'var(--color-on-accent)' }}
               >
-                {profileInitial}
+                <FluidOrbAvatar initial={profileInitial} label={`${profileName} profile`} />
               </button>
 
               {showProfileMenu && (
@@ -114,6 +116,7 @@ export function CollectionPage({ collectionId, onBack }: Props) {
                     <p className="mt-2 text-xs" style={{ color: 'var(--color-text-muted)' }}>{stats?.total ?? 0} links saved</p>
                   </div>
                   <div className="mb-2"><AccentPicker /><FolderStylePicker /></div>
+                  <div className="mb-2 rounded-xl border" style={{ borderColor: 'var(--color-border)' }}><SoundEffectsSwitch /></div>
                   <motion.button whileHover={{ x: 3 }} whileTap={{ scale: 0.98 }} onClick={() => { setShowProfile(true); setShowProfileMenu(false) }} className="w-full rounded-xl px-3 py-2.5 text-left text-sm transition-colors hover:bg-[var(--color-bg-tertiary)]" style={{ color: 'var(--color-text-secondary)' }}>
                     Edit profile
                   </motion.button>

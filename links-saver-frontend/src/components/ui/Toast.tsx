@@ -1,26 +1,127 @@
 import { useEffect, useState } from 'react'
-import { subscribeToasts, type ToastPayload } from '@/lib/toast'
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
+import { subscribeToasts, type ToastKind, type ToastPayload } from '@/lib/toast'
+import { useSensoryUI } from '@/lib/provider'
 
-const colors = { default: '#64748b', success: '#16a34a', error: '#dc2626', warning: '#d97706', info: '#2563eb' }
-const labels = { default: 'Notice', success: 'Success', error: 'Error', warning: 'Warning', info: 'Info' }
+const colors: Record<ToastKind, string> = {
+  default: '#c4b5fd',
+  success: '#4ade80',
+  error: '#fb7185',
+  warning: '#fbbf24',
+  info: '#60a5fa',
+}
+
+const labels: Record<ToastKind, string> = {
+  default: 'Notice',
+  success: 'Success',
+  error: 'Error',
+  warning: 'Warning',
+  info: 'Info',
+}
+
+const iconPaths: Record<ToastKind, string> = {
+  default: 'M12 16h.01M12 12V8m10 4a10 10 0 1 1-20 0 10 10 0 0 1 20 0Z',
+  success: 'm5 12 4 4L19 6',
+  error: 'm6 6 12 12M18 6 6 18',
+  warning: 'M12 9v4m0 4h.01M10.3 3.9 1.8 18.2A2 2 0 0 0 3.5 21h17a2 2 0 0 0 1.7-2.8L13.7 3.9a2 2 0 0 0-3.4 0Z',
+  info: 'M12 16h.01M12 12V8m10 4a10 10 0 1 1-20 0 10 10 0 0 1 20 0Z',
+}
+
+type ToastItem = ToastPayload & { id: number }
 
 export function ToastProvider() {
-  const [items, setItems] = useState<Array<ToastPayload & { id: number }>>([])
+  const [items, setItems] = useState<ToastItem[]>([])
+  const reduceMotion = useReducedMotion()
+  const { playSound } = useSensoryUI()
+  const active = items[0]
+
   useEffect(() => subscribeToasts(payload => {
     const id = Date.now() + Math.random()
-    setItems(current => [...current.slice(-4), { ...payload, id }])
-    window.setTimeout(() => setItems(current => current.filter(item => item.id !== id)), 4000)
+    setItems(current => [...current, { ...payload, id }])
   }), [])
+
+  useEffect(() => {
+    if (!active) return
+    const role = active.kind === 'default' ? 'notification.info' : `notification.${active.kind}` as const
+    void playSound(role)
+    const timer = window.setTimeout(() => {
+      setItems(current => current.filter(item => item.id !== active.id))
+    }, 4000)
+    return () => window.clearTimeout(timer)
+  }, [active?.id, playSound])
+
   const dismiss = (id: number) => setItems(current => current.filter(item => item.id !== id))
-  return <div className="pointer-events-none fixed left-1/2 top-5 z-[9999] flex w-[min(380px,calc(100vw-24px))] -translate-x-1/2 flex-col gap-3 max-sm:top-3">
-    {items.map(item => <div key={item.id} role="status" className="toast-enter pointer-events-auto overflow-hidden rounded-[18px] border bg-zinc-950/95 p-3 shadow-2xl backdrop-blur-xl" style={{ borderColor: `${colors[item.kind]}45` }}>
-      <div className="flex items-start gap-3">
-        <div className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-sm font-bold text-zinc-950" style={{ background: colors[item.kind] }}>{item.kind === 'success' ? '✓' : item.kind === 'error' ? '×' : 'i'}</div>
-        <div className="min-w-0 flex-1"><p className="text-sm font-semibold text-white">{labels[item.kind]}</p><p className="mt-1 text-sm leading-5 text-zinc-400">{item.message}</p></div>
-        {item.action && <button onClick={() => { item.action?.onClick(); dismiss(item.id) }} className="text-sm font-semibold" style={{ color: colors[item.kind] }}>{item.action.label}</button>}
-        <button onClick={() => dismiss(item.id)} aria-label="Close notification" className="text-lg leading-none text-zinc-500">×</button>
-      </div>
-      <div className="toast-progress mt-3 h-1 rounded-full" style={{ background: colors[item.kind] }} />
-    </div>)}
-  </div>
+
+  return (
+    <div className="pointer-events-none fixed inset-x-0 top-0 z-[60] flex justify-center">
+      <AnimatePresence initial={false} mode="wait">
+        {active && (
+          <motion.section
+            key={active.id}
+            role="status"
+            aria-live="polite"
+            initial={reduceMotion ? { opacity: 0 } : { opacity: 0, y: -36, scale: 0.96 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: -24, scale: 0.98 }}
+            transition={{ duration: reduceMotion ? 0 : 0.24, ease: [0.22, 1, 0.36, 1] }}
+            className="toast-notch pointer-events-auto relative w-[min(440px,calc(100vw-20px))] overflow-hidden rounded-b-[22px] border-x border-b px-4 pb-3 pt-[calc(env(safe-area-inset-top)+12px)]"
+            style={{
+              background: '#111214',
+              borderColor: 'rgba(255,255,255,0.1)',
+              boxShadow: '0 4px 8px rgba(0,0,0,0.24)',
+            }}
+          >
+            <div className="flex items-center gap-3">
+              <span
+                className="grid size-9 shrink-0 place-items-center rounded-full"
+                style={{ background: `${colors[active.kind]}20`, color: colors[active.kind] }}
+                aria-hidden="true"
+              >
+                <svg className="size-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d={iconPaths[active.kind]} />
+                </svg>
+              </span>
+
+              <div className="min-w-0 flex-1">
+                <p className="text-[11px] font-semibold leading-4" style={{ color: colors[active.kind] }}>
+                  {labels[active.kind]}
+                </p>
+                <p className="mt-0.5 text-sm leading-5 text-white [overflow-wrap:anywhere]">
+                  {active.message}
+                </p>
+              </div>
+
+              {active.action && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    active.action?.onClick()
+                    dismiss(active.id)
+                  }}
+                  className="shrink-0 rounded-lg px-2.5 py-2 text-sm font-semibold text-white transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+                >
+                  {active.action.label}
+                </button>
+              )}
+
+              <button
+                type="button"
+                onClick={() => dismiss(active.id)}
+                aria-label="Dismiss notification"
+                className="grid size-8 shrink-0 place-items-center rounded-full text-white/55 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+              >
+                <svg className="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+                  <path d="m6 6 12 12M18 6 6 18" />
+                </svg>
+              </button>
+            </div>
+
+            {!reduceMotion && (
+              <div className="toast-progress absolute inset-x-0 bottom-0 h-[2px]" style={{ background: colors[active.kind] }} />
+            )}
+          </motion.section>
+        )}
+      </AnimatePresence>
+    </div>
+  )
 }

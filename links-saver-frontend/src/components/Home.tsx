@@ -21,6 +21,8 @@ import { AccentPicker } from './ui/AccentPicker'
 import { ProfileDrawer } from './ProfileDrawer'
 import { displayName, firstName } from '@/lib/profile'
 import { FolderStylePicker } from './ui/FolderStylePicker'
+import { FluidOrbAvatar } from './ui/FluidOrbAvatar'
+import { SoundEffectsSwitch } from './ui/SoundEffectsSwitch'
 import { api } from '@/lib/api'
 import { toast } from '@/lib/toast'
 import { PushPin } from '@phosphor-icons/react'
@@ -232,7 +234,7 @@ export function Home({ onOpenCollection, incomingShare, onIncomingShareHandled }
                 aria-haspopup="menu"
                 aria-expanded={showProfileMenu}
               >
-                {profileInitial}
+                <FluidOrbAvatar initial={profileInitial} label={`${profileName} profile`} />
               </button>
 
               <AnimatePresence>
@@ -261,6 +263,9 @@ export function Home({ onOpenCollection, incomingShare, onIncomingShareHandled }
                     <p className="px-2 pb-1 text-[10px] font-bold uppercase tracking-[0.14em]" style={{ color: 'var(--color-text-muted)' }}>Appearance</p>
                     <AccentPicker />
                     <FolderStylePicker />
+                  </div>
+                  <div className="mb-3 rounded-xl border" style={{ borderColor: 'var(--color-border)' }}>
+                    <SoundEffectsSwitch />
                   </div>
                   <div className="flex flex-col gap-1">
                     <motion.button role="menuitem" whileHover={{ x: 3 }} whileTap={{ scale: 0.98 }} onClick={() => { setShowProfile(true); setShowProfileMenu(false) }} className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm transition-colors hover:bg-[var(--color-bg-tertiary)]" style={{ color: 'var(--color-text-secondary)' }}>
