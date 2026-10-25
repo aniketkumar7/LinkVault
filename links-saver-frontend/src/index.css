@@ -567,3 +567,51 @@ button:disabled {
   .folder-cell { width: 100%; }
   .folder-root { margin-inline: auto; }
 }
+
+@keyframes orb-smoke-rise-a {
+  0% { transform: translate3d(-12%, 12%, 0) scale(0.82) rotate(-14deg); }
+  50% { transform: translate3d(9%, -3%, 0) scale(1.14) rotate(8deg); }
+  100% { transform: translate3d(-5%, -18%, 0) scale(0.96) rotate(20deg); }
+}
+
+@keyframes orb-smoke-rise-b {
+  0% { transform: translate3d(10%, 18%, 0) scale(0.9) rotate(18deg); }
+  50% { transform: translate3d(-8%, 0%, 0) scale(1.18) rotate(-8deg); }
+  100% { transform: translate3d(6%, -16%, 0) scale(0.88) rotate(-22deg); }
+}
+
+.orb-smoke-fallback {
+  position: absolute;
+  left: -25%;
+  bottom: -38%;
+  width: 150%;
+  height: 112%;
+  border-radius: 50%;
+  filter: blur(9px);
+  opacity: 0.76;
+  will-change: transform;
+}
+
+.orb-smoke-fallback-a {
+  background: radial-gradient(ellipse at 42% 48%, color-mix(in srgb, var(--color-accent) 84%, transparent) 0%, color-mix(in srgb, var(--color-accent) 44%, transparent) 28%, transparent 68%);
+  animation: orb-smoke-rise-a 6s ease-in-out infinite alternate;
+}
+
+.orb-smoke-fallback-b {
+  background: radial-gradient(ellipse at 60% 44%, color-mix(in srgb, var(--color-accent) 72%, #fff) 0%, color-mix(in srgb, var(--color-accent) 34%, transparent) 24%, transparent 67%);
+  animation: orb-smoke-rise-b 7.5s ease-in-out -2.5s infinite alternate;
+}
+
+.orb-smoke-fallback-c {
+  background: radial-gradient(ellipse at 50% 50%, color-mix(in srgb, var(--color-accent) 54%, #fff) 0%, transparent 57%);
+  animation: orb-smoke-rise-a 8.5s ease-in-out -4s infinite alternate-reverse;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .orb-smoke-fallback-a,
+  .orb-smoke-fallback-b,
+  .orb-smoke-fallback-c {
+    animation: none;
+    transform: translate3d(0, -8%, 0) scale(1.06);
+  }
+}

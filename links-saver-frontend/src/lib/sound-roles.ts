@@ -9,7 +9,8 @@ export type InteractionRole =
   | "interaction.tap"
   | "interaction.subtle"
   | "interaction.toggle"
-  | "interaction.confirm";
+  | "interaction.confirm"
+  | "interaction.type";
 
 export type OverlayRole =
   | "overlay.open"
@@ -42,6 +43,7 @@ export const ALL_SOUND_ROLES: SoundRole[] = [
   "interaction.subtle",
   "interaction.toggle",
   "interaction.confirm",
+  "interaction.type",
   "overlay.open",
   "overlay.close",
   "overlay.expand",

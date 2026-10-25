@@ -28,6 +28,7 @@ function GlobalSoundFeedback() {
 
   useEffect(() => {
     if (!enabled) return
+    let lastTypingSoundAt = 0
 
     const handleClick = (event: MouseEvent) => {
       if (!(event.target instanceof Element)) return
@@ -65,6 +66,12 @@ function GlobalSoundFeedback() {
         role = 'overlay.close'
       } else if (['favorite', 'favourite', 'pin', 'unpin', 'toggle', 'enable', 'disable'].some(word => label.includes(word))) {
         role = 'interaction.toggle'
+      } else if (label.includes('delete') || (label.includes('remove') && !label.includes('favorite') && !label.includes('favourite'))) {
+        role = 'notification.warning'
+      } else if (label.includes('copy') || control.getAttribute('role') === 'menuitem') {
+        role = 'interaction.subtle'
+      } else if (['save', 'add', 'create', 'import', 'upload', 'done', 'confirm', 'submit'].some(word => label.includes(word))) {
+        role = 'interaction.confirm'
       }
 
       void playSound(role, { volume: 0.7 })
@@ -82,11 +89,29 @@ function GlobalSoundFeedback() {
       void playSound(role, { volume: 0.7 })
     }
 
+    const handleInput = (event: Event) => {
+      const target = event.target
+      if (!(target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement)) return
+      if (target.matches(':disabled, [aria-disabled="true"], [data-sound="off"], [data-sound="managed"]')) return
+      if (target instanceof HTMLInputElement && !['text', 'search', 'url', 'email', 'tel', 'password'].includes(target.type)) return
+
+      const inputEvent = event as InputEvent
+      if (inputEvent.isComposing || inputEvent.inputType === 'insertFromPaste') return
+      if (inputEvent.inputType && !inputEvent.inputType.startsWith('insert') && !inputEvent.inputType.startsWith('delete')) return
+
+      const now = performance.now()
+      if (now - lastTypingSoundAt < 68) return
+      lastTypingSoundAt = now
+      void playSound('interaction.type', { volume: 0.6 })
+    }
+
     document.addEventListener('click', handleClick, true)
     document.addEventListener('change', handleChange, true)
+    document.addEventListener('input', handleInput, true)
     return () => {
       document.removeEventListener('click', handleClick, true)
       document.removeEventListener('change', handleChange, true)
+      document.removeEventListener('input', handleInput, true)
     }
   }, [enabled, playSound])
 
