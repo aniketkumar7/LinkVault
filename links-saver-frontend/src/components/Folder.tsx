@@ -26,16 +26,20 @@ function isLight(color: string) {
 function buildTheme(color: string) {
   return {
     cardAccent: shade(color, 0.35),
-    cardFill: '#FFFFFF',
-    cardStroke: '#C9CDD3',
-    cardLineFill: '#D2D6DC',
+    cardFill: `color-mix(in srgb, ${color} 9%, var(--color-bg-card))`,
+    cardStroke: 'color-mix(in srgb, var(--color-border) 72%, var(--color-text-muted))',
+    cardLineFill: `color-mix(in srgb, ${color} 22%, var(--color-border))`,
   }
 }
 
 // Folder front per style. `fill`/`stroke` are CSS paints; ids are filled in at render.
-function buildLook(style: FolderStyle, color: string, ids: { grad: string; edge: string }) {
+function buildLook(style: FolderStyle, color: string, ids: { grad: string; edge: string; pattern: string }) {
   const whiteBadge = { badgeFill: 'rgba(255,255,255,0.95)', badgeText: shade(color, -0.6) }
   switch (style) {
+    case 'paper':
+      return { ...whiteBadge, fill: `url(#${ids.pattern})`, fillOpacity: 1, blur: undefined, stroke: '#d6d0c4', strokeWidth: 2, sheen: false, tabLine: false, edgeStops: [0, 0], shadowColor: '#6b6256', shadowOpacity: 0.16, tilt: 0, iconColor: color }
+    case 'outline':
+      return { badgeFill: color, badgeText: isLight(color) ? '#151514' : '#FFFFFF', fill: `url(#${ids.pattern})`, fillOpacity: 0.82, blur: undefined, stroke: color, strokeWidth: 2.5, sheen: false, tabLine: true, edgeStops: [0, 0], shadowColor: color, shadowOpacity: 0.12, tilt: 0, iconColor: color }
     case 'solid': // macOS Big Sur: one solid mid-tone, 1px light top edge, neutral shadow
       return { ...whiteBadge, fill: shade(color, 0.1), fillOpacity: 1, blur: undefined, stroke: `url(#${ids.edge})`, strokeWidth: 2, sheen: false, tabLine: false, edgeStops: [0.85, 0], shadowColor: '#000', shadowOpacity: 0.22, tilt: 0 }
     case 'neutral': // neutral frosted glass, colour only on tab line, border and badge
@@ -62,18 +66,20 @@ interface FolderProps {
   scale?: number
   width?: number
   desktopWidth?: number
+  previewStyle?: FolderStyle
 }
 
-export function Folder({ color = '#f5cb5c', hasLinks = false, linkCount = 0, placeholder = false, scale = 1, width, desktopWidth }: FolderProps) {
+export function Folder({ color = '#f5cb5c', hasLinks = false, linkCount = 0, placeholder = false, scale = 1, width, desktopWidth, previewStyle }: FolderProps) {
   const theme = buildTheme(color)
-  const folderStyle = useFolderStyle()
+  const folderStyle = previewStyle ?? useFolderStyle()
   const uid = useId().replace(/:/g, '')
   const flapGradientId = `folder_flap_${uid}`
   const sheenId = `folder_sheen_${uid}`
   const edgeId = `folder_edge_${uid}`
   const filterId = `folder_filter_${uid}`
   const iconTintId = `folder_icon_${uid}`
-  const look: ReturnType<typeof buildLook> & { iconColor?: string } = buildLook(folderStyle, color, { grad: flapGradientId, edge: edgeId })
+  const patternId = `folder_pattern_${uid}`
+  const look: ReturnType<typeof buildLook> & { iconColor?: string } = buildLook(folderStyle, color, { grad: flapGradientId, edge: edgeId, pattern: patternId })
   const mobileScale = width ? width / BASE_WIDTH : scale
   const desktopScale = desktopWidth ? desktopWidth / BASE_WIDTH : mobileScale
   const getScale = useCallback(() => typeof window !== 'undefined' && window.innerWidth >= 768 ? desktopScale : Math.min(mobileScale, 0.50), [mobileScale, desktopScale])
@@ -166,6 +172,11 @@ export function Folder({ color = '#f5cb5c', hasLinks = false, linkCount = 0, pla
                 <stop stopColor="white" stopOpacity={look.edgeStops[0]} />
                 <stop offset={look.sheen ? 1 : 0.15} stopColor="white" stopOpacity={look.edgeStops[1]} />
               </linearGradient>
+              <pattern id={patternId} width="24" height="24" patternUnits="userSpaceOnUse">
+                <rect width="24" height="24" fill="var(--color-bg-card)" />
+                <path d="M-6 6 6-6M0 24 24 0M18 30 30 18" stroke={color} strokeOpacity=".18" strokeWidth="3" />
+                <circle cx="6" cy="6" r="1.5" fill={color} fillOpacity=".18" />
+              </pattern>
               {/* Recolors the black bird icon (Neutral style, readable on dark glass) */}
               {look.iconColor && (
                 <filter id={iconTintId}>

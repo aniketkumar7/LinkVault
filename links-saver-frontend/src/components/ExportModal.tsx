@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
 import { jsPDF } from 'jspdf'
 import { api } from '@/lib/api'
 import type { Collection, Link } from '@/lib/api'
@@ -8,11 +7,13 @@ import { toast } from '@/lib/toast'
 import { Select } from '@/components/ui/Select'
 import { FluidOrbAvatar } from '@/components/ui/FluidOrbAvatar'
 import { renderToStaticMarkup } from 'react-dom/server'
+import { Drawer } from '@/components/ui/Drawer'
 
 interface Props {
   collections: Collection[]
   avatar: ProfileAvatarConfig
   onClose: () => void
+  onBack?: () => void
 }
 
 const BRAND: [number, number, number] = [245, 203, 92]
@@ -289,7 +290,7 @@ function generatePdf(
       doc.save(`bookmarky-${slug}-${new Date().toISOString().slice(0, 10)}.pdf`)
 }
 
-export function ExportModal({ collections, avatar, onClose }: Props) {
+export function ExportModal({ collections, avatar, onClose, onBack }: Props) {
   const [collectionId, setCollectionId] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -311,32 +312,9 @@ export function ExportModal({ collections, avatar, onClose }: Props) {
     }
   }
 
-  return (
-    <AnimatePresence>
-      <motion.div
-        key="export-backdrop"
-        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-        transition={{ duration: 0.18 }}
-        className="fixed inset-0 z-50 flex items-center justify-center px-4"
-        style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }}
-        onClick={onClose}
-      >
-        <motion.div
-          key="export-modal"
-          initial={{ opacity: 0, scale: 0.94, y: 16 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.94, y: 16 }}
-          transition={{ type: 'spring', stiffness: 380, damping: 30 }}
-          onClick={event => event.stopPropagation()}
-          className="w-full max-w-xs rounded-3xl border p-5"
-          style={{ background: 'var(--color-bg-card)', borderColor: 'var(--color-border)' }}
-        >
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-[16px] font-bold" style={{ color: 'var(--color-text-primary)' }}>Export PDF</h2>
-            <button onClick={onClose} className="flex h-7 w-7 items-center justify-center rounded-xl text-lg leading-none" style={{ background: 'var(--color-bg-tertiary)', color: 'var(--color-text-muted)' }} aria-label="Close export dialog">×</button>
-          </div>
-
-          <div className="mb-3">
+  return <Drawer open onClose={onClose} onBack={onBack} title="Export PDF">
+          <div className="space-y-4">
+          <div>
             <Select
               value={collectionId}
               onChange={setCollectionId}
@@ -348,7 +326,7 @@ export function ExportModal({ collections, avatar, onClose }: Props) {
             />
           </div>
 
-          <p className="mb-4 text-xs leading-relaxed" style={{ color: 'var(--color-text-secondary)' }}>
+          <p className="text-sm leading-relaxed" style={{ color: 'var(--color-text-secondary)' }}>
             Branded, multi-page PDF with clickable link titles and URLs.
           </p>
 
@@ -360,8 +338,6 @@ export function ExportModal({ collections, avatar, onClose }: Props) {
           >
             {loading ? 'Generating…' : 'Export PDF'}
           </button>
-        </motion.div>
-      </motion.div>
-    </AnimatePresence>
-  )
+          </div>
+        </Drawer>
 }

@@ -16,6 +16,16 @@ export const PROFILE_AVATARS = [
   { id: 'elephant', label: 'Elephant' },
   { id: 'rhino', label: 'Rhino' },
   { id: 'monkey', label: 'Monkey' },
+  { id: 'vibegif-owl', label: 'Animated owl' },
+  { id: 'vibegif-redpanda', label: 'Animated red panda' },
+  { id: 'vibegif-foxgirl', label: 'Animated fox girl' },
+  { id: 'vibegif-fish', label: 'Animated fish' },
+  { id: 'vibegif-jellyfish', label: 'Animated jellyfish' },
+  { id: 'vibegif-cactus', label: 'Animated cactus' },
+  { id: 'vibegif-mushroom', label: 'Animated mushroom' },
+  { id: 'vibegif-seaturtle', label: 'Animated sea turtle' },
+  { id: 'vibegif-butterfly', label: 'Animated butterfly' },
+  { id: 'vibegif-peacock', label: 'Animated peacock' },
 ] as const
 
 export type ProfileAvatarId = (typeof PROFILE_AVATARS)[number]['id']
@@ -37,6 +47,9 @@ export const AVATAR_DEFAULT_FUR: Record<ProfileAvatarId, AvatarFurColor> = {
   penguin: '#F68330', fox: '#D96B79', cat: '#8A76C6', bear: '#94674D',
   bunny: '#D96B79', frog: '#5D9B7B', owl: '#4F87B8', chick: '#E7CFA6',
   lion: '#F68330', tiger: '#F68330', elephant: '#4F87B8', rhino: '#45445E', monkey: '#94674D',
+  'vibegif-owl': '#4F87B8', 'vibegif-redpanda': '#D96B79', 'vibegif-foxgirl': '#D96B79', 'vibegif-fish': '#4F87B8',
+  'vibegif-jellyfish': '#8A76C6', 'vibegif-cactus': '#5D9B7B', 'vibegif-mushroom': '#D96B79', 'vibegif-seaturtle': '#5D9B7B',
+  'vibegif-butterfly': '#8A76C6', 'vibegif-peacock': '#4F87B8',
 }
 export const AVATAR_EYES = [
   { id: 'open', label: 'Open' },

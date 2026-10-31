@@ -125,12 +125,12 @@ export function RecentStrip() {
       <div
         ref={scroller}
         onScroll={updateEdges}
-        className="no-scrollbar -mx-4 flex snap-x snap-mandatory scroll-px-4 gap-3 overflow-x-auto px-4 pt-1 pb-1 sm:mx-0 sm:scroll-px-0 sm:px-0"
+        className="recent-strip-scroller no-scrollbar -mx-4 grid grid-cols-2 gap-3 overflow-hidden px-4 pt-1 pb-1 sm:mx-0 sm:flex sm:snap-x sm:snap-mandatory sm:scroll-px-0 sm:overflow-x-auto sm:px-0"
         style={{ maskImage: fade, WebkitMaskImage: fade }}
       >
         {isLoading
           ? Array.from({ length: 6 }).map((_, i) => <div key={i} className="h-[66px] w-64 shrink-0 rounded-2xl shimmer" />)
-          : links.map(link => <RecentCard key={link.id} link={link} />)}
+          : links.slice(0, 4).map(link => <RecentCard key={link.id} link={link} />)}
       </div>
     </section>
   )

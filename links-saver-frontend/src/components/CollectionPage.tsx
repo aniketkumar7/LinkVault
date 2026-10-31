@@ -7,6 +7,9 @@ import { BulkImportModal } from './BulkImportModal'
 import { LinksView } from './LinksView'
 import { AccountDrawer } from './AccountDrawer'
 import { ProfileDrawer } from './ProfileDrawer'
+import { AvatarDrawer } from './AvatarDrawer'
+import { ThemeDrawer } from './ThemeDrawer'
+import { FolderStyleDrawer } from './FolderStyleDrawer'
 import { profileAvatarConfig } from '@/lib/profile'
 import { SMART_FOLDERS, smartKey } from '@/lib/smartFolders'
 import { SkeletonGrid } from './ui/Skeleton'
@@ -38,6 +41,9 @@ export function CollectionPage({ collectionId, onBack }: Props) {
     ? { name: smartFolder.name, color: smartFolder.color, count: smartCount ?? 0 }
     : collection && { name: collection.name, color: collection.color, count: collection.link_count ?? 0 }
   const [showProfile, setShowProfile] = useState(false)
+  const [showAvatar, setShowAvatar] = useState(false)
+  const [showTheme, setShowTheme] = useState(false)
+  const [showFolderStyle, setShowFolderStyle] = useState(false)
 
   return (
     <div className="min-h-screen">
@@ -88,13 +94,13 @@ export function CollectionPage({ collectionId, onBack }: Props) {
               <button
                 type="button"
                 onClick={() => setShowAccountDrawer(true)}
-                className="flex h-10 w-10 items-center justify-center rounded-2xl border text-sm font-semibold"
-                style={{ background: 'var(--color-accent-fill)', borderColor: 'var(--color-accent-fill)', color: 'var(--color-on-accent)' }}
+                className="flex h-10 w-10 items-center justify-center rounded-2xl p-0 text-sm font-semibold"
+                style={{ background: 'transparent', color: 'var(--color-on-accent)' }}
                 aria-label="Open profile and settings"
                 aria-haspopup="dialog"
                 aria-expanded={showAccountDrawer}
               >
-                <FluidOrbAvatar avatar={avatar} />
+                <FluidOrbAvatar avatar={avatar} className="!rounded-2xl" />
               </button>
             </div>
           </div>
@@ -132,10 +138,16 @@ export function CollectionPage({ collectionId, onBack }: Props) {
         user={user}
         avatar={avatar}
         totalLinks={stats?.total}
-        onEditProfile={() => setShowProfile(true)}
+        onEditProfile={() => { setShowAccountDrawer(false); setShowProfile(true) }}
+        onEditAvatar={() => { setShowAccountDrawer(false); setShowAvatar(true) }}
+        onEditTheme={() => { setShowAccountDrawer(false); setShowTheme(true) }}
+        onEditFolderStyle={() => { setShowAccountDrawer(false); setShowFolderStyle(true) }}
         onSignOut={signOut}
       />
-      <ProfileDrawer open={showProfile} onClose={() => setShowProfile(false)} user={user} />
+      <ProfileDrawer open={showProfile} onClose={() => setShowProfile(false)} onBack={() => { setShowProfile(false); setShowAccountDrawer(true) }} user={user} />
+      <AvatarDrawer open={showAvatar} onClose={() => setShowAvatar(false)} onBack={() => { setShowAvatar(false); setShowAccountDrawer(true) }} user={user} />
+      <ThemeDrawer open={showTheme} onClose={() => setShowTheme(false)} onBack={() => { setShowTheme(false); setShowAccountDrawer(true) }} />
+      <FolderStyleDrawer open={showFolderStyle} onClose={() => setShowFolderStyle(false)} onBack={() => { setShowFolderStyle(false); setShowAccountDrawer(true) }} />
     </div>
   )
 }

@@ -8,7 +8,6 @@ export function SoundEffectsSwitch() {
     <div className="flex items-center justify-between gap-3 rounded-xl px-3 py-2.5">
       <div className="min-w-0">
         <p className="text-sm font-medium" style={{ color: 'var(--color-text-primary)' }}>Sound effects</p>
-        <p className="text-[11px]" style={{ color: 'var(--color-text-muted)' }}>Subtle interface feedback</p>
       </div>
       <Switch
         checked={enabled}

@@ -1,10 +1,8 @@
 import type { User } from '@supabase/supabase-js'
-import { DownloadSimple, SignOut, Stack, UserCircle } from '@phosphor-icons/react'
+import { CaretRight, DownloadSimple, PencilSimple, SignOut, Stack, UserCircle, Palette, FolderSimple, SpeakerHigh } from '@phosphor-icons/react'
 import { displayName, type ProfileAvatarConfig } from '@/lib/profile'
-import { AccentPicker } from './ui/AccentPicker'
 import { Drawer } from './ui/Drawer'
 import { FluidOrbAvatar } from './ui/FluidOrbAvatar'
-import { FolderStylePicker } from './ui/FolderStylePicker'
 import { SoundEffectsSwitch } from './ui/SoundEffectsSwitch'
 
 interface AccountDrawerProps {
@@ -14,6 +12,9 @@ interface AccountDrawerProps {
   avatar: ProfileAvatarConfig
   totalLinks?: number
   onEditProfile: () => void
+  onEditAvatar: () => void
+  onEditTheme: () => void
+  onEditFolderStyle: () => void
   onManageCollections?: () => void
   onExportLinks?: () => void
   onSignOut: () => void | Promise<void>
@@ -26,6 +27,9 @@ export function AccountDrawer({
   avatar,
   totalLinks,
   onEditProfile,
+  onEditAvatar,
+  onEditTheme,
+  onEditFolderStyle,
   onManageCollections,
   onExportLinks,
   onSignOut,
@@ -34,7 +38,10 @@ export function AccountDrawer({
     <Drawer open={open} onClose={onClose} eyebrow="Your account" title="Profile & settings">
       <div className="space-y-6">
         <div className="flex items-center gap-3">
-          <span className="block size-14 shrink-0"><FluidOrbAvatar avatar={avatar} /></span>
+          <button type="button" onClick={onEditAvatar} aria-label="Edit avatar" className="group relative block size-14 shrink-0 rounded-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2" style={{ outlineColor: 'var(--color-accent-fill)' }}>
+            <FluidOrbAvatar avatar={avatar} />
+            <span className="absolute -right-1 -top-1 grid h-5 w-5 place-items-center rounded-full border-2 text-white" style={{ background: 'var(--color-accent-fill)', borderColor: 'var(--color-bg-card)' }}><PencilSimple size={11} weight="bold" /></span>
+          </button>
           <div className="min-w-0">
             <p className="truncate text-base font-semibold" style={{ color: 'var(--color-text-primary)' }}>{displayName(user)}</p>
             <p className="mt-0.5 truncate text-sm" style={{ color: 'var(--color-text-secondary)' }}>{user?.email}</p>
@@ -42,21 +49,11 @@ export function AccountDrawer({
           </div>
         </div>
 
-        <section aria-labelledby="account-appearance-heading" className="space-y-2 border-y py-4" style={{ borderColor: 'var(--color-border)' }}>
-          <h3 id="account-appearance-heading" className="mb-2 text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>Appearance</h3>
-          <AccentPicker />
-          <FolderStylePicker />
-        </section>
-
-        <section aria-labelledby="account-sound-heading" className="space-y-2">
-          <h3 id="account-sound-heading" className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>Sound</h3>
-          <div className="rounded-xl border" style={{ borderColor: 'var(--color-border)' }}>
-            <SoundEffectsSwitch />
-          </div>
-        </section>
-
         <nav aria-label="Account actions" className="space-y-1 border-t pt-4" style={{ borderColor: 'var(--color-border)' }}>
-          <ActionButton icon={<UserCircle size={18} weight="duotone" />} label="Edit profile" onClick={() => { onClose(); onEditProfile() }} />
+          <ActionButton icon={<UserCircle size={18} weight="duotone" />} label="Edit profile" onClick={onEditProfile} />
+          <ActionButton icon={<Palette size={18} weight="duotone" />} label="Theme" onClick={onEditTheme} />
+          <ActionButton icon={<FolderSimple size={18} weight="duotone" />} label="Folder style" onClick={onEditFolderStyle} />
+          <div className="flex items-center rounded-xl transition-colors hover:bg-[var(--color-bg-tertiary)]"><SpeakerHigh size={18} weight="duotone" className="ml-3 shrink-0" style={{ color: 'var(--color-text-secondary)' }} /><div className="min-w-0 flex-1"><SoundEffectsSwitch /></div></div>
           {onManageCollections && <ActionButton icon={<Stack size={18} weight="duotone" />} label="Manage collections" onClick={() => { onClose(); onManageCollections() }} />}
           {onExportLinks && <ActionButton icon={<DownloadSimple size={18} weight="duotone" />} label="Export links" onClick={() => { onClose(); onExportLinks() }} />}
           <ActionButton danger icon={<SignOut size={18} weight="duotone" />} label="Sign out" onClick={() => { onClose(); void onSignOut() }} />
@@ -75,7 +72,8 @@ function ActionButton({ icon, label, onClick, danger = false }: { icon: React.Re
       style={{ color: danger ? 'var(--color-error)' : 'var(--color-text-secondary)', outlineColor: 'var(--color-accent-fill)' }}
     >
       {icon}
-      <span>{label}</span>
+      <span className="min-w-0 flex-1">{label}</span>
+      {!danger && <CaretRight size={16} style={{ color: 'var(--color-text-muted)' }} />}
     </button>
   )
 }

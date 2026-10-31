@@ -4,11 +4,24 @@ const backgrounds: Record<ProfileAvatarId, string> = {
   penguin: '#FDE9DA', fox: '#FCE7DF', cat: '#ECE7FA', bear: '#F2E8DF',
   bunny: '#F7E7F0', frog: '#E5F2DF', owl: '#E3EDF6', chick: '#F8F0D9',
   lion: '#F9E9CF', tiger: '#FDE9DA', elephant: '#E4EDF2', rhino: '#E7E6EF', monkey: '#F1E6DA',
+  'vibegif-owl': '#E3EDF6', 'vibegif-redpanda': '#FCE7DF', 'vibegif-foxgirl': '#FCE7DF', 'vibegif-fish': '#E3EDF6',
+  'vibegif-jellyfish': '#ECE7FA', 'vibegif-cactus': '#E5F2DF', 'vibegif-mushroom': '#FCE7DF', 'vibegif-seaturtle': '#E5F2DF',
+  'vibegif-butterfly': '#ECE7FA', 'vibegif-peacock': '#E3EDF6',
+}
+
+const animatedAvatarFiles: Partial<Record<ProfileAvatarId, string>> = {
+  'vibegif-owl': 'owl-blink.webp', 'vibegif-redpanda': 'redpanda-wave.webp', 'vibegif-foxgirl': 'foxgirl-tails.webp', 'vibegif-fish': 'clownfish-wiggle.webp',
+  'vibegif-jellyfish': 'jellyfish-pulse.webp', 'vibegif-cactus': 'cactus-sway.webp', 'vibegif-mushroom': 'mushroom-bounce.webp', 'vibegif-seaturtle': 'seaturtle-swim.webp',
+  'vibegif-butterfly': 'butterfly-flutter.webp', 'vibegif-peacock': 'peacock-fan.webp',
 }
 
 export function FluidOrbAvatar({ avatar = DEFAULT_AVATAR_CONFIG, className = '' }: { avatar?: ProfileAvatarConfig; className?: string }) {
   const { character: avatarId, furColor: body } = avatar
   const bg = backgrounds[avatarId]
+  const animatedFile = animatedAvatarFiles[avatarId]
+  if (animatedFile) {
+    return <span className={`block size-full rounded-full p-1 ${className}`} style={{ background: body }}><img src={`/avatars/vibegif/${animatedFile}`} alt="" className="block size-full rounded-full object-cover" /></span>
+  }
   const ears = avatarId === 'fox' || avatarId === 'cat'
   const roundedEars = avatarId === 'bear' || avatarId === 'owl' || avatarId === 'monkey'
 

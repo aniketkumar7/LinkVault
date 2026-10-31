@@ -6,7 +6,7 @@ import { Drawer } from '@/components/ui/Drawer'
 import { toast } from '@/lib/toast'
 import { AddCollectionModal } from './AddCollectionModal'
 
-export function CollectionManager({ open, onClose, collections, onChanged }: { open: boolean; onClose: () => void; collections: Collection[]; onChanged: () => void }) {
+export function CollectionManager({ open, onClose, onBack, collections, onChanged }: { open: boolean; onClose: () => void; onBack?: () => void; collections: Collection[]; onChanged: () => void }) {
   const [editing, setEditing] = useState<string | null>(null)
   const [deleting, setDeleting] = useState<string | null>(null)
   const [pendingDelete, setPendingDelete] = useState<Collection | null>(null)
@@ -40,7 +40,7 @@ export function CollectionManager({ open, onClose, collections, onChanged }: { o
       onClose={close}
       eyebrow="Library"
       title={editingCollection ? 'Edit collection' : 'Manage collections'}
-      onBack={editingCollection ? () => setEditing(null) : undefined}
+      onBack={editingCollection ? () => setEditing(null) : onBack}
     >
       {editingCollection ? (
         <AddCollectionModal bare key={editingCollection.id} open collection={editingCollection} onClose={() => setEditing(null)} onCreated={onChanged} />

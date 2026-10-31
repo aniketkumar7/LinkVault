@@ -1,12 +1,14 @@
 import { useSyncExternalStore } from 'react'
 
-export type FolderStyle = 'original' | 'solid' | 'neutral' | 'glossy'
+export type FolderStyle = 'original' | 'solid' | 'neutral' | 'glossy' | 'paper' | 'outline'
 
 export const FOLDER_STYLES: { key: FolderStyle; label: string }[] = [
   { key: 'original', label: 'Original' },
   { key: 'solid', label: 'Solid' },
   { key: 'neutral', label: 'Neutral' },
   { key: 'glossy', label: 'Glossy' },
+  { key: 'paper', label: 'Paper' },
+  { key: 'outline', label: 'Outline' },
 ]
 
 const KEY = 'folder-style'

@@ -18,6 +18,9 @@ import { ExportModal } from './ExportModal'
 import { AddCollectionModal } from './AddCollectionModal'
 import { AccountDrawer } from './AccountDrawer'
 import { ProfileDrawer } from './ProfileDrawer'
+import { AvatarDrawer } from './AvatarDrawer'
+import { ThemeDrawer } from './ThemeDrawer'
+import { FolderStyleDrawer } from './FolderStyleDrawer'
 import { firstName, profileAvatarConfig } from '@/lib/profile'
 import { FluidOrbAvatar } from './ui/FluidOrbAvatar'
 import { NotificationCenter } from './ui/NotificationCenter'
@@ -170,6 +173,9 @@ export function Home({ onOpenCollection, incomingShare, onIncomingShareHandled }
 
   const userFirstName = firstName(user)
   const [showProfile, setShowProfile] = useState(false)
+  const [showAvatar, setShowAvatar] = useState(false)
+  const [showTheme, setShowTheme] = useState(false)
+  const [showFolderStyle, setShowFolderStyle] = useState(false)
 
   return (
     <div className="min-h-screen">
@@ -205,13 +211,13 @@ export function Home({ onOpenCollection, incomingShare, onIncomingShareHandled }
               <button
                 type="button"
                 onClick={() => setShowAccountDrawer(true)}
-                className="flex h-10 w-10 items-center justify-center rounded-2xl border text-sm font-semibold"
-                style={{ background: 'var(--color-accent-fill)', borderColor: 'var(--color-accent-fill)', color: 'var(--color-on-accent)' }}
+                className="flex h-10 w-10 items-center justify-center rounded-2xl p-0 text-sm font-semibold"
+                style={{ background: 'transparent', color: 'var(--color-on-accent)' }}
                 aria-label="Open profile and settings"
                 aria-haspopup="dialog"
                 aria-expanded={showAccountDrawer}
               >
-                <FluidOrbAvatar avatar={avatar} />
+                <FluidOrbAvatar avatar={avatar} className="!rounded-2xl" />
               </button>
             </div>
           </div>
@@ -223,12 +229,11 @@ export function Home({ onOpenCollection, incomingShare, onIncomingShareHandled }
           <SearchResults query={query} collections={collections} onChanged={invalidateCollections} />
         ) : (
           <>
-            <section className="mb-8">
+            <section className="mb-8 flex items-start justify-between gap-6">
               <div className="min-w-0">
-                <h2 className="text-3xl font-bold tracking-[-0.03em] sm:text-4xl" style={{ color: 'var(--color-text-primary)' }}>
-                  {greeting()}{userFirstName && <>, <span style={{ color: 'var(--color-accent)' }}>{userFirstName}</span></>}
-                </h2>
-                {stats && stats.savedLast7Days > 0 && (
+                <p className="text-2xl font-semibold tracking-[-0.025em] sm:text-3xl" style={{ color: 'var(--color-text-primary)' }}>{greeting()},</p>
+                {userFirstName ? <h2 className="mt-0.5 text-3xl font-bold tracking-[-0.03em] sm:text-4xl" style={{ color: 'var(--color-accent)' }}>{userFirstName}</h2> : <h2 className="mt-0.5 text-3xl font-bold tracking-[-0.03em] sm:text-4xl" style={{ color: 'var(--color-text-primary)' }}>Welcome back</h2>}
+                {stats && (
                   <p className="mt-2 text-sm" style={{ color: 'var(--color-text-secondary)' }}>
                     You saved <span className="font-semibold" style={{ color: 'var(--color-accent)' }}>{stats.savedLast7Days}</span> link{stats.savedLast7Days === 1 ? '' : 's'} in the last 7 days
                   </p>
@@ -238,11 +243,11 @@ export function Home({ onOpenCollection, incomingShare, onIncomingShareHandled }
                     Add your name →
                   </button>
                 )}
-                <p className="mt-3 hidden items-center gap-2 text-sm md:flex" style={{ color: 'var(--color-text-muted)' }}>
-                  <kbd className="rounded-md border px-1.5 py-0.5 text-[10px] font-semibold" style={{ borderColor: 'var(--color-border)', background: 'var(--color-bg-card)' }}>Ctrl V</kbd>
-                  Paste a link anywhere to save it
-                </p>
               </div>
+              <p className="mt-2 hidden items-center gap-2 text-sm md:flex" style={{ color: 'var(--color-text-muted)' }}>
+                <kbd className="rounded-md border px-1.5 py-0.5 text-[10px] font-semibold" style={{ borderColor: 'var(--color-border)', background: 'var(--color-bg-card)' }}>Ctrl V</kbd>
+                Paste a link anywhere to save it
+              </p>
             </section>
 
             <RecentStrip />
@@ -305,23 +310,29 @@ export function Home({ onOpenCollection, incomingShare, onIncomingShareHandled }
         <button type="button" onClick={() => setShowBulkImport(true)} className="capture-secondary">Import links</button>
       </div>
 
-      <CollectionManager open={showCollectionManager} onClose={() => setShowCollectionManager(false)} collections={collections} onChanged={invalidateCollections} />
+      <CollectionManager open={showCollectionManager} onClose={() => setShowCollectionManager(false)} onBack={() => { setShowCollectionManager(false); setShowAccountDrawer(true) }} collections={collections} onChanged={invalidateCollections} />
       <AddCollectionModal key={showAddCollection ? 'new-open' : 'new-closed'} open={showAddCollection} onClose={() => setShowAddCollection(false)} onCreated={invalidateCollections} avatar={avatar} />
       <AddLinkForm key={addLinkKey} initialUrl={pastedUrl} open={showAddLink} onOpenChange={setShowAddLink} onLinkAdded={invalidateCollections} collections={collections} onCollectionCreated={invalidateCollections} avatar={avatar} />
       {showBulkImport && <BulkImportModal key="shared-import" initialFiles={sharedFiles} onClose={() => { setShowBulkImport(false); setSharedFiles([]) }} onImported={invalidateCollections} collections={collections} avatar={avatar} />}
-      {showExport && <ExportModal collections={collections} avatar={avatar} onClose={() => setShowExport(false)} />}
+      {showExport && <ExportModal collections={collections} avatar={avatar} onClose={() => setShowExport(false)} onBack={() => { setShowExport(false); setShowAccountDrawer(true) }} />}
       <AccountDrawer
         open={showAccountDrawer}
         onClose={() => setShowAccountDrawer(false)}
         user={user}
         avatar={avatar}
         totalLinks={stats?.total}
-        onEditProfile={() => setShowProfile(true)}
-        onManageCollections={() => setShowCollectionManager(true)}
-        onExportLinks={() => setShowExport(true)}
+        onEditProfile={() => { setShowAccountDrawer(false); setShowProfile(true) }}
+        onEditAvatar={() => { setShowAccountDrawer(false); setShowAvatar(true) }}
+        onEditTheme={() => { setShowAccountDrawer(false); setShowTheme(true) }}
+        onEditFolderStyle={() => { setShowAccountDrawer(false); setShowFolderStyle(true) }}
+        onManageCollections={() => { setShowAccountDrawer(false); setShowCollectionManager(true) }}
+        onExportLinks={() => { setShowAccountDrawer(false); setShowExport(true) }}
         onSignOut={signOut}
       />
-      <ProfileDrawer open={showProfile} onClose={() => setShowProfile(false)} user={user} />
+      <ProfileDrawer open={showProfile} onClose={() => setShowProfile(false)} onBack={() => { setShowProfile(false); setShowAccountDrawer(true) }} user={user} />
+      <AvatarDrawer open={showAvatar} onClose={() => setShowAvatar(false)} onBack={() => { setShowAvatar(false); setShowAccountDrawer(true) }} user={user} />
+      <ThemeDrawer open={showTheme} onClose={() => setShowTheme(false)} onBack={() => { setShowTheme(false); setShowAccountDrawer(true) }} />
+      <FolderStyleDrawer open={showFolderStyle} onClose={() => setShowFolderStyle(false)} onBack={() => { setShowFolderStyle(false); setShowAccountDrawer(true) }} />
     </div>
   )
 }

@@ -248,7 +248,7 @@ export function NotificationCenter() {
       >
         <Bell size={19} weight={unreadCount ? 'fill' : 'regular'} aria-hidden="true" />
         {unreadCount > 0 && (
-          <span className="absolute -right-1 -top-1 grid min-h-[18px] min-w-[18px] place-items-center rounded-full px-1 text-[10px] font-bold" style={{ background: 'var(--color-accent-fill)', color: 'var(--color-on-accent)' }} aria-hidden="true">
+          <span className="absolute -right-1 -top-1 grid min-h-[18px] min-w-[18px] place-items-center rounded-full px-1 text-[10px] font-bold" style={{ background: 'var(--color-accent-fill)', color: '#fff' }} aria-hidden="true">
             {unreadCount > 99 ? '99+' : unreadCount}
           </span>
         )}
