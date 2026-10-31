@@ -18,6 +18,17 @@ async function getAuthHeaders() {
   }
 }
 
+async function getApiError(response: Response, fallback: string): Promise<Error> {
+  if (response.status === 401) return new Error('Your session expired. Please sign in again.')
+  if (response.status === 413) return new Error('The uploaded file is too large.')
+  if (response.status === 429) return new Error('Too many requests or AI quota reached. Please wait and try again.')
+  try {
+    const body = await response.json() as { error?: unknown }
+    if (typeof body.error === 'string' && body.error.trim()) return new Error(body.error)
+  } catch { /* non-JSON response */ }
+  return new Error(fallback)
+}
+
 // Types
 export interface Link {
   id: string
@@ -284,7 +295,7 @@ export const api = {
       headers: { Authorization: `Bearer ${session.access_token}` },
       body: form,
     })
-    if (!res.ok) throw new Error((await res.json()).error || 'Failed to extract links')
+    if (!res.ok) throw await getApiError(res, 'Could not extract links from these images. Please try again.')
     return (await res.json()).links
   },
 
@@ -294,7 +305,7 @@ export const api = {
       method: 'POST', headers,
       body: JSON.stringify({ urls, collections: collections.map(c => ({ id: c.id, name: c.name, description: c.description, link_count: c.link_count })) }),
     })
-    if (!res.ok) throw new Error((await res.json()).error || 'Failed to recommend collections')
+    if (!res.ok) throw await getApiError(res, 'Could not recommend collections. Please try again.')
     return (await res.json()).links
   },
 

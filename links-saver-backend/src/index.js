@@ -3,6 +3,7 @@ require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
 
 const express = require('express');
 const cors = require('cors');
+const helmet = require('helmet');
 
 const authMiddleware = require('./middleware/auth');
 const linksRouter = require('./routes/links');
@@ -12,6 +13,7 @@ const notificationsRouter = require('./routes/notifications');
 const { rateLimit } = require('./middleware/rateLimit');
 
 const app = express();
+app.set('trust proxy', 1);
 
 // Middleware
 // In src/index.js - replace lines 12-17 with:
@@ -19,7 +21,9 @@ app.use(cors({
     origin: process.env.FRONTEND_URL || 'http://localhost:5173',
     credentials: true
 }));
+app.use(helmet());
 app.use(express.json({ limit: '2mb' }));
+app.use('/api', rateLimit({ windowMs: 60 * 1000, max: 300 }));
 
 // Health check
 app.get('/', (req, res) => {
@@ -47,8 +51,11 @@ app.get('/api/shared/:slug', async (req, res) => {
 // Error handling middleware
 app.use((err, req, res, next) => {
     console.error('Error:', err);
+    if (err.code === 'LIMIT_FILE_SIZE') return res.status(413).json({ error: 'Each image must be 10 MB or smaller.' });
+    if (err.code === 'LIMIT_UNEXPECTED_FILE' || err.code === 'LIMIT_FILE_COUNT') return res.status(400).json({ error: 'Upload up to 5 supported images.' });
+    if (err.message === 'Unexpected field') return res.status(400).json({ error: 'Only supported image uploads are allowed.' });
     res.status(err.status || 500).json({
-        error: err.message || 'Internal server error'
+        error: err.status && err.status < 500 ? err.message : 'Internal server error'
     });
 });
 

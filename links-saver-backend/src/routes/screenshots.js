@@ -3,12 +3,48 @@ const router = express.Router();
 const multer = require('multer');
 const { GoogleGenAI } = require('@google/genai');
 const { isGenericCollectionName, suggestCollectionFromUrl } = require('../utils/collectionSuggestions');
+const { isValidUrl } = require('../utils/validation');
+
+function hasValidImageSignature(file) {
+    const bytes = file.buffer;
+    if (file.mimetype === 'image/png') return bytes.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]));
+    if (file.mimetype === 'image/jpeg') return bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff;
+    if (file.mimetype === 'image/gif') return bytes.subarray(0, 6).toString() === 'GIF87a' || bytes.subarray(0, 6).toString() === 'GIF89a';
+    if (file.mimetype === 'image/webp') return bytes.subarray(0, 4).toString() === 'RIFF' && bytes.subarray(8, 12).toString() === 'WEBP';
+    if (file.mimetype === 'image/bmp') return bytes.subarray(0, 2).toString() === 'BM';
+    return false;
+}
+
+function hasSafeImageDimensions(file) {
+    const bytes = file.buffer;
+    let width = 0;
+    let height = 0;
+    if (file.mimetype === 'image/png' && bytes.length >= 24) {
+        width = bytes.readUInt32BE(16); height = bytes.readUInt32BE(20);
+    } else if (file.mimetype === 'image/gif' && bytes.length >= 10) {
+        width = bytes.readUInt16LE(6); height = bytes.readUInt16LE(8);
+    } else if (file.mimetype === 'image/webp' && bytes.length >= 30 && bytes.subarray(12, 16).toString() === 'VP8X') {
+        width = 1 + bytes.readUIntLE(24, 3); height = 1 + bytes.readUIntLE(27, 3);
+    } else if (file.mimetype === 'image/jpeg') {
+        for (let offset = 2; offset + 9 < bytes.length;) {
+            if (bytes[offset] !== 0xff) break;
+            const marker = bytes[offset + 1];
+            const length = bytes.readUInt16BE(offset + 2);
+            if (marker >= 0xc0 && marker <= 0xc3) {
+                height = bytes.readUInt16BE(offset + 5); width = bytes.readUInt16BE(offset + 7); break;
+            }
+            if (!length) break;
+            offset += 2 + length;
+        }
+    }
+    return width > 0 && height > 0 && width <= 10000 && height <= 10000 && width * height <= 40_000_000;
+}
 
 const upload = multer({
     storage: multer.memoryStorage(),
-    limits: { fileSize: 10 * 1024 * 1024, files: 10 },
+    limits: { fileSize: 10 * 1024 * 1024, files: 5 },
     fileFilter: (_, file, cb) => {
-        cb(null, file.mimetype.startsWith('image/'));
+        cb(null, ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/bmp'].includes(file.mimetype));
     }
 });
 
@@ -73,6 +109,9 @@ router.post('/extract', upload.array('screenshots', 10), async (req, res) => {
         if (!req.files || req.files.length === 0) {
             return res.status(400).json({ error: 'No images uploaded' });
         }
+        if (req.files.some(file => !hasValidImageSignature(file) || !hasSafeImageDimensions(file))) {
+            return res.status(400).json({ error: 'One or more files are not valid supported images' });
+        }
 
         const collectionsRaw = req.body.collections;
         const collections = collectionsRaw ? JSON.parse(collectionsRaw) : [];
@@ -127,7 +166,7 @@ Respond ONLY with a valid JSON array, no markdown, no explanation:
             extracted = JSON.parse(cleaned);
         } catch {
             console.error('Gemini response parse error:', text);
-            return res.status(422).json({ error: 'Could not parse Gemini response', raw: text });
+            return res.status(502).json({ error: 'The screenshot service returned an invalid response. Please try again.' });
         }
 
         if (!Array.isArray(extracted)) {
@@ -136,9 +175,7 @@ Respond ONLY with a valid JSON array, no markdown, no explanation:
 
         // Validate URLs and normalize
         const allowedCollectionIds = new Set(collections.map(collection => collection.id));
-        const valid = extracted.filter(item => {
-            try { new URL(item.url); return true; } catch { return false; }
-        }).map(item => {
+        const valid = extracted.filter(item => typeof item?.url === 'string' && isValidUrl(item.url)).map(item => {
             const collectionId = allowedCollectionIds.has(item.collectionId) ? item.collectionId : null;
             const fallback = suggestCollectionFromUrl(item.url);
             const suggested = item.suggestedCollection;
@@ -165,7 +202,8 @@ Respond ONLY with a valid JSON array, no markdown, no explanation:
         res.json({ links: valid });
     } catch (error) {
         console.error('Screenshot extraction error:', error);
-        if (error.status === 429) {
+        const isQuotaError = error?.status === 429 || /quota|rate limit|resource exhausted/i.test(error?.message || '');
+        if (isQuotaError) {
             const retryMatch = error.message?.match(/(\d+)s"/);
             const wait = retryMatch ? `${retryMatch[1]}s` : 'a moment';
             return res.status(429).json({ error: `Gemini quota exceeded. Please retry in ${wait}.` });

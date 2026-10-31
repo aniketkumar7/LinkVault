@@ -184,22 +184,8 @@ export function Home({ onOpenCollection, incomingShare, onIncomingShareHandled }
             <svg className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2" style={{ color: 'var(--color-text-muted)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
-            <input
-              ref={searchRef}
-              type="text"
-              value={searchInput}
-              onChange={e => handleSearch(e.target.value)}
-              onKeyDown={e => { if (e.key === 'Escape') { handleSearch(''); e.currentTarget.blur() } }}
-              placeholder="Search all links…"
-              aria-label="Search all links"
-              className="w-full rounded-2xl border py-2.5 pl-10 pr-14 text-sm"
-              style={{ background: 'var(--color-bg-card)', borderColor: 'var(--color-border)', color: 'var(--color-text-primary)' }}
-            />
-            {searchInput ? (
-              <button type="button" onClick={() => handleSearch('')} aria-label="Clear search" className="absolute right-3 top-1/2 -translate-y-1/2 text-lg leading-none" style={{ color: 'var(--color-text-muted)' }}>×</button>
-            ) : (
-              <kbd className="pointer-events-none absolute right-3 top-1/2 hidden -translate-y-1/2 rounded-md border px-1.5 py-0.5 text-[10px] font-semibold sm:block" style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-muted)' }}>Ctrl K</kbd>
-            )}
+            <input ref={searchRef} type="text" value={searchInput} onChange={e => handleSearch(e.target.value)} onKeyDown={e => { if (e.key === 'Escape') { handleSearch(''); e.currentTarget.blur() } }} placeholder="Search all links…" aria-label="Search all links" className="w-full rounded-2xl border py-2.5 pl-10 pr-14 text-sm" style={{ background: 'var(--color-bg-card)', borderColor: 'var(--color-border)', color: 'var(--color-text-primary)' }} />
+            {searchInput ? <button type="button" onClick={() => handleSearch('')} aria-label="Clear search" className="absolute right-3 top-1/2 -translate-y-1/2 text-lg leading-none" style={{ color: 'var(--color-text-muted)' }}>×</button> : <kbd className="pointer-events-none absolute right-3 top-1/2 hidden -translate-y-1/2 rounded-md border px-1.5 py-0.5 text-[10px] font-semibold sm:block" style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-muted)' }}>Ctrl K</kbd>}
           </div>
 
           <div className="flex items-center gap-2">

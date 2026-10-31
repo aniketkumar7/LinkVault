@@ -4,6 +4,19 @@ const { supabase } = require('../config/supabase');
 const { fetchMetadata } = require('../utils/metadataFetcher');
 const { recordNotification } = require('../utils/notifications');
 const { validateLinkInput, normalizeUrl } = require('../utils/validation');
+const { assertSafeHttpUrl } = require('../utils/safeUrl');
+
+async function ownsCollection(collectionId, userId) {
+    if (!collectionId) return true;
+    const { data, error } = await supabase
+        .from('collections')
+        .select('id')
+        .eq('id', collectionId)
+        .eq('user_id', userId)
+        .maybeSingle();
+    if (error) throw error;
+    return Boolean(data);
+}
 
 /**
  * GET /api/links
@@ -184,6 +197,9 @@ router.post('/', async (req, res) => {
             return res.status(400).json({ error: validation.error });
         }
         const normalizedUrl = normalizeUrl(url);
+        if (collection_id && !(await ownsCollection(collection_id, req.user.id))) {
+            return res.status(400).json({ error: 'Collection not found' });
+        }
 
         // Check for duplicate unless explicitly allowed
         if (!allow_duplicate) {
@@ -239,7 +255,6 @@ router.post('/', async (req, res) => {
         console.error('Error creating link:', error);
         res.status(500).json({
             error: 'Failed to save link',
-            details: error.message
         });
     }
 });
@@ -274,6 +289,9 @@ router.post('/bulk', async (req, res) => {
                 const validation = validateLinkInput({ url: rawUrl, note });
                 if (!validation.valid) throw new Error(validation.error);
                 const url = normalizeUrl(rawUrl);
+                if (collection_id && !(await ownsCollection(collection_id, req.user.id))) {
+                    throw new Error('Collection not found');
+                }
                 // Check duplicate
                 const { data: existing } = await supabase
                     .from('useful_links')
@@ -332,7 +350,10 @@ router.patch('/bulk', async (req, res) => {
         const { ids, collection_id } = req.body;
         if (!Array.isArray(ids) || ids.length === 0) return res.status(400).json({ error: 'Link ids required' });
         const updates = {};
-        if (collection_id !== undefined) updates.collection_id = collection_id || null;
+        if (collection_id !== undefined) {
+            if (collection_id && !(await ownsCollection(collection_id, req.user.id))) return res.status(400).json({ error: 'Collection not found' });
+            updates.collection_id = collection_id || null;
+        }
         if (!Object.keys(updates).length) return res.status(400).json({ error: 'No updates provided' });
         const { data, error } = await supabase.from('useful_links').update(updates).in('id', ids).eq('user_id', req.user.id).select();
         if (error) throw error;
@@ -387,9 +408,11 @@ router.post('/:id/check-health', async (req, res) => {
         let statusCode = null;
 
         try {
+            await assertSafeHttpUrl(link.url);
             const response = await fetch(link.url, {
                 method: 'HEAD',
-                timeout: 10000,
+                redirect: 'manual',
+                signal: AbortSignal.timeout(10000),
                 headers: {
                     'User-Agent': 'Mozilla/5.0 (compatible; ReelsLinksSaver/1.0)'
                 }
@@ -439,6 +462,7 @@ router.patch('/:id', async (req, res) => {
         if (note !== undefined) updates.note = note.trim();
         if (is_favorite !== undefined) updates.is_favorite = is_favorite;
         if (collection_id !== undefined) updates.collection_id = collection_id || null;
+        if (collection_id && !(await ownsCollection(collection_id, req.user.id))) return res.status(400).json({ error: 'Collection not found' });
 
         const { data: previous } = await supabase
             .from('useful_links')

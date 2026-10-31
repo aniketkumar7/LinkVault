@@ -1,4 +1,5 @@
 const ogs = require('open-graph-scraper');
+const { assertSafeHttpUrl } = require('./safeUrl');
 
 /**
  * Fetch metadata from a URL using open-graph-scraper
@@ -6,10 +7,12 @@ const ogs = require('open-graph-scraper');
  */
 async function fetchMetadata(url) {
     try {
+        await assertSafeHttpUrl(url);
         const options = {
             url,
             timeout: 8000,
             fetchOptions: {
+                redirect: 'manual',
                 headers: {
                     'user-agent': 'Mozilla/5.0 (compatible; ReelsLinksSaver/1.0)'
                 }

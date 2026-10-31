@@ -127,17 +127,6 @@ function extractUrlsFromCsv(text: string): string[] {
   return [...new Set(urls)]
 }
 
-async function extractUrlsFromExcel(file: File): Promise<string[]> {
-  const XLSX = await import('xlsx')
-  const workbook = XLSX.read(await file.arrayBuffer(), { type: 'array' })
-  const urls = new Set<string>()
-  workbook.SheetNames.forEach(name => {
-    const rows = XLSX.utils.sheet_to_json<unknown[]>(workbook.Sheets[name], { header: 1, raw: false })
-    rows.flat().forEach(value => extractUrlsFromText(String(value ?? '')).forEach(url => urls.add(url)))
-  })
-  return [...urls]
-}
-
 async function extractUrlsFromPdf(file: File): Promise<string[]> {
   const pdfjs = await import('pdfjs-dist')
   pdfjs.GlobalWorkerOptions.workerSrc = new URL('pdfjs-dist/build/pdf.worker.min.mjs', import.meta.url).toString()
@@ -263,9 +252,9 @@ export function BulkImportModal({ onClose, onImported, collections, initialFiles
       if (!blob) return
       event.preventDefault()
       const file = new File([blob], `pasted-screenshot-${Date.now()}.png`, { type: blob.type || 'image/png' })
-      setSelectedFiles(previous => [...previous, file].slice(0, 10))
-      setScreenshots(previous => [...previous, file].slice(0, 10))
-      setScreenshotPreviews(previous => [...previous, URL.createObjectURL(file)].slice(0, 10))
+      setSelectedFiles(previous => [...previous, file].slice(0, 5))
+      setScreenshots(previous => [...previous, file].slice(0, 5))
+      setScreenshotPreviews(previous => [...previous, URL.createObjectURL(file)].slice(0, 5))
       setTab('screenshots')
       toast.success('Screenshot added')
     }
@@ -274,10 +263,10 @@ export function BulkImportModal({ onClose, onImported, collections, initialFiles
   }, [])
 
   function handleScreenshotFiles(files: File[]) {
-    const limited = files.slice(0, 10 - screenshots.length)
+    const limited = files.slice(0, 5 - screenshots.length)
     if (!limited.length) return
-    setScreenshots(prev => [...prev, ...limited].slice(0, 10))
-    setScreenshotPreviews(prev => [...prev, ...limited.map(file => URL.createObjectURL(file))].slice(0, 10))
+    setScreenshots(prev => [...prev, ...limited].slice(0, 5))
+    setScreenshotPreviews(prev => [...prev, ...limited.map(file => URL.createObjectURL(file))].slice(0, 5))
   }
 
   function removeScreenshot(i: number) {
@@ -447,7 +436,9 @@ export function BulkImportModal({ onClose, onImported, collections, initialFiles
   }
 
   async function handleFiles(inputFiles: File[], autoAnalyzeSharedFile = false) {
-    const files = inputFiles.slice(0, 10)
+    const files = (inputFiles[0]?.type.startsWith('image/') || /\.(png|jpe?g|webp|gif|bmp|heic)$/i.test(inputFiles[0]?.name || ''))
+      ? inputFiles.slice(0, 5)
+      : inputFiles.slice(0, 1)
     const file = files[0]
     if (!file) return
     setSelectedFiles(files)
@@ -467,13 +458,18 @@ export function BulkImportModal({ onClose, onImported, collections, initialFiles
     setFileName(file.name)
     try {
       const extension = file.name.split('.').pop()?.toLowerCase()
-      const extracted = extension === 'xlsx' || extension === 'xls'
-        ? await extractUrlsFromExcel(file)
-          : extension === 'pdf'
-            ? await extractUrlsFromPdf(file)
-            : extension === 'html' || extension === 'htm'
-              ? extractUrlsFromHtml(await file.text())
-            : extension === 'csv'
+      const supportedExtensions = new Set(['html', 'htm', 'csv', 'pdf', 'txt'])
+      const isImage = file.type.startsWith('image/') || /\.(png|jpe?g|webp|gif|bmp|heic)$/i.test(file.name)
+      if (!supportedExtensions.has(extension || '') && !isImage) {
+        setFileUrls([])
+        toast.error('Unsupported file type. Use CSV, HTML, PDF, text, or an image.')
+        return
+      }
+      const extracted = extension === 'pdf'
+        ? await extractUrlsFromPdf(file)
+        : extension === 'html' || extension === 'htm'
+          ? extractUrlsFromHtml(await file.text())
+          : extension === 'csv'
             ? extractUrlsFromCsv(await file.text())
             : extractUrlsFromText(await file.text())
       setFileUrls(extracted)
@@ -575,7 +571,7 @@ export function BulkImportModal({ onClose, onImported, collections, initialFiles
                 <span className="block text-[18px] font-bold" style={{ color: 'var(--color-text-primary)' }}>
                   {isScreenshotReview ? `Review ${extracted!.length} links` : 'Upload files to extract'}
                 </span>
-                {!isScreenshotReview && <span className="mt-1 block text-xs" style={{ color: 'var(--color-text-muted)' }}>Supports bookmarks, spreadsheets, PDFs, text files, and images.</span>}
+                {!isScreenshotReview && <span className="mt-1 block text-xs" style={{ color: 'var(--color-text-muted)' }}>Supports bookmarks, PDFs, CSV, text files, and images.</span>}
               </div>
             </div>
             <motion.button
@@ -663,7 +659,7 @@ export function BulkImportModal({ onClose, onImported, collections, initialFiles
               {/* Screenshots tab */}
               {tab === 'screenshots' && !isScreenshotReview && !extracting && (
                 <div className="flex flex-col gap-3">
-                  <AnimatedFileUpload files={screenshots} accept="image/*" title="Drop screenshots here" subtitle="or click to browse · PNG, JPG, WEBP · up to 10 files" processing={extracting} onFilesSelected={handleScreenshotFiles} onRemove={removeScreenshot} />
+                  <AnimatedFileUpload files={screenshots} accept="image/*" title="Drop screenshots here" subtitle="or click to browse · PNG, JPG, WEBP · up to 5 images" processing={extracting} onFilesSelected={handleScreenshotFiles} onRemove={removeScreenshot} />
                   <div className="flex items-center justify-end gap-3 pt-1">
                     <motion.button
                       onClick={() => void handleExtract()}
@@ -819,7 +815,7 @@ export function BulkImportModal({ onClose, onImported, collections, initialFiles
                       <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>{fileName ? 'Click to choose different files' : 'or click to browse'}</p>
                     </div>
                   </button>
-                  <input ref={fileRef} type="file" accept=".html,.htm,.csv,.xlsx,.xls,.pdf,.txt,image/*" multiple className="hidden" onChange={handleFile} />
+                  <input ref={fileRef} type="file" accept=".html,.htm,.csv,.pdf,.txt,image/*" className="hidden" onChange={handleFile} />
                   {selectedFiles.length > 0 && (
                     <div className="mt-2 space-y-2" aria-label="Selected files">
                       {selectedFiles.map((selectedFile, index) => (

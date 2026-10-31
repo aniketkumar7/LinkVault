@@ -80,7 +80,7 @@ router.get('/shared/:slug', async (req, res) => {
 
         const { data: collection, error: colError } = await supabase
             .from('collections')
-            .select('*')
+            .select('id, created_at, name, description, color, is_public, share_slug')
             .eq('share_slug', slug)
             .eq('is_public', true)
             .single();
@@ -91,7 +91,7 @@ router.get('/shared/:slug', async (req, res) => {
 
         const { data: links, error: linksError } = await supabase
             .from('useful_links')
-            .select('id, url, title, description, image_url, favicon_url, note, category, tags, created_at')
+            .select('id, url, title, description, image_url, favicon_url, note, category, created_at')
             .eq('collection_id', collection.id)
             .order('created_at', { ascending: false });
 
@@ -150,6 +150,8 @@ router.post('/', async (req, res) => {
         if (!name?.trim()) {
             return res.status(400).json({ error: 'Name is required' });
         }
+        if (typeof name !== 'string' || name.length > 120) return res.status(400).json({ error: 'Collection name is too long' });
+        if (description !== undefined && (typeof description !== 'string' || description.length > 2000)) return res.status(400).json({ error: 'Description is too long' });
 
         const normalizedName = name.trim();
         const { data: duplicate } = await supabase
@@ -192,6 +194,7 @@ router.patch('/:id', async (req, res) => {
 
         const updates = {};
         if (name !== undefined) {
+            if (typeof name !== 'string' || name.length > 120) return res.status(400).json({ error: 'Collection name is too long' });
             const normalizedName = name.trim();
             if (!normalizedName) return res.status(400).json({ error: 'Name is required' });
             const { data: duplicate } = await supabase
@@ -204,7 +207,10 @@ router.patch('/:id', async (req, res) => {
             if (duplicate) return res.status(409).json({ error: 'A collection with this name already exists' });
             updates.name = normalizedName;
         }
-        if (description !== undefined) updates.description = description?.trim() || null;
+        if (description !== undefined) {
+            if (typeof description !== 'string' || description.length > 2000) return res.status(400).json({ error: 'Description is too long' });
+            updates.description = description.trim() || null;
+        }
         if (color !== undefined) updates.color = color;
 
         const { data: previous } = await supabase

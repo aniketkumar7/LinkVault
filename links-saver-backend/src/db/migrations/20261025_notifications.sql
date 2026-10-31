@@ -24,8 +24,21 @@ CREATE INDEX IF NOT EXISTS idx_notifications_created_at
 ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
 GRANT ALL ON public.notifications TO service_role;
 
+DROP POLICY IF EXISTS "Users can read own notifications" ON public.notifications;
+CREATE POLICY "Users can read own notifications" ON public.notifications FOR SELECT USING (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Users can insert own notifications" ON public.notifications;
+CREATE POLICY "Users can insert own notifications" ON public.notifications FOR INSERT WITH CHECK (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Users can update own notifications" ON public.notifications;
+CREATE POLICY "Users can update own notifications" ON public.notifications FOR UPDATE USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Users can delete own notifications" ON public.notifications;
+CREATE POLICY "Users can delete own notifications" ON public.notifications FOR DELETE USING (auth.uid() = user_id);
+
 -- Supabase Cron (pg_cron) removes notifications at 7 days, whether read or not.
 CREATE EXTENSION IF NOT EXISTS pg_cron;
+SELECT cron.unschedule('bookmarky-notification-retention')
+WHERE EXISTS (
+    SELECT 1 FROM cron.job WHERE jobname = 'bookmarky-notification-retention'
+);
 SELECT cron.schedule(
     'bookmarky-notification-retention',
     '15 3 * * *',
