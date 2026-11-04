@@ -327,19 +327,7 @@ export const api = {
     return notification
   },
 
-  async recordProfileUpdate(): Promise<void> {
-    const headers = await getAuthHeaders()
-    const res = await fetch(`${API_URL}/api/notifications/profile-update`, { method: 'POST', headers })
-    if (!res.ok) throw new Error((await res.json()).error || 'Failed to record profile update')
-    announceNotificationUpdate()
-  },
 
-  async recordPasswordUpdate(): Promise<void> {
-    const headers = await getAuthHeaders()
-    const res = await fetch(`${API_URL}/api/notifications/password-update`, { method: 'POST', headers })
-    if (!res.ok) throw new Error((await res.json()).error || 'Failed to record password update')
-    announceNotificationUpdate()
-  },
 
   async markNotificationRead(id: string): Promise<void> {
     const headers = await getAuthHeaders()

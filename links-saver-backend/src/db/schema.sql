@@ -78,7 +78,7 @@ CREATE POLICY "Users can delete own links"
 DROP POLICY IF EXISTS "Users can read own collections" ON public.collections;
 CREATE POLICY "Users can read own collections"
     ON public.collections FOR SELECT
-    USING (auth.uid() = user_id OR is_public = true);
+    USING (auth.uid() = user_id); -- public collections are served by the backend only
 
 DROP POLICY IF EXISTS "Users can insert own collections" ON public.collections;
 CREATE POLICY "Users can insert own collections"
@@ -99,7 +99,6 @@ CREATE POLICY "Users can delete own collections"
 -- Grant access
 GRANT ALL ON public.useful_links TO authenticated;
 GRANT ALL ON public.collections TO authenticated;
-GRANT SELECT ON public.collections TO anon; -- For public shared collections
 
 -- Migration: Add new columns if table already exists
 DO $$ 
@@ -143,3 +142,5 @@ CREATE TRIGGER update_useful_links_updated_at
     BEFORE UPDATE ON public.useful_links
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();
+
+-- Then apply migrations/ in date order (incl. 20261104_security_hardening.sql).

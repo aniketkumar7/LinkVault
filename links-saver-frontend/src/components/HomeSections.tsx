@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { CaretLeft, CaretRight } from '@phosphor-icons/react'
 import { useDeleteWithUndo, useLinks, useToggleFavorite } from '@/hooks/useLinks'
 import type { Collection, Link } from '@/lib/api'
+import { safeHref } from '@/lib/url'
 import { SkeletonGrid } from '@/components/ui/Skeleton'
 import { LinkCard } from './LinkCard'
 
@@ -47,7 +48,7 @@ function RecentCard({ link }: { link: Link }) {
 
   return (
     <a
-      href={link.url}
+      href={safeHref(link.url)}
       target="_blank"
       rel="noopener noreferrer"
       className="group flex w-64 shrink-0 snap-start items-center gap-3 rounded-2xl border p-2.5 pr-3.5 transition-colors duration-200 hover:border-[var(--color-border-hover)] hover:bg-[var(--color-bg-hover)]"

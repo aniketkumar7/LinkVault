@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import type { User } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
-import { api } from '@/lib/api'
 import { toast } from '@/lib/toast'
 import {
   NAME_MAX,
@@ -34,7 +33,6 @@ function ProfileForm({ user, onSaved }: { user: User | null; onSaved: () => void
     try {
       const { error } = await supabase.auth.updateUser({ data: profileMetadata(first, last) })
       if (error) throw error
-      void api.recordProfileUpdate().catch(() => {})
       toast.success('Profile updated')
       onSaved()
     } catch (error) {

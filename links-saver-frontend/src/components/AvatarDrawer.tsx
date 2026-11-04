@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { Check } from '@phosphor-icons/react'
 import { supabase } from '@/lib/supabase'
-import { api } from '@/lib/api'
 import { toast } from '@/lib/toast'
 import { AVATAR_ACCESSORIES, AVATAR_DEFAULT_FUR, AVATAR_EYES, AVATAR_FUR_COLORS, AVATAR_MOUTHS, PROFILE_AVATARS, profileAvatarConfig, profileMetadata, type ProfileAvatarConfig } from '@/lib/profile'
 import { Drawer } from './ui/Drawer'
@@ -21,7 +20,6 @@ export function AvatarDrawer({ open, onClose, onBack, user }: { open: boolean; o
     try {
       const { error } = await supabase.auth.updateUser({ data: profileMetadata(first, last, avatar) })
       if (error) throw error
-      void api.recordProfileUpdate().catch(() => {})
       toast.success('Avatar updated')
       onClose()
     } catch { toast.error('Could not update avatar') } finally { setSaving(false) }

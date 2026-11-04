@@ -1,8 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const { supabase } = require('../config/supabase');
-const { recordNotification } = require('../utils/notifications');
 const crypto = require('crypto');
+const { escapeLike, isHexColor } = require('../utils/validation');
 
 const DEFAULT_COLLECTIONS = [
     { name: 'Design', color: '#E05C50' },
@@ -28,7 +28,7 @@ router.get('/', async (req, res) => {
                 .from('collections')
                 .select('*, useful_links(count)')
                 .eq('user_id', req.user.id)
-                .ilike('name', `%${search}%`)
+                .ilike('name', `%${escapeLike(search)}%`)
                 .order('created_at', { ascending: false });
             data = result.data;
             error = result.error;
@@ -91,7 +91,8 @@ router.get('/shared/:slug', async (req, res) => {
 
         const { data: links, error: linksError } = await supabase
             .from('useful_links')
-            .select('id, url, title, description, image_url, favicon_url, note, category, created_at')
+            // Notes are private to the owner; never expose them on the public page
+            .select('id, url, title, description, image_url, favicon_url, category, created_at')
             .eq('collection_id', collection.id)
             .order('created_at', { ascending: false });
 
@@ -158,7 +159,7 @@ router.post('/', async (req, res) => {
             .from('collections')
             .select('id')
             .eq('user_id', req.user.id)
-            .ilike('name', normalizedName)
+            .ilike('name', escapeLike(normalizedName))
             .maybeSingle();
         if (duplicate) return res.status(409).json({ error: 'A collection with this name already exists' });
 
@@ -168,14 +169,13 @@ router.post('/', async (req, res) => {
                 user_id: req.user.id,
                 name: normalizedName,
                 description: description?.trim() || null,
-                color: color || '#f97316'
+                color: isHexColor(color) ? color : '#f5cb5c'
             }])
             .select()
             .single();
 
         if (error) throw error;
 
-        await recordNotification(req.user.id, 'collection_created', 'Collection created', data.name);
         res.status(201).json({ collection: data });
     } catch (error) {
         console.error('Error creating collection:', error);
@@ -202,7 +202,7 @@ router.patch('/:id', async (req, res) => {
                 .select('id')
                 .eq('user_id', req.user.id)
                 .neq('id', id)
-                .ilike('name', normalizedName)
+                .ilike('name', escapeLike(normalizedName))
                 .maybeSingle();
             if (duplicate) return res.status(409).json({ error: 'A collection with this name already exists' });
             updates.name = normalizedName;
@@ -211,14 +211,10 @@ router.patch('/:id', async (req, res) => {
             if (typeof description !== 'string' || description.length > 2000) return res.status(400).json({ error: 'Description is too long' });
             updates.description = description.trim() || null;
         }
-        if (color !== undefined) updates.color = color;
-
-        const { data: previous } = await supabase
-            .from('collections')
-            .select('name, description, color')
-            .eq('id', id)
-            .eq('user_id', req.user.id)
-            .maybeSingle();
+        if (color !== undefined) {
+            if (!isHexColor(color)) return res.status(400).json({ error: 'Color must be a hex value like #f5cb5c' });
+            updates.color = color;
+        }
 
         const { data, error } = await supabase
             .from('collections')
@@ -230,8 +226,6 @@ router.patch('/:id', async (req, res) => {
 
         if (error) throw error;
 
-        const changed = previous && Object.keys(updates).some(field => data[field] !== previous[field]);
-        if (changed) await recordNotification(req.user.id, 'collection_edited', 'Collection updated', data.name);
         res.json({ collection: data });
     } catch (error) {
         console.error('Error updating collection:', error);
@@ -263,7 +257,6 @@ router.post('/:id/share', async (req, res) => {
 
         if (error) throw error;
 
-        await recordNotification(req.user.id, 'collection_shared', 'Collection shared', data.name);
         res.json({ 
             collection: data,
             shareUrl: `/shared/${slug}`
@@ -295,7 +288,6 @@ router.delete('/:id/share', async (req, res) => {
 
         if (error) throw error;
 
-        await recordNotification(req.user.id, 'collection_unshared', 'Sharing stopped', data.name);
         res.json({ collection: data });
     } catch (error) {
         console.error('Error revoking share:', error);
@@ -309,12 +301,6 @@ router.patch('/:id/pin', async (req, res) => {
         if (findError || !current) return res.status(404).json({ error: 'Collection not found' });
         const { data, error } = await supabase.from('collections').update({ is_pinned: !current.is_pinned }).eq('id', req.params.id).eq('user_id', req.user.id).select().single();
         if (error) throw error;
-        await recordNotification(
-            req.user.id,
-            data.is_pinned ? 'collection_pinned' : 'collection_unpinned',
-            data.is_pinned ? 'Collection pinned' : 'Collection unpinned',
-            data.name,
-        );
         res.json({ collection: data });
     } catch (error) {
         console.error('Error toggling collection pin:', error);
@@ -329,18 +315,6 @@ router.patch('/:id/pin', async (req, res) => {
 router.delete('/:id', async (req, res) => {
     try {
         const { id } = req.params;
-
-        const { data: collection } = await supabase
-            .from('collections')
-            .select('name')
-            .eq('id', id)
-            .eq('user_id', req.user.id)
-            .maybeSingle();
-        const { count: linkCount } = await supabase
-            .from('useful_links')
-            .select('id', { count: 'exact', head: true })
-            .eq('collection_id', id)
-            .eq('user_id', req.user.id);
 
         const { error: linksError } = await supabase
             .from('useful_links')
@@ -358,10 +332,6 @@ router.delete('/:id', async (req, res) => {
 
         if (error) throw error;
 
-        if (collection) {
-            const details = linkCount ? `${collection.name} and ${linkCount} saved link${linkCount === 1 ? '' : 's'}` : collection.name;
-            await recordNotification(req.user.id, 'collection_deleted', 'Collection deleted', details);
-        }
         res.json({ message: 'Collection deleted successfully' });
     } catch (error) {
         console.error('Error deleting collection:', error);

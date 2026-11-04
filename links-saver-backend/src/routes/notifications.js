@@ -1,6 +1,6 @@
 const express = require('express');
 const { supabase } = require('../config/supabase');
-const { recordNotification } = require('../utils/notifications');
+const { rateLimit } = require('../middleware/rateLimit');
 
 const router = express.Router();
 const RETENTION_DAYS = 7;
@@ -9,17 +9,21 @@ function expiryCutoff() {
     return new Date(Date.now() - RETENTION_DAYS * 24 * 60 * 60 * 1000).toISOString();
 }
 
-async function removeExpiredNotifications() {
-    const { error } = await supabase
-        .from('notifications')
-        .delete()
-        .lt('created_at', expiryCutoff());
-    if (error) throw error;
-}
+// Expired rows are hidden by the created_at filter and purged nightly by pg_cron.
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const isUuid = value => typeof value === 'string' && UUID.test(value);
+
+// Import results are client-reported: cap per user so they can't be looped to bloat the table
+const reportLimit = rateLimit({ windowMs: 60 * 1000, max: 10, message: 'Too many activity updates. Try again shortly.' });
+
+router.param('id', (req, res, next, id) => {
+    if (!isUuid(id)) return res.status(404).json({ error: 'Notification not found' });
+    next();
+});
 
 router.get('/', async (req, res) => {
     try {
-        await removeExpiredNotifications();
         const { data, error } = await supabase
             .from('notifications')
             .select('id, type, title, message, created_at, read_at')
@@ -36,7 +40,7 @@ router.get('/', async (req, res) => {
     }
 });
 
-router.post('/import', async (req, res) => {
+router.post('/import', reportLimit, async (req, res) => {
     try {
         const { saved, failed = 0, duplicates = 0 } = req.body;
         const counts = [saved, failed, duplicates];
@@ -74,26 +78,6 @@ router.post('/import', async (req, res) => {
     }
 });
 
-router.post('/profile-update', async (req, res) => {
-    try {
-        await recordNotification(req.user.id, 'profile_updated', 'Profile updated', 'Your name or avatar was changed.');
-        res.status(201).json({ success: true });
-    } catch (error) {
-        console.error('Error recording profile update:', error);
-        res.status(500).json({ error: 'Failed to record profile update' });
-    }
-});
-
-router.post('/password-update', async (req, res) => {
-    try {
-        await recordNotification(req.user.id, 'password_updated', 'Password changed', 'Your account password was updated.');
-        res.status(201).json({ success: true });
-    } catch (error) {
-        console.error('Error recording password update:', error);
-        res.status(500).json({ error: 'Failed to record password update' });
-    }
-});
-
 router.patch('/read-all', async (req, res) => {
     try {
         const { error } = await supabase
@@ -113,7 +97,7 @@ router.patch('/read-all', async (req, res) => {
 router.patch('/restore', async (req, res) => {
     try {
         const { ids } = req.body;
-        if (!Array.isArray(ids) || ids.length > 500 || ids.some(id => typeof id !== 'string')) {
+        if (!Array.isArray(ids) || ids.length > 500 || !ids.every(isUuid)) {
             return res.status(400).json({ error: 'A list of up to 500 notification ids is required' });
         }
         if (!ids.length) return res.json({ restored: [] });

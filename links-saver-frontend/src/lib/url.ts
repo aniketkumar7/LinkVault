@@ -9,3 +9,13 @@ export function normalizeUrl(value: string): string {
   url.pathname = url.pathname.replace(/\/$/, '') || '/'
   return url.toString()
 }
+
+/** Only http(s) URLs are ever rendered as links; anything else (javascript:, data:) becomes inert. */
+export function safeHref(value: string): string {
+  try {
+    const url = new URL(value)
+    return url.protocol === 'http:' || url.protocol === 'https:' ? url.href : '#'
+  } catch {
+    return '#'
+  }
+}

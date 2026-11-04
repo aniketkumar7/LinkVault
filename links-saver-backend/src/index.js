@@ -16,11 +16,11 @@ const app = express();
 app.set('trust proxy', 1);
 
 // Middleware
-// In src/index.js - replace lines 12-17 with:
-app.use(cors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:5173',
-    credentials: true
-}));
+if (process.env.NODE_ENV === 'production' && !process.env.FRONTEND_URL) {
+    throw new Error('FRONTEND_URL must be set in production');
+}
+// Auth is a Bearer token, not cookies, so credentials aren't needed
+app.use(cors({ origin: process.env.FRONTEND_URL || 'http://localhost:5173' }));
 app.use(helmet());
 app.use(express.json({ limit: '2mb' }));
 app.use('/api', rateLimit({ windowMs: 60 * 1000, max: 300 }));
@@ -37,7 +37,11 @@ app.get('/', (req, res) => {
 // Protected routes
 app.use('/api/links', authMiddleware, linksRouter);
 app.use('/api/collections', authMiddleware, collectionsRouter);
-app.use('/api/screenshots', authMiddleware, rateLimit({ windowMs: 60 * 60 * 1000, max: 20 }), screenshotsRouter);
+// Screenshot extraction calls Gemini (paid): per-user hourly + daily caps, after auth so they key on user id
+app.use('/api/screenshots', authMiddleware,
+    rateLimit({ windowMs: 60 * 60 * 1000, max: 20, message: 'Screenshot limit reached. Try again in an hour.' }),
+    rateLimit({ windowMs: 24 * 60 * 60 * 1000, max: 60, message: 'Daily screenshot limit reached. Try again tomorrow.' }),
+    screenshotsRouter);
 app.use('/api/notifications', authMiddleware, notificationsRouter);
 
 // Public routes (shared collections)

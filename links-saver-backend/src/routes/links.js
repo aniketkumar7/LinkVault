@@ -2,9 +2,8 @@ const express = require('express');
 const router = express.Router();
 const { supabase } = require('../config/supabase');
 const { fetchMetadata } = require('../utils/metadataFetcher');
-const { recordNotification } = require('../utils/notifications');
 const { validateLinkInput, normalizeUrl } = require('../utils/validation');
-const { assertSafeHttpUrl } = require('../utils/safeUrl');
+const { safeFetch } = require('../utils/safeUrl');
 
 async function ownsCollection(collectionId, userId) {
     if (!collectionId) return true;
@@ -162,7 +161,11 @@ router.get('/export', async (req, res) => {
                 ...data.map(link => headers.map(h => {
                     let val = link[h];
                     if (Array.isArray(val)) val = val.join(';');
-                    if (typeof val === 'string') val = `"${val.replace(/"/g, '""')}"`;
+                    if (typeof val === 'string') {
+                        // Neutralise spreadsheet formulas (scraped titles are attacker-controlled)
+                        if (/^[=+\-@\t\r]/.test(val)) val = `'${val}`;
+                        val = `"${val.replace(/"/g, '""')}"`;
+                    }
                     return val ?? '';
                 }).join(','))
             ].join('\n');
@@ -241,7 +244,6 @@ router.post('/', async (req, res) => {
         if (error) throw error;
 
         console.log(`✅ Link saved: ${data.id}`);
-        await recordNotification(req.user.id, 'link_added', 'Link saved', data.title || new URL(normalizedUrl).hostname);
         res.status(201).json({ link: data });
         fetchMetadata(normalizedUrl).then(async metadata => {
             await supabase.from('useful_links').update({
@@ -408,17 +410,13 @@ router.post('/:id/check-health', async (req, res) => {
         let statusCode = null;
 
         try {
-            await assertSafeHttpUrl(link.url);
-            const response = await fetch(link.url, {
-                method: 'HEAD',
-                redirect: 'manual',
-                signal: AbortSignal.timeout(10000),
-                headers: {
-                    'User-Agent': 'Mozilla/5.0 (compatible; ReelsLinksSaver/1.0)'
-                }
-            });
+            let response = await safeFetch(link.url, { method: 'HEAD', timeoutMs: 10000 });
+            // Some servers reject HEAD; confirm with a tiny GET
+            if (response.status === 405 || response.status === 501) {
+                response = await safeFetch(link.url, { timeoutMs: 10000, maxBytes: 1024 });
+            }
             statusCode = response.status;
-            isAlive = response.ok;
+            isAlive = response.status < 400;
         } catch {
             isAlive = false;
         }
@@ -447,6 +445,8 @@ router.patch('/:id', async (req, res) => {
 
         const updates = {};
         if (url !== undefined) {
+            const validation = validateLinkInput({ url });
+            if (!validation.valid) return res.status(400).json({ error: validation.error });
             const normalizedUrl = normalizeUrl(url);
             if (!normalizedUrl) return res.status(400).json({ error: 'Valid URL is required' });
             const { data: duplicate } = await supabase
@@ -459,17 +459,16 @@ router.patch('/:id', async (req, res) => {
             if (duplicate) return res.status(409).json({ error: 'This link already exists in your saved links' });
             updates.url = normalizedUrl;
         }
-        if (note !== undefined) updates.note = note.trim();
-        if (is_favorite !== undefined) updates.is_favorite = is_favorite;
+        if (note !== undefined) {
+            if (typeof note !== 'string' || note.length > 5000) return res.status(400).json({ error: 'Note must be text up to 5000 characters' });
+            updates.note = note.trim();
+        }
+        if (is_favorite !== undefined) {
+            if (typeof is_favorite !== 'boolean') return res.status(400).json({ error: 'is_favorite must be true or false' });
+            updates.is_favorite = is_favorite;
+        }
         if (collection_id !== undefined) updates.collection_id = collection_id || null;
         if (collection_id && !(await ownsCollection(collection_id, req.user.id))) return res.status(400).json({ error: 'Collection not found' });
-
-        const { data: previous } = await supabase
-            .from('useful_links')
-            .select('url, title, note, is_favorite, collection_id')
-            .eq('id', id)
-            .eq('user_id', req.user.id)
-            .maybeSingle();
 
         const { data, error } = await supabase
             .from('useful_links')
@@ -481,14 +480,6 @@ router.patch('/:id', async (req, res) => {
 
         if (error) throw error;
 
-        const changed = previous && Object.keys(updates).some(field => data[field] !== previous[field]);
-        if (changed) {
-            let label = data.title;
-            if (!label) {
-                try { label = new URL(data.url).hostname; } catch { label = 'Saved link'; }
-            }
-            await recordNotification(req.user.id, 'link_edited', 'Link updated', label);
-        }
         res.json({ link: data });
     } catch (error) {
         console.error('Error updating link:', error);
@@ -527,16 +518,6 @@ router.patch('/:id/favorite', async (req, res) => {
 
         if (error) throw error;
 
-        let label = data.title;
-        if (!label) {
-            try { label = new URL(data.url).hostname; } catch { label = 'Saved link'; }
-        }
-        await recordNotification(
-            req.user.id,
-            data.is_favorite ? 'link_favorited' : 'link_unfavorited',
-            data.is_favorite ? 'Added to favorites' : 'Removed from favorites',
-            label,
-        );
         res.json({ link: data });
     } catch (error) {
         console.error('Error toggling favorite:', error);
@@ -552,13 +533,6 @@ router.delete('/:id', async (req, res) => {
     try {
         const { id } = req.params;
 
-        const { data: link } = await supabase
-            .from('useful_links')
-            .select('url, title')
-            .eq('id', id)
-            .eq('user_id', req.user.id)
-            .maybeSingle();
-
         const { error } = await supabase
             .from('useful_links')
             .delete()
@@ -566,14 +540,6 @@ router.delete('/:id', async (req, res) => {
             .eq('user_id', req.user.id);
 
         if (error) throw error;
-
-        if (link) {
-            let label = link.title;
-            if (!label) {
-                try { label = new URL(link.url).hostname; } catch { label = 'Saved link'; }
-            }
-            await recordNotification(req.user.id, 'link_deleted', 'Link deleted', label);
-        }
 
         res.json({ message: 'Link deleted successfully' });
     } catch (error) {

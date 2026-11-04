@@ -1,5 +1,5 @@
 const ogs = require('open-graph-scraper');
-const { assertSafeHttpUrl } = require('./safeUrl');
+const { safeFetch } = require('./safeUrl');
 
 /**
  * Fetch metadata from a URL using open-graph-scraper
@@ -7,26 +7,18 @@ const { assertSafeHttpUrl } = require('./safeUrl');
  */
 async function fetchMetadata(url) {
     try {
-        await assertSafeHttpUrl(url);
-        const options = {
-            url,
-            timeout: 8000,
-            fetchOptions: {
-                redirect: 'manual',
-                headers: {
-                    'user-agent': 'Mozilla/5.0 (compatible; ReelsLinksSaver/1.0)'
-                }
-            }
-        };
+        // Fetch ourselves (SSRF-safe, size-capped, redirects re-validated); OGS only parses the HTML
+        const page = await safeFetch(url);
+        if (!page.ok) return getFallbackMetadata(url);
 
-        const { result, error } = await ogs(options);
+        const { result, error } = await ogs({ html: page.body });
 
         if (error) {
             console.warn(`OGS error for ${url}:`, error);
             return getFallbackMetadata(url);
         }
 
-        const origin = new URL(url).origin;
+        const origin = new URL(page.url).origin;
         const resolve = (u) => {
             if (!u) return null;
             try {

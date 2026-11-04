@@ -21,6 +21,8 @@ function normalizeUrl(value) {
     } catch {
         return '';
     }
+    // Only web links: blocks javascript:, data:, file: etc. from ever being stored/rendered
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') return '';
     url.protocol = url.protocol.toLowerCase();
     url.hostname = url.hostname.toLowerCase();
     if ((url.protocol === 'https:' && url.port === '443') || (url.protocol === 'http:' && url.port === '80')) {
@@ -58,7 +60,15 @@ function validateLinkInput({ url, note }) {
     return { valid: true };
 }
 
+const HEX_COLOR = /^#[0-9a-f]{6}$/i;
+const isHexColor = value => typeof value === 'string' && HEX_COLOR.test(value);
+
+/** Escape LIKE/ILIKE wildcards so user text matches literally. */
+const escapeLike = value => String(value).replace(/[\\%_]/g, '\\$&');
+
 module.exports = {
+    isHexColor,
+    escapeLike,
     isValidUrl,
     normalizeUrl,
     validateLinkInput
